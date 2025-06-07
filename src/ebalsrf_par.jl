@@ -37,7 +37,7 @@ function ebalsrf(fsm::FSM, meteo::MET)
 
   @unpack LW, Ps, Qa, Ta = meteo
 
-  for j = 1:Ny
+  Threads.@threads for j = 1:Ny
     for i = 1:Nx
 
       if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest

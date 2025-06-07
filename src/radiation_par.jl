@@ -27,7 +27,7 @@ function radiation(fsm::FSM, meteo::MET, t)
   @unpack LW, Sdif, Sdir, Sf, Sf24h, Ta, Tv = meteo
   
   # Snow albedo
-  for j = 1:Ny
+  Threads.@threads for j = 1:Ny
     for i = 1:Nx
 
       if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
@@ -133,7 +133,7 @@ function radiation(fsm::FSM, meteo::MET, t)
   end
 
   # Surface and canopy net shortwave radiation
-  for j = 1:Ny
+  Threads.@threads for j = 1:Ny
     for i = 1:Nx
       if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
 

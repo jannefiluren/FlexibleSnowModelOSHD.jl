@@ -56,7 +56,7 @@ function snow(fsm::FSM, meteo::MET)
   W .= 0
 
   # Points with existing snowpack
-  for j = 1:Ny
+  Threads.@threads for j = 1:Ny
     for i = 1:Nx
 
       if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
@@ -316,7 +316,7 @@ function snow(fsm::FSM, meteo::MET)
 
 
   # Add snow, recalculate layers
-  for j = 1:Ny
+  Threads.@threads for j = 1:Ny
     for i = 1:Nx
 
       if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest

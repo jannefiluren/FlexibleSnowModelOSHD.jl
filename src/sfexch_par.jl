@@ -30,7 +30,7 @@ function sfexch(fsm::FSM, meteo::MET)
 
   @unpack Ta, Ps, Qa, Ua = meteo
   
-  for j = 1:Ny
+  Threads.@threads for j = 1:Ny
     for i = 1:Nx
       if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
 

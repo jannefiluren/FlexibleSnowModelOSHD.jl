@@ -24,7 +24,7 @@ function thermal(fsm::FSM)
   @unpack ksnow, csoil, ksoil, gs1, Ds1, Ts1, ks1, Tveg0 = fsm
 
   # Thermal conductivity of snow
-  for j = 1:Ny
+  Threads.@threads for j = 1:Ny
     for i = 1:Nx
 
       if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
@@ -50,7 +50,7 @@ function thermal(fsm::FSM)
 
   # Heat capacity and thermal conductivity of soil
   dPsidT = -rho_ice * Lf / (rho_wat * grav * Tm)
-  for j = 1:Ny
+  Threads.@threads for j = 1:Ny
     for i = 1:Nx
 
       if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
@@ -117,7 +117,7 @@ function thermal(fsm::FSM)
 
 
   # Surface layer
-  for j = 1:Ny
+  Threads.@threads for j = 1:Ny
     for i = 1:Nx
 
       if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
