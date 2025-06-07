@@ -6,7 +6,7 @@
 # KWv = zeros(Nx, Ny)
 # Usc = zeros(Nx, Ny)
 
-function sfexch(fsm::FSM, meteo::MET)
+function sfexch_par(fsm::FSM, meteo::MET)
 
   @unpack CANMOD, ZOFFST, EXCHNG, OSHDTN, SNFRAC = fsm
 

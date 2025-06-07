@@ -1,4 +1,4 @@
-function soil(fsm::FSM)
+function soil_par(fsm::FSM)
 
   @unpack TILE, tthresh = fsm
 

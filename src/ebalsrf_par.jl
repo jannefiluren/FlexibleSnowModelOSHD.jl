@@ -11,7 +11,7 @@
 # Rnet = zeros(Nx,Ny)
 # Rsrf = zeros(Nx,Ny)
 
-function ebalsrf(fsm::FSM, meteo::MET)
+function ebalsrf_par(fsm::FSM, meteo::MET)
 
   @unpack CANMOD = fsm
 

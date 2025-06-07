@@ -7,7 +7,7 @@
 # ks1 = zeros(Nx, Ny)
 # Tveg0 = zeros(Nx, Ny)
 
-function thermal(fsm::FSM)
+function thermal_par(fsm::FSM)
 
   @unpack Dzsoil, Nsmax, Nsoil, Nx, Ny = fsm
 
