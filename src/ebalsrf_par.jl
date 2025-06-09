@@ -31,7 +31,7 @@ function ebalsrf_par(fsm::FSM, meteo::MET)
 
   @unpack Ds1, Ts1, ks1 = fsm
 
-  @unpack dTs, Esrf, Eveg, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Rnet, Rsrf, Ssub = fsm
+  @unpack dTs, Esrf, Eveg, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Rnet, Rsrf = fsm
 
   @unpack KH, KWg = fsm
 
@@ -76,11 +76,12 @@ function ebalsrf_par(fsm::FSM, meteo::MET)
 
           # Surface melting
           if (Tsrf[i, j] + dTs[i, j] > Tm && Sice[1, i, j] > eps(Float64))
-            Melt[i, j] = 0.0
-            for si in 1:size(Sice, 1)
-              Melt[i, j] += Sice[si, i, j]
-            end
-            Melt[i, j] /= dt
+            # Melt[i, j] = 0.0
+            # for si in 1:size(Sice, 1)
+            #   Melt[i, j] += Sice[si, i, j]
+            # end
+            # Melt[i, j] /= dt
+            Melt[i, j] = sum(@view Sice[:, i, j]) / dt
             dTs[i, j] = (Rnet[i, j] - G[i, j] - H[i, j] - LE[i, j] - Lf * Melt[i, j]) / (4 * sb * Tsrf[i, j]^3 + 2 * ks1[i, j] / Ds1[i, j] + rho * (cp * KH[i, j] + Ls * D * KWg[i, j]))
             dE = rho * KWg[i, j] * D * dTs[i, j]
             dG = 2 * ks1[i, j] * dTs[i, j] / Ds1[i, j]
@@ -133,10 +134,11 @@ function ebalsrf_par(fsm::FSM, meteo::MET)
           Tsrf[i, j] = Tsrf[i, j] + dTs[i, j]
 
           # Sublimation limited by amount of snow after melt
-          Ssub = 0.0
-          for si in 1:size(Sice, 1)
-            Ssub += Sice[si, i, j]
-          end
+          # Ssub = 0.0
+          # for si in 1:size(Sice, 1)
+          #   Ssub += Sice[si, i, j]
+          # end
+          Ssub = sum(@view Sice[:, i, j])
           Ssub -= Melt[i, j] * dt
           if (Ssub > eps(Float64) && Esrf[i, j] * dt > Ssub)
             Esrf[i, j] = Ssub / dt

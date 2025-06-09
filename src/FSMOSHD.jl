@@ -30,6 +30,6 @@ export qsat, tridiag!
 export radiation, thermal, sfexch, ebalsrf, snow, soil
 export radiation_par, thermal_par, sfexch_par, ebalsrf_par, snow_par, soil_par
 export drive, drive!, drive_grid!
-export run_fsm_point, run_fsm_grid
+export run_fsm_point, run_fsm_grid, run_fsm_grid_par
 
 end # module FSMOSHD

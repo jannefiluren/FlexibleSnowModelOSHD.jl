@@ -24,12 +24,14 @@ function sfexch_par(fsm::FSM, meteo::MET)
 
   @unpack dem, fveg, fves, hcan, tilefrac = fsm
 
-  @unpack KH, KHa, KHg, KHv, KWg, KWv, Usc, sumtmp = fsm
+  @unpack KH, KHa, KHg, KHv, KWg, KWv, Usc, sumtmp_par = fsm
 
   @unpack gs1 = fsm
 
   @unpack Ta, Ps, Qa, Ua = meteo
   
+  sumtmp_par .= dropdims(sum(Ds, dims=1), dims=1)
+
   Threads.@threads for j = 1:Ny
     for i = 1:Nx
       if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
@@ -67,12 +69,12 @@ function sfexch_par(fsm::FSM, meteo::MET)
         # BC, stabilize the tuning point runs by using a Ds threshold instead of fsnow.
         # TODO: test the impact for the grid points.
         if (SNFRAC == 3)
-          sumtmp = 0.0
-          for si in 1:size(Ds, 1)
-            sumtmp += Ds[si, i, j]
-          end
+          # sumtmp = 0.0
+          # for si in 1:size(Ds, 1)
+          #   sumtmp += Ds[si, i, j]
+          # end
 
-          if (sumtmp <= 0.05)
+          if (sumtmp_par[i, j] <= 0.05)
             z0g = z0sf[i, j]
           end
         else

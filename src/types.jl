@@ -188,6 +188,7 @@
   KWg::Array{T,2} = zeros(Nx, Ny)
   KWv::Array{T,2} = zeros(Nx, Ny)
   Usc::Array{T,2} = zeros(Nx, Ny)
+  sumtmp_par::Array{T,2} = zeros(Nx, Ny)
   sumtmp::T = zero(T)
 
   # Ebalsrf - temporary arrays

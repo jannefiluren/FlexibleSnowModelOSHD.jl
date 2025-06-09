@@ -141,3 +141,82 @@ function run_fsm_grid(starttime::DateTime=DateTime(2022,09,01,06,00,00), endtime
   end
 
 end
+
+
+
+function run_fsm_grid_par(starttime::DateTime=DateTime(2022,09,01,06,00,00), endtime::DateTime=DateTime(2023,07,01,06,00,00))
+
+  landuse_file_loc = "D:/jim_operational/SOURCE/BAFU_LUS_0250_2023a.mat"
+
+  mkpath("D:/FSM_JULIA_PAR")
+
+  #read landuse from .mat-file
+  landuse_file = matopen(landuse_file_loc)
+  landuse = read(landuse_file, "landuse")
+  close(landuse_file)
+
+  Nx = round(Int, landuse["nrows"])
+  Ny = round(Int, landuse["ncols"])
+
+  fsm = FSM{Float64}(Nx=Nx, Ny=Ny)
+  setup_grid!(fsm, landuse)
+
+  meteo = MET{Float64}(Nx=Nx, Ny=Ny)
+
+  times = collect(starttime:Hour(1):endtime)
+
+  for (istep, t) in enumerate(times)
+
+    @show t
+
+    @time begin
+
+      # Run model
+
+      drive_grid!(meteo, fsm, t)
+
+      radiation_par(fsm, meteo, t)
+
+      thermal_par(fsm)
+
+      for i in 1:fsm.Nitr
+        sfexch_par(fsm, meteo)
+        ebalsrf_par(fsm, meteo)
+      end
+
+      snow(fsm, meteo)
+
+      soil(fsm)
+
+      # Output data
+
+      if hour(t) == 6
+
+        hs = zeros(Float64, fsm.Nx, fsm.Ny)
+        for si in 1:size(fsm.Ds, 1)
+          hs[:,:] .+= fsm.Ds[si, :, :]
+        end
+
+        swe = zeros(Float64, fsm.Nx, fsm.Ny)
+        for ilayer in 1:size(fsm.Sice, 1)
+          swe[:,:] .+= fsm.Sice[ilayer, :, :] + fsm.Sliq[ilayer, :, :]
+        end
+
+        matwrite(joinpath("D:/FSM_JULIA_PAR", Dates.format(t, "yyyymmddHHMM") * "_output.mat"),
+          Dict(
+          "swe" => swe,
+          "hs" => hs,
+          "Nsnow" => fsm.Nsnow
+        ); compress = true)
+        
+      end
+
+    end
+
+  end
+
+end
+
+
+
+
