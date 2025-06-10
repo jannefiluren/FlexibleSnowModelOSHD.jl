@@ -42,7 +42,7 @@ function run_fsm_point(station)
       ebalsrf(fsm, meteo)
     end
 
-    snow(fsm, meteo)
+    snow(fsm, meteo, t)
 
     soil(fsm)
 
@@ -184,7 +184,7 @@ function run_fsm_grid_par(starttime::DateTime=DateTime(2022,09,01,06,00,00), end
         ebalsrf_par(fsm, meteo)
       end
 
-      snow(fsm, meteo)
+      snow(fsm, meteo, t)
 
       soil(fsm)
 

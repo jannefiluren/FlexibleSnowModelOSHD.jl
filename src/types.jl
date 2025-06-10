@@ -230,6 +230,10 @@
   U::Vector{T} = zeros(Nsmax)
   W::Vector{T} = zeros(Nsmax)
 
+  SWEbuffer::Vector{T} = zeros(15)
+  snowdepthbuffer::Vector{T} = zeros(15)
+  diffSWEbuffer::Vector{T} = zeros(14)
+
   # Soil - temporary vectors
 
   asoil::Vector{T} = zeros(Nsoil)

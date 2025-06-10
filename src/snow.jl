@@ -7,7 +7,7 @@
 # fsnow_thres = zeros(Nx, Ny)
 # unload = zeros(Nx, Ny)
 
-function snow(fsm::FSM, meteo::MET)
+function snow(fsm::FSM, meteo::MET, t)
 
   @unpack HYDROL, DENSTY, OSHDTN, HN_ON, SNFRAC = fsm
 
@@ -30,6 +30,8 @@ function snow(fsm::FSM, meteo::MET)
   @unpack Gsoil, Roff, meltflux_out, Sbsrf, Roff_bare, Roff_snow, fsnow_thres, unload = fsm
 
   @unpack a, bsnow, c, csnow, dTssnow, D, E, Gs, rhs, R, S, U, W = fsm
+
+  @unpack SWEbuffer, snowdepthbuffer, diffSWEbuffer = fsm
 
   @unpack gammasnow = fsm
 
@@ -399,27 +401,25 @@ function snow(fsm::FSM, meteo::MET)
         for si in 1:size(Sice, 1)
           SWEtmp += Sice[si, i, j] + Sliq[si, i, j]
         end
-        ### call SNOWCOVERFRACTION(snowdepth,SWEtmp,i,j)
-
         
+        # Compute snow cover fraction
+        snowcoverfraction!(fsm, snowdepth, SWEtmp, t, i, j, SWEbuffer, snowdepthbuffer, diffSWEbuffer)
         
-        # HACK - snow cover fraction scheme 3
+        # # HACK - snow cover fraction scheme 3
 
-        if snowdepth > eps(Float64)
-          fsnow[i,j] = 1
-        else
-          fsnow[i,j] = 0
-        end
+        # if snowdepth > eps(Float64)
+        #   fsnow[i,j] = 1
+        # else
+        #   fsnow[i,j] = 0
+        # end
 
-        if snowdepth < eps(Float64)
-          fsnow[i,j] = 0
-        else
-          fsnow[i,j] = min(fsnow[i,j], 1.)
-        end
+        # if snowdepth < eps(Float64)
+        #   fsnow[i,j] = 0
+        # else
+        #   fsnow[i,j] = min(fsnow[i,j], 1.)
+        # end
         
-        # HACK - snow cover fraction scheme 3
-
-
+        # # HACK - snow cover fraction scheme 3
 
         # Rescale Ds with new snow cover fraction
         if (fsnow[i, j] > eps(Float64))

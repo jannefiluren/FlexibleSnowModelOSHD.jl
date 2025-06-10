@@ -67,6 +67,10 @@ function sfexch_par(fsm::FSM, meteo::MET)
         # BC, stabilize the tuning point runs by using a Ds threshold instead of fsnow.
         # TODO: test the impact for the grid points.
         if (SNFRAC == 3)
+          # sumtmp = 0.0
+          # for si in 1:size(Ds, 1)
+          #   sumtmp += Ds[si, i, j]
+          # end
           sumtmp = sum(@view Ds[:, i, j])
           if (sumtmp <= 0.05)
             z0g = z0sf[i, j]
