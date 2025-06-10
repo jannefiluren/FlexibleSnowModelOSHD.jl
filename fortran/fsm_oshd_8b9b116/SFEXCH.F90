@@ -21,6 +21,7 @@ use DRIVING, only: &
   zT,                &! Temperature and humidity measurement height (m)
   zU,                &! Wind measurement height (m)
   z0P                 ! perturbed value for z0
+
 use GRID, only: &
   Nx,Ny               ! Grid dimensions
 
@@ -40,10 +41,10 @@ use PARAMETERS, only : &
 
 use PARAMMAPS, only: &
   VAI,               &! Vegetation area index
-  z0sf                ! Snow-free surface roughness length (m)
+  z0sf,              &! Snow-free surface roughness length (m)
+  z0_snow             ! Roughness length of snow (m)
 
 use STATE_VARIABLES, only : &
-
   Qcan,              &! Canopy air space humidity
   fsnow,             &! Snow cover fraction 
   Sice,              &! Ice content of snow layers (kg/m^2)
@@ -51,14 +52,14 @@ use STATE_VARIABLES, only : &
   Tcan,              &! Canopy air space temperature (K)
   Tsrf,              &! Surface skin temperature (K)
   Tveg,              &! Vegetation temperature (K)
-  Ds
+  Ds                  ! Snow layer thicknesses (m)
 
 use LANDUSE, only: &
-  dem,               &! Terrain elevation (m) 
   fveg,              &! Canopy cover fraction
   fves,              &! Stand-scale vegetation fraction
   hcan,              &! Canopy height (m)
   tilefrac            ! Grid cell tile fraction
+
 
 implicit none
 
@@ -100,8 +101,7 @@ real :: &
   KHh,               &! Eddy diffusivity at canopy top (m/s)
   rad,               &! Aerodynamic resistance between canopy air space and atmosphere in dense canopy, at reference height (s/m)
   rgd,               &! Aerodynamic resistance between canopy air space and atmosphere in dense canopy, at reference height (s/m)
-  rgo,               &! Theoretical ground aerodynamic resistance for an open site (s/m) 
-  z0loc               ! Elevation-dependent roughness length of snow (m), constant or tuned depending on OSHDTN
+  rgo                 ! Theoretical ground aerodynamic resistance for an open site (s/m) 
 
 do j = 1, Ny
 do i = 1, Nx
@@ -121,25 +121,7 @@ do i = 1, Nx
   if (Z0PERT .eqv. .TRUE.) then
     z0g = z0P(i,j)
   else
-    ! Ground roughness length
-    if (TILE == 'glacier') then
-      z0loc = 0.0009
-    else
-      if (OSHDTN == 0 .OR. tile == 'forest') then
-        z0loc = z0sn
-      else ! OSHDTN == 1
-        if (dem(i,j) >= 2300) then
-          z0loc = 0.003
-        else if (dem(i,j) >= 1500) then
-          z0loc = 0.03 + (dem(i,j) - 1500) / (2300 - 1500) * (0.003 - 0.03)
-        else if (dem(i,j) >= 1200) then  ! simple linear b/w two above values
-          z0loc = 0.2 + (dem(i,j) - 1200) / (1500 - 1200) * (0.03 - 0.2)
-        else
-          z0loc = 0.2
-        end if
-      end if
-    end if
-    z0g = z0loc
+    z0g = z0_snow(i,j)
   end if
 
   ! BC, stabilize the tuning point runs by using a Ds threshold instead of fsnow.

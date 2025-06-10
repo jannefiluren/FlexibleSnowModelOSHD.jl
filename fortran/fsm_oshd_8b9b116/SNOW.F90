@@ -1,138 +1,135 @@
 !-----------------------------------------------------------------------
 ! Snow thermodynamics and hydrology
 !-----------------------------------------------------------------------
-subroutine SNOW(Esrf,G,ksnow,ksoil,Melt,unload,Gsoil,Roff,meltflux_out,Sbsrf)
+subroutine SNOW(Esrf,G,ksnow,ksoil,Melt,unload,Gsoil,Roff,meltflux_out,Sbsrf,dSWE_salt,dSWE_susp,dSWE_subl,dSWE_slide)
 
-use MODCONF, only: HYDROL,DENSTY,OSHDTN,HN_ON,SNFRAC
+use MODCONF, only: HYDROL, DENSTY, OSHDTN, HN_ON, SNFRAC, SNTRAN, SNSLID
 
-use MODTILE, only: tthresh
+use MODPERT, only: WCPERT, FSPERT, SLPERT
+
+use MODTILE, only: tthresh 
  
 use CONSTANTS, only: &
-  grav,              &! Acceleration due to gravity (m/s^2)
-  hcap_ice,          &! Specific heat capacity of ice (J/K/kg)
-  hcap_wat,          &! Specific heat capacity of water (J/K/kg)
-  Lf,                &! Latent heat of fusion (J/kg)
-  Ls,                &! Latent heat of sublimation (J/kg)
-  rho_ice,           &! Density of ice (kg/m^3)
-  rho_wat,           &! Density of water (kg/m^3)
-  Tm                  ! Melting point (K)
+  grav,                &! Acceleration due to gravity (m/s^2)
+  hcap_ice,            &! Specific heat capacity of ice (J/K/kg)
+  hcap_wat,            &! Specific heat capacity of water (J/K/kg)
+  Lf,                  &! Latent heat of fusion (J/kg)
+  rho_ice,             &! Density of ice (kg/m^3)
+  rho_wat,             &! Density of water (kg/m^3)
+  Tm                    ! Melting point (K)
 
 use DRIVING, only: &
-  dt,                &! Timestep (s)
-  Rf,                &! Rainfall rate (kg/m^2/s)
-  Sf,                &! Snowfall rate (kg/m^2/s)
-  Ta,                &! Air temperature (K)
-  Ua                  ! Wind speed (m/s)
+  dt,                  &! Timestep (s)
+  Rf,                  &! Rainfall rate (kg/m^2/s)
+  Sf,                  &! Snowfall rate (kg/m^2/s)
+  Ta,                  &! Air temperature (K)
+  wcP,                 &! Liquid water capacity perturbations
+  slP                   ! Settling perturbations
 
 use GRID, only: &
-  Dzsnow,            &! Minimum snow layer thicknesses (m)
-  Dzsoil,            &! Soil layer thicknesses (m)
-  Nsmax,             &! Maximum number of snow layers
-  Nsoil,             &! Number of soil layers
-  Nx,Ny               ! Grid dimensions
+  Dzsoil,              &! Soil layer thicknesses (m)
+  Nsmax,               &! Maximum number of snow layers
+  Nsoil,               &! Number of soil layers
+  Nx,Ny                 ! Grid dimensions
 
 use PARAMETERS, only: &
-  a_eta,             &! Temperature factor for Crocus B92 compaction (K^-1)
-  b_eta,             &! First density factor for Crocus B92 compaction (m^3/kg)
-  c_eta,             &! Second density factor for Crocus B92 compaction (kg/m^3)
-  eta0,              &! Reference snow viscosity (Pa s)
-  eta1,              &! Reference snow viscosity for Crocus B92 compaction (Pa s)
-  rgr0,              &! Fresh snow grain radius (m)
-  rho0,              &! Fixed snow density (kg/m^3)
-  rhob,              &! Temperature factor in fresh snow density (kg/m^3/K)
-  rhoc,              &! Wind factor in fresh snow density (kg s^0.5/m^3.5)
-  rhof,              &! Fresh snow density (kg/m^3)
-  rcld,              &! Maximum density for cold snow (kg/m^3)
-  rmlt,              &! Maximum density for melting snow (kg/m^3)
-  snda,              &! Thermal metamorphism parameter (1/s)
-  trho,              &! Snow compaction timescale (s)
-  Wirr                ! Irreducible liquid water content of snow
+  a_eta,               &! Temperature factor for Crocus B92 compaction (K^-1)
+  b_eta,               &! First density factor for Crocus B92 compaction (m^3/kg)
+  c_eta,               &! Second density factor for Crocus B92 compaction (kg/m^3)
+  eta0,                &! Reference snow viscosity (Pa s)
+  eta1,                &! Reference snow viscosity for Crocus B92 compaction (Pa s)
+  rho0,                &! Fixed snow density (kg/m^3)
+  rhof,                &! Fresh snow density (kg/m^3)
+  rhos_max,            &! Maximum snow density (kg/m^3)
+  rcld,                &! Maximum density for cold snow (kg/m^3)
+  rmlt,                &! Maximum density for melting snow (kg/m^3)
+  snda,                &! Thermal metamorphism parameter (1/s)
+  trho,                &! Snow compaction timescale (s)
+  Wirr                  ! Irreducible liquid water content of snow
 
 use STATE_VARIABLES, only: &
-  Ds,                &! Snow layer thicknesses (m)
-  Nsnow,             &! Number of snow layers
-  fsnow,             &! Snow cover fraction 
-  rgrn,              &! Snow layer grain radius (m)
-  Sice,              &! Ice content of snow layers (kg/m^2)
-  Sliq,              &! Liquid content of snow layers (kg/m^2)
-  Tsnow,             &! Snow layer temperatures (K)
-  Tsoil,             &! Soil layer temperatures (K)
-  Tsrf                ! Surface skin temperature (K)
+  Ds,                  &! Snow layer thicknesses (m)
+  histowet,            &! Historical variable for past wetting of a layer (0-1)
+  Nsnow,               &! Number of snow layers
+  fsnow,               &! Snow cover fraction 
+  rgrn,                &! Snow layer grain radius (m)
+  Sice,                &! Ice content of snow layers (kg/m^2)
+  Sliq,                &! Liquid content of snow layers (kg/m^2)
+  Tsnow,               &! Snow layer temperatures (K)
+  Tsoil,               &! Soil layer temperatures (K)
+  Tsrf                  ! Surface skin temperature (K)
 
 use LANDUSE, only: &
-  dem,               &! Terrain elevation (m)
-  tilefrac            ! Grid cell tile fraction
+  dem,                 &! Terrain elevation (m)
+  tilefrac              ! Grid cell tile fraction
 
 implicit none
 
 real, intent(in) :: &
-  Esrf(Nx,Ny),       &! Moisture flux from the surface (kg/m^2/s)
-  G(Nx,Ny),          &! Heat flux into surface (W/m^2)
-  ksnow(Nsmax,Nx,Ny),&! Thermal conductivity of snow (W/m/K)
-  ksoil(Nsoil,Nx,Ny),&! Thermal conductivity of soil (W/m/K)
-  Melt(Nx,Ny),       &! Surface melt rate (kg/m^2/s)
-  unload(Nx,Ny)       ! Snow mass unloaded from canopy (kg/m^2)
+  Esrf(Nx,Ny),         &! Moisture flux from the surface (kg/m^2/s)
+  G(Nx,Ny),            &! Heat flux into surface (W/m^2)
+  ksnow(Nsmax,Nx,Ny),  &! Thermal conductivity of snow (W/m/K)
+  ksoil(Nsoil,Nx,Ny),  &! Thermal conductivity of soil (W/m/K)
+  Melt(Nx,Ny),         &! Surface melt rate (kg/m^2/s)
+  unload(Nx,Ny)         ! Snow mass unloaded from canopy (kg/m^2)
 
 real, intent(out) :: &
-  Gsoil(Nx,Ny),      &! Heat flux into soil (W/m^2)
-  Roff(Nx,Ny),       &! Total runoff (kg/m^2)
-  meltflux_out(Nx,Ny),  &! Runoff from snowmelt at base of snow (kg/m^2)
-  Sbsrf(Nx,Ny)        ! Sublimation from the snow surface (kg/m^2)
+  Gsoil(Nx,Ny),        &! Heat flux into soil (W/m^2)
+  Roff(Nx,Ny),         &! Total runoff (kg/m^2)
+  meltflux_out(Nx,Ny), &! Runoff from snowmelt at base of snow (kg/m^2)
+  Sbsrf(Nx,Ny),        &! Sublimation from the snow surface (kg/m^2)
+  dSWE_salt(Nx,Ny),    &! SWE change due to saltation (kg/m^2)
+  dSWE_susp(Nx,Ny),    &! SWE change due to suspension (kg/m^2)
+  dSWE_subl(Nx,Ny),    &! SWE change due to sublimation (kg/m^2)
+  dSWE_slide(Nx,Ny)     ! SWE change due to snow slides (kg/m^2)
 
 integer :: &
-  i,j,               &! Point counters
-  k,                 &! Level counter
-  knew,              &! New snow layer pointer
-  kold,              &! Old snow layer pointer
-  Nold                ! Previous number of snow layers
+  i,j,                 &! Point counters
+  k                     ! Level counter
 
 real :: &
-  coldcont,          &! Layer cold content (J/m^2)
-  dnew,              &! New snow layer thickness (m)
-  dSice,             &! Change in layer ice content (kg/m^2)
-  Esnow,             &! Snow sublimation rate (kg/m^2/s)
-  eta,               &! Snow viscosity (Pa s)
-  f1,                &! Wet snow settlement factor
-  f2,                &! Grain size snow settlement factor
-  fold,              &! Previous snow cover fraction
-  ggr,               &! Grain area growth rate (m^2/s)
-  mass,              &! Mass of overlying snow (kg/m^2)
-  phi,               &! Porosity
-  rhonew,            &! Density of new snow (kg/m^3)
-  rhos,              &! Density of snow layer (kg/m^3)
-  SliqCap,           &! Liquid water holding capacity of snow
-  SliqMax,           &! Maximum liquid content for layer (kg/m^2)
-  snowdepth,         &! Snow depth (m)
-  t_decompaction,    &! Decompaction time for fresh snow density (h)
-  Tsnow0,            &! Falling snow temperature (K)
-  wt                  ! Layer weighting
+  coldcont,            &! Layer cold content (J/m^2)
+  dSice,               &! Change in layer ice content (kg/m^2)
+  Esnow,               &! Snow sublimation rate (kg/m^2/s)
+  eta,                 &! Snow viscosity (Pa s)
+  f1,                  &! Wet snow settlement factor
+  f2,                  &! Grain size snow settlement factor
+  ggr,                 &! Grain area growth rate (m^2/s)
+  mass,                &! Mass of overlying snow (kg/m^2)
+  phi,                 &! Porosity
+  rhonew,              &! Density of new snow (kg/m^3)
+  rhos,                &! Density of snow layer (kg/m^3)
+  SliqCap,             &! Liquid water holding capacity of snow
+  SliqMax,             &! Maximum liquid content for layer (kg/m^2)
+  snowdepth             ! Snow depth (m)
 
 real :: &
-  a(Nsmax),          &! Below-diagonal matrix elements
-  b(Nsmax),          &! Diagonal matrix elements
-  c(Nsmax),          &! Above-diagonal matrix elements
-  csnow(Nsmax),      &! Areal heat capacity of snow (J/K/m^2)
-  dTs(Nsmax),        &! Temperature increments (K)
-  D(Nsmax),          &! Layer thickness before adjustment (m)
-  E(Nsmax),          &! Energy contents before adjustment (J/m^2)
-  Gs(Nsmax),         &! Thermal conductivity between layers (W/m^2/k)
-  rhs(Nsmax),        &! Matrix equation rhs
-  R(Nsmax),          &! Snow grain radii before adjustment (kg/m^2)
-  S(Nsmax),          &! Ice contents before adjustment (kg/m^2)
-  U(Nsmax),          &! Layer internal energy contents (J/m^2)
-  W(Nsmax),          &! Liquid contents before adjustment (kg/m^2)
-  SWEtmp              ! Temporary snow water equivalent for snow covered fraction calculation (kg/m^2)
+  a(Nsmax),            &! Below-diagonal matrix elements
+  b(Nsmax),            &! Diagonal matrix elements
+  c(Nsmax),            &! Above-diagonal matrix elements
+  csnow(Nsmax),        &! Areal heat capacity of snow (J/K/m^2)
+  dTs(Nsmax),          &! Temperature increments (K)
+  Gs(Nsmax),           &! Thermal conductivity between layers (W/m^2/k)
+  rhs(Nsmax)            ! Matrix equation rhs
   
 real :: &
-  fsnow_thres(Nx,Ny),&! Thresholded snow cover fraction
-  Roff_snow(Nx,Ny),  &! Runoff at base of snow (kg/m^2)
-  Roff_bare(Nx,Ny)    ! Bare soil runoff (kg/m^2)
+  fsnow_thres(Nx,Ny),  &! Thresholded snow cover fraction
+  snowdepth0(Nx,Ny),   &! Snow depth of new accumulation (m)
+  Sice0(Nx,Ny),        &! Ice content of new snow accumulation(kg/m^2)
+  Roff_snow(Nx,Ny),    &! Runoff at base of snow (kg/m^2)
+  Roff_bare(Nx,Ny)      ! Bare soil runoff (kg/m^2)
 
 Gsoil(:,:) = G(:,:)
 Roff(:,:) = 0
 meltflux_out(:,:) = 0
 Roff_bare(:,:) = Rf(:,:) * dt * (1 - fsnow(:,:))
 Roff_snow(:,:) = Rf(:,:) * dt * fsnow(:,:)
+snowdepth0(:,:) = 0
+Sice0(:,:) = 0
+dSWE_salt(:,:) = 0
+dSWE_susp(:,:) = 0
+dSWE_subl(:,:) = 0
+dSWE_slide(:,:) = 0
 
 ! Points with existing snowpack
 do j = 1, Ny
@@ -149,7 +146,7 @@ do i = 1, Nx
     if (SNFRAC == 3) then
       fsnow_thres(i,j) = fsnow(i,j)
     else
-      fsnow_thres(i,j) = max(fsnow(i,j),0.1)
+      fsnow_thres(i,j) = min(fsnow(i,j)+ 0.25,1.)
     end if
 
     ! Heat conduction
@@ -262,7 +259,10 @@ do i = 1, Nx
         if (Sliq(k,i,j) > SliqMax) then       ! Liquid capacity exceeded
           Roff_snow(i,j) = Sliq(k,i,j) - SliqMax   ! so drainage to next layer
           Sliq(k,i,j) = SliqMax
+          histowet(k,i,j) = 1.0
         end if
+        ! csnow needs to be updated after changing Sliq and Sice
+        csnow(k) = (Sice(k,i,j)*hcap_ice + Sliq(k,i,j)*hcap_wat) / fsnow(i,j)
         coldcont = csnow(k)*(Tm - Tsnow(k,i,j))
         if (coldcont > 0) then       ! Liquid can freeze
           dSice = min(Sliq(k,i,j), fsnow(i,j)*coldcont/Lf) 
@@ -278,12 +278,16 @@ do i = 1, Nx
       end if
       
     else  ! HYDROL == 2
+      ! taken from JIM (originately from Anderson, 1976)
       ! Density-dependent bucket storage
       do k = 1, Nsnow(i,j)
         if (Ds(k,i,j) > epsilon(Ds)) then
           rhos = Sice(k,i,j) / Ds(k,i,j) / fsnow(i,j)
           SliqCap = 0.03 + 0.07*(1 - rhos/200)
           SliqCap = max(SliqCap, 0.03)
+          if (WCPERT .eqv. .TRUE.) then
+            SliqCap = max(SliqCap + wcP(i,j), 0.00001)
+          endif
         end if
         SliqMax = SliqCap*Sice(k,i,j)
         Sliq(k,i,j) = Sliq(k,i,j) + Roff_snow(i,j)
@@ -291,7 +295,10 @@ do i = 1, Nx
         if (Sliq(k,i,j) > SliqMax) then       ! Liquid capacity exceeded
           Roff_snow(i,j) = Sliq(k,i,j) - SliqMax   ! so drainage to next layer
           Sliq(k,i,j) = SliqMax
+          histowet(k,i,j) = 1.0
         end if
+        ! csnow needs to be updated after changing Sliq and Sice
+        csnow(k) = (Sice(k,i,j)*hcap_ice + Sliq(k,i,j)*hcap_wat) / fsnow(i,j)
         coldcont = csnow(k)*(Tm - Tsnow(k,i,j))
         if (coldcont > epsilon(coldcont)) then       ! Liquid can freeze
           dSice = min(Sliq(k,i,j), fsnow(i,j)*coldcont/Lf) 
@@ -337,6 +344,7 @@ do i = 1, Nx
           rhos = (Sice(k,i,j) + Sliq(k,i,j)) / Ds(k,i,j) / fsnow(i,j)
           rhos = rhos + (rhos*grav*mass*dt/(eta0*exp(-(Tsnow(k,i,j) - Tm)/12.4 + rhos/55.6))   &
                       + dt*rhos*snda*exp((Tsnow(k,i,j) - Tm)/23.8 - max(rhos - 150, 0.)/21.7))
+          rhos = min(rhos, rhos_max)
           Ds(k,i,j) = (Sice(k,i,j) + Sliq(k,i,j)) / rhos / fsnow(i,j)
         end if
         mass = mass + 0.5*(Sice(k,i,j) + Sliq(k,i,j)) / fsnow(i,j)
@@ -351,7 +359,11 @@ do i = 1, Nx
           f1 = 1 / (1 + 600 * Sliq(k,i,j) / (rho_wat * Ds(k,i,j) * fsnow(i,j)))
           f2 = 1.0
           eta = f1 * f2 * eta1 * (rhos / c_eta) * exp(a_eta * (Tm - Tsnow(k,i,j)) + b_eta * rhos)
+          if (SLPERT) then
+            eta = eta * slP(i,j)
+          endif
           rhos = rhos + rhos*grav*mass*dt/eta
+          rhos = min(rhos, rhos_max)
           Ds(k,i,j) = (Sice(k,i,j) + Sliq(k,i,j)) / rhos / fsnow(i,j)
         end if
         mass = mass + 0.5*(Sice(k,i,j) + Sliq(k,i,j)) / fsnow(i,j)
@@ -381,25 +393,8 @@ do i = 1, Nx
 
   ! Add bare soil runoff to snowmelt runoff for total runoff
   Roff(i,j) = Roff_snow(i,j) + Roff_bare(i,j)
-    
-  1 continue 
-  
-end do
-end do
 
-! Add snow, recalculate layers
-do j = 1, Ny
-do i = 1, Nx
-
-  if (tilefrac(i,j) < tthresh) goto 2 ! exclude points outside tile of interest
-
-  ! Falling snow temperature
-  Tsnow0 = min(Ta(i,j), Tm)
-  if (HN_ON) then
-    Tsnow0 = max(Tsnow0, (Tm-40))
-  end if
-
-  ! Add snowfall and frost to layer 1 with fresh snow density and grain size
+  ! Add snowfall and frost to new snow with fresh snow density and grain size
   Esnow = 0
   if (Esrf(i,j) < 0 .and. Tsrf(i,j) < Tm) then
     Esnow = fsnow(i,j) * Esrf(i,j)
@@ -417,161 +412,57 @@ do i = 1, Nx
   if (Nsnow(i,j) <= 1 .and. dSice < .001 .and. Sice(1,i,j) < .001) then
     dSice = FLOAT(INT(dSice * 1000 + 0.5)) / 1000
   end if
-  
-  if (DENSTY == 0) then
-    rhonew = rho0
-  else
-    if (OSHDTN == 0) then 
-      ! Initial formulation
-      rhonew = max(rhof + rhob*(Ta(i,j) - Tm) + rhoc*Ua(i,j)**0.5, 50.)
-    else ! OSHDTN == 1
-      ! New formulation with decompaction
-      rhonew = rhof + rhob*(Ta(i,j) - Tm) + rhoc*Ua(i,j)**0.5
-      if (dem(i,j) <= 1000) then
-        t_decompaction = 24
-      else if (dem(i,j) > 2000) then
-        t_decompaction = 0
-      else
-        t_decompaction = 24 + (dem(i,j) - 1000) / (2000 - 1000) * (0 - 24)
-      end if
-      rhonew = 300 + (rhonew - 300)*exp(t_decompaction/100)
-      rhonew = max(rhonew, 50.)
-    end if
-  endif
-  if (Sice(1,i,j) + dSice > epsilon(Sice)) then
-    rgrn(1,i,j) = (Sice(1,i,j)*rgrn(1,i,j) + dSice*rgr0) / (Sice(1,i,j) + dSice)
-  endif
-  Sice(1,i,j) = Sice(1,i,j) + dSice
-  snowdepth = sum(Ds(:,i,j)) * fsnow(i,j) + dSice / rhonew
 
-  ! Add canopy unloading to layer 1 with bulk snow density and grain size
+  call FRESH_SNOW_DENSITY(rhonew,i,j)
+
+  Sice0(i,j) = dSice
+  snowdepth0(i,j) = dSice / rhonew
+  ! Add canopy unloading to new snow with bulk snow density and grain size
   rhos = rhof
   if (Ta(i,j) < Tm) then  ! only if it's cold enough
     mass = sum(Sice(:,i,j)) + sum(Sliq(:,i,j))
+    snowdepth = sum(Ds(:,i,j)) * fsnow(i,j)
     if (snowdepth > epsilon(snowdepth)) then
       rhos = mass / snowdepth
     endif
-    Sice(1,i,j) = Sice(1,i,j) + unload(i,j)
-    snowdepth = snowdepth + unload(i,j) / rhos
+    Sice0(i,j) = Sice0(i,j) + unload(i,j)
+    snowdepth0(i,j) = snowdepth0(i,j) + unload(i,j) / rhos
   end if
 
-  ! Store previous snow cover fraction
-  fold = fsnow(i,j)
-  ! Updated Fractional Snow-Covered Area 
-  SWEtmp = sum(Sice(:,i,j) + Sliq(:,i,j))
-  call SNOWCOVERFRACTION(snowdepth,SWEtmp,i,j)
-
-  ! Rescale Ds with new snow cover fraction
-  if (fsnow(i,j) > epsilon(fsnow)) then
-    ! Update surface layer thickness based on new fsnow
-    Ds(1,i,j) = Ds(1,i,j) * fold / fsnow(i,j) + dSice / rhonew / fsnow(i,j)
-    if (Ta(i,j) < Tm) then
-      Ds(1,i,j) = Ds(1,i,j) + unload(i,j) / rhos / fsnow(i,j)
-    end if
-  end if
-  if (Nsnow(i,j) > 1) then
-    do k = 2, Nsnow(i,j)
-      Ds(k,i,j) = Ds(k,i,j) * fold / fsnow(i,j)
-    end do
-  end if
-
-  ! New snowpack
-  if (Nsnow(i,j) == 0 .and. Sice(1,i,j) > epsilon(Sice(1,i,j))) then
-    Nsnow(i,j) = 1
-    Tsnow(1,i,j) = Tsnow0
-  end if
-
-  ! Store state of old layers
-  D(:) = Ds(:,i,j)
-  R(:) = rgrn(:,i,j)
-  S(:) = Sice(:,i,j)
-  W(:) = Sliq(:,i,j)
-  if (fsnow(i,j) > epsilon(fsnow)) then
-    csnow(1) = (Sice(1,i,j)*hcap_ice + Sliq(1,i,j)*hcap_wat) / fsnow(i,j)
-    E(1) = csnow(1)*(Tsnow(1,i,j) - Tm) + ((dSice + unload(i,j)) * hcap_ice / fsnow(i,j)) * (Tsnow0 - Tsnow(1,i,j)) ! Adjustment given that csnow(1) already includes the new snow
-  else
-    E(:) = 0
-  end if
-  if (Nsnow(i,j) > 1) then
-    do k = 2, Nsnow(i,j)
-      csnow(k) = (Sice(k,i,j)*hcap_ice + Sliq(k,i,j)*hcap_wat) / fsnow(i,j)
-      E(k) = csnow(k)*(Tsnow(k,i,j) - Tm)
-    end do
-  end if
-  Nold = Nsnow(i,j)
-
-  ! Initialise new layers
-  Ds(:,i,j) = 0
-  rgrn(:,i,j) = 0
-  Sice(:,i,j) = 0
-  Sliq(:,i,j) = 0
-  Tsnow(:,i,j) = Tm
-  U(:) = 0
-  Nsnow(i,j) = 0
-
-  if (fsnow(i,j) > epsilon(fsnow)) then  ! Existing or new snowpack
-
-    ! Re-assign and count snow layers
-    dnew = snowdepth / fsnow(i,j)
-    Ds(1,i,j) = dnew
-    k = 1
-    if (Ds(1,i,j) > Dzsnow(1)) then 
-      do k = 1, Nsmax
-        Ds(k,i,j) = Dzsnow(k)
-        dnew = dnew - Dzsnow(k)
-        if (dnew <= Dzsnow(k) .or. k == Nsmax) then
-          Ds(k,i,j) = Ds(k,i,j) + dnew
-          exit
-        end if
-      end do
-    end if
-    Nsnow(i,j) = k
-
-    ! Fill new layers from the top downwards
-    knew = 1
-    dnew = Ds(1,i,j)
-    do kold = 1, Nold
-      do
-        if (D(kold) < dnew) then
-          ! All snow from old layer partially fills new layer
-          rgrn(knew,i,j) = rgrn(knew,i,j) + S(kold)*R(kold)
-          Sice(knew,i,j) = Sice(knew,i,j) + S(kold)
-          Sliq(knew,i,j) = Sliq(knew,i,j) + W(kold)
-          U(knew) = U(knew) + E(kold)
-          dnew = dnew - D(kold)
-          exit
-        else
-          ! Some snow from old layer fills new layer
-          wt = dnew / D(kold)
-          rgrn(knew,i,j) = rgrn(knew,i,j) + wt*S(kold)*R(kold)
-          Sice(knew,i,j) = Sice(knew,i,j) + wt*S(kold) 
-          Sliq(knew,i,j) = Sliq(knew,i,j) + wt*W(kold)
-          U(knew) = U(knew) + wt*E(kold)
-          D(kold) = (1 - wt)*D(kold)
-          E(kold) = (1 - wt)*E(kold)
-          S(kold) = (1 - wt)*S(kold)
-          W(kold) = (1 - wt)*W(kold)
-          knew = knew + 1
-          if (knew > Nsnow(i,j)) exit
-          dnew = Ds(knew,i,j)
-        end if
-      end do
-    end do
-  
-    ! Diagnose snow layer temperatures
-    do k = 1, Nsnow(i,j)
-      csnow(k) = (Sice(k,i,j)*hcap_ice + Sliq(k,i,j)*hcap_wat) / fsnow(i,j)
-      Tsnow(k,i,j) = Tm + U(k) / csnow(k)
-      if (HN_ON) then
-        Tsnow(k,i,j) = max(Tsnow(k,i,j), (Tm-40))
-      endif      
-      rgrn(k,i,j) = rgrn(k,i,j) / Sice(k,i,j)
-    end do 
-  end if ! Existing or new snowpack
-
-  2 continue
+  1 continue
   
 end do
 end do
+
+! Accumulation of new snow, calculation of snow cover fraction and relayering
+call SNOW_LAYERING(snowdepth0,Sice0)
+
+! Initialize thickness and ice content of future possible surface layer of transported snow
+snowdepth0(:,:) = 0
+Sice0(:,:) = 0
+
+if (SNTRAN == 1) then
+
+  ! Compute wind-driven snow transport
+  call SNOWTRAN3D(snowdepth0,Sice0,dSWE_salt,dSWE_susp,dSWE_subl)
+
+  ! Accumulation of new snow, calculation of snow cover fraction and relayering
+  call SNOW_LAYERING(snowdepth0,Sice0)
+
+end if
+
+! Initialize thickness and ice content of future possible surface layer of transported snow
+snowdepth0(:,:) = 0
+Sice0(:,:) = 0
+
+if (SNSLID == 1) then
+
+  ! Compute snow slide transport
+  call SNOWSLIDE(snowdepth0,Sice0,dSWE_slide)
+
+  ! Accumulation of new snow, calculation of snow cover fraction and relayering
+  call SNOW_LAYERING(snowdepth0,Sice0)
+
+end if
 
 end subroutine SNOW

@@ -1,10 +1,10 @@
 !-----------------------------------------------------------------------
 ! Cumulate fluxes
 !-----------------------------------------------------------------------
-subroutine CUMULATE(Roff, meltflux_out,Sbsrf,Sdirt,Sdift,LWt,asrf_out,Melt, &
+subroutine CUMULATE(Roff,meltflux_out,Sbsrf,Sdirt,Sdift,LWt,asrf_out,Melt, &
                     Esrf,Eveg,Gsoil,Hsrf,intcpt,KH,KHa,Khg,KHv,KWg,KWv,  &
                     LE,LEsrf,LWsci,LWveg,Rnet,Rsrf,Sbveg,H,Swsci,SWsrf,  &
-                    SWveg,Usc,unload)
+                    SWveg,Usc,unload,dSWE_salt,dSWE_susp,dSWE_subl,dSWE_slide)
                     
 use MODE_WRITE, only: WRITE_2D
 
@@ -21,8 +21,6 @@ use MODOUTPUT, only: &
   WRITE_STATE_TABLE
 
 use GRID, only: &
-  Nsmax,         &! Maximum number of snow layers
-  Nsoil,         &! Number of soil layers
   Nx,Ny           ! Grid dimensions
 
 use STATE_VARIABLES, only: &
@@ -41,7 +39,14 @@ use STATE_VARIABLES, only: &
   Tsrf,              &! Surface skin temperature (K)
   Tsnow,             &
   Tsoil,             &
-  Tveg                ! Vegetation temperature (K)
+  Tveg,              &! Vegetation temperature (K)
+  dSWE_tot_subl,     &! Cumulated SWE change due to sublimation (kg/m^2)
+  dSWE_tot_salt,     &! Cumulated SWE change due to saltation (kg/m^2)
+  dSWE_tot_susp,     &! Cumulated SWE change due to suspension (kg/m^2)
+  dSWE_tot_slide      ! Cumulated SWE change due to snow slides (kg/m^2)
+  
+use LANDUSE, only: &
+  dem                 ! Terrain elevation (m)
 
 implicit none
 
@@ -77,14 +82,18 @@ real, intent(in) :: &
   SWsrf(Nx,Ny),      &! Net SW radiation absorbed by the surface (W/m^2)
   SWveg(Nx,Ny),      &! Net SW radiation absorbed by vegetation (W/m^2)
   unload(Nx,Ny),     &! Snow mass unloaded from canopy (kg/m^2)
-  Usc(Nx,Ny)          ! Wind speed in canopy layer (at height of turbulent flux from veg to cas) (m/s)               
+  Usc(Nx,Ny),        &! Wind speed in canopy layer (at height of turbulent flux from veg to cas) (m/s)               
+  dSWE_salt(Nx,Ny),  &! SWE change due to saltation (kg/m^2)
+  dSWE_susp(Nx,Ny),  &! SWE change due to suspension (kg/m^2)
+  dSWE_subl(Nx,Ny),  &! SWE change due to sublimation (kg/m^2)
+  dSWE_slide(Nx,Ny)   ! SWE change due to snow slides (kg/m^2)
 
 real :: &
   Sliq_out(Nx,Ny),   &!
   snowdepth(Nx,Ny),  &! Snow depth (m)
   SWE(Nx,Ny)          ! Snow water equivalent (kg/m^2)
 
-integer :: i,j,k,where,ii
+integer :: i,j,where,ii
 
 ! BC just in case, these sums should be performed only until Nsnow.
 do j = 1,Ny
@@ -174,7 +183,14 @@ ii = ii + 1
 if (write_diag_table(ii)) call WRITE_2D(Usc, 1404 + ii)        ! Wind speed in canopy layer (at height of turbulent flux from veg to cas) (m/s)
 ii = ii + 1
 if (write_diag_table(ii)) call WRITE_2D(unload, 1404 + ii)     ! Snow mass unloaded from canopy (kg/m^2)
-
+ii = ii + 1
+if (write_diag_table(ii)) call WRITE_2D(dSWE_salt, 1404 + ii)  ! SWE change due to saltation (kg/m^2)
+ii = ii + 1
+if (write_diag_table(ii)) call WRITE_2D(dSWE_susp, 1404 + ii)  ! SWE change due to suspension (kg/m^2)
+ii = ii + 1
+if (write_diag_table(ii)) call WRITE_2D(dSWE_subl, 1404 + ii)  ! SWE change due to sublimation (kg/m^2)
+ii = ii + 1
+if (write_diag_table(ii)) call WRITE_2D(dSWE_slide, 1404 + ii) ! SWE change due to snow slides (kg/m^2)
 
 ! If necessary, write state vars into results files:
 ii = 1
@@ -202,15 +218,22 @@ if (WRITE_STATE_TABLE(ii)) call WRITE_2D(Tcan, 1500 + ii)
 ii = ii + 1
 if (WRITE_STATE_TABLE(ii)) call WRITE_2D(Tveg, 1500 + ii)
 ii = ii + 1
+if (WRITE_STATE_TABLE(ii)) call WRITE_2D(dSWE_tot_subl, 1500 + ii)
+ii = ii + 1
+if (WRITE_STATE_TABLE(ii)) call WRITE_2D(dSWE_tot_salt, 1500 + ii)
+ii = ii + 1
+if (WRITE_STATE_TABLE(ii)) call WRITE_2D(dSWE_tot_susp, 1500 + ii)
+ii = ii + 1
+if (WRITE_STATE_TABLE(ii)) call WRITE_2D(dSWE_tot_slide, 1500 + ii)
 ! endif BC this is commented on purpose. DO NOT introduce this if.
 
 ! write 01h-07h-13h-19h states (UTC+1) for the subsequent HN model (<-> 00UTC,06UTC,12UTC,18UTC)
 if (FOR_HN) then
   if (hour > 0.5 .and. hour < 1.5) then
-    write(1227) ((Ds(1,i,j),j=1,Ny),i=1,Nx)
-    write(1228) ((Tsrf(i,j),j=1,Ny),i=1,Nx)
-    write(1229) ((Tsnow(1,i,j),j=1,Ny),i=1,Nx)
-    write(1230) ((Tsoil(1,i,j),j=1,Ny),i=1,Nx)
+    write(1227) ((Ds(1,i,j),i=1,Nx),j=1,Ny)
+    write(1228) ((Tsrf(i,j),i=1,Nx),j=1,Ny)
+    write(1229) ((Tsnow(1,i,j),i=1,Nx),j=1,Ny)
+    write(1230) ((Tsoil(1,i,j),i=1,Nx),j=1,Ny)
 
     close(1227)
     close(1228)
@@ -218,10 +241,10 @@ if (FOR_HN) then
     close(1230)
   endif
   if (hour > 6.5 .and. hour < 7.5) then
-    write(1231) ((Ds(1,i,j),j=1,Ny),i=1,Nx)
-    write(1232) ((Tsrf(i,j),j=1,Ny),i=1,Nx)
-    write(1233) ((Tsnow(1,i,j),j=1,Ny),i=1,Nx)
-    write(1234) ((Tsoil(1,i,j),j=1,Ny),i=1,Nx)
+    write(1231) ((Ds(1,i,j),i=1,Nx),j=1,Ny)
+    write(1232) ((Tsrf(i,j),i=1,Nx),j=1,Ny)
+    write(1233) ((Tsnow(1,i,j),i=1,Nx),j=1,Ny)
+    write(1234) ((Tsoil(1,i,j),i=1,Nx),j=1,Ny)
 
     close(1231)
     close(1232)
@@ -229,26 +252,37 @@ if (FOR_HN) then
     close(1234)
   endif
   if (hour > 12.5 .and. hour < 13.5) then
-    write(1235) ((Ds(1,i,j),j=1,Ny),i=1,Nx)
-    write(1236) ((Tsrf(i,j),j=1,Ny),i=1,Nx)
-    write(1237) ((Tsnow(1,i,j),j=1,Ny),i=1,Nx)
-    write(1238) ((Tsoil(1,i,j),j=1,Ny),i=1,Nx)
+    write(1235) ((Ds(1,i,j),i=1,Nx),j=1,Ny)
+    write(1236) ((Tsrf(i,j),i=1,Nx),j=1,Ny)
+    write(1237) ((Tsnow(1,i,j),i=1,Nx),j=1,Ny)
+    write(1238) ((Tsoil(1,i,j),i=1,Nx),j=1,Ny)
 
     close(1235)
     close(1236)
     close(1237)
     close(1238)
   endif
-  if (hour > 18.5 .and. hour < 19.5) then
-    write(1239) ((Ds(1,i,j),j=1,Ny),i=1,Nx)
-    write(1240) ((Tsrf(i,j),j=1,Ny),i=1,Nx)
-    write(1241) ((Tsnow(1,i,j),j=1,Ny),i=1,Nx)
-    write(1242) ((Tsoil(1,i,j),j=1,Ny),i=1,Nx)
+  if (hour > 15.5 .and. hour < 16.5) then
+    write(1239) ((Ds(1,i,j),i=1,Nx),j=1,Ny)
+    write(1240) ((Tsrf(i,j),i=1,Nx),j=1,Ny)
+    write(1241) ((Tsnow(1,i,j),i=1,Nx),j=1,Ny)
+    write(1242) ((Tsoil(1,i,j),i=1,Nx),j=1,Ny)
 
     close(1239)
     close(1240)
     close(1241)
     close(1242)
+  endif
+  if (hour > 18.5 .and. hour < 19.5) then
+    write(1243) ((Ds(1,i,j),i=1,Nx),j=1,Ny)
+    write(1244) ((Tsrf(i,j),i=1,Nx),j=1,Ny)
+    write(1245) ((Tsnow(1,i,j),i=1,Nx),j=1,Ny)
+    write(1246) ((Tsoil(1,i,j),i=1,Nx),j=1,Ny)
+
+    close(1243)
+    close(1244)
+    close(1245)
+    close(1246)
   endif
 endif
 

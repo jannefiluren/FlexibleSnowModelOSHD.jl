@@ -3,9 +3,9 @@
 !-----------------------------------------------------------------------
 subroutine OPEN_FILES
   
-use MODCONF, only: CANMOD, SNFRAC, FOR_HN
+use MODCONF, only: CANMOD, SNFRAC, FOR_HN, ALRADT, OSHDTN, SNTRAN, SNSLID
 
-use MODPERT, only: Z0PERT, WCPERT, FSPERT,ALPERT,SLPERT
+use MODPERT, only: Z0PERT, WCPERT, FSPERT, ALPERT, SLPERT
 
 use MODTILE, only: TILE
 
@@ -15,7 +15,7 @@ use MODOUTPUT, only: &
 
 implicit none   
 
-integer :: i,j, iwrite_pos,iwrite_count,iwrite_search
+integer :: i,j,iwrite_pos,iwrite_count,iwrite_search
 
 ! Driving data
 character(len=80) :: met_file_year
@@ -24,6 +24,7 @@ character(len=80) :: met_file_day
 character(len=80) :: met_file_hour
 character(len=80) :: met_file_SWb
 character(len=80) :: met_file_SWd
+character(len=80) :: met_file_SWdd
 character(len=80) :: met_file_LW
 character(len=80) :: met_file_Sf
 character(len=80) :: met_file_Rf
@@ -33,6 +34,7 @@ character(len=80) :: met_file_Ua
 character(len=80) :: met_file_Ps
 character(len=80) :: met_file_Sf24h
 character(len=80) :: met_file_Tvt
+character(len=80) :: met_file_Udir
 character(len=80) :: pert_file_z0
 character(len=80) :: pert_file_wc
 character(len=80) :: pert_file_fs
@@ -54,7 +56,10 @@ character(len=80) :: landuse_skyvf
 character(len=80) :: landuse_lat
 character(len=80) :: landuse_lon
 character(len=80) :: landuse_dem
+character(len=80) :: landuse_slope
+character(len=80) :: landuse_shd
 character(len=80) :: landuse_tile
+character(len=80) :: landuse_glac
 
 ! States specific to open runs
 character(len=80) :: states_in_snowdepthmin
@@ -79,6 +84,16 @@ character(len=80) :: landuse_lai
 character(len=80) :: landuse_vfhp
 character(len=80) :: landuse_pmultf 
 
+! States specific to SNOWTRAN3D runs
+character(len=80) :: states_in_histowet
+character(len=80) :: states_in_dSWE_tot_subl
+character(len=80) :: states_in_dSWE_tot_salt
+character(len=80) :: states_in_dSWE_tot_susp
+
+! States specific to SnowSlide runs
+character(len=80) :: states_in_dSWE_tot_slide
+character(len=80) :: states_in_idem
+
 ! Final state variables
 character(len=80) :: states_out_albs
 character(len=80) :: states_out_Ds
@@ -102,6 +117,14 @@ character(len=80) :: states_out_Sveg
 character(len=80) :: states_out_Tcan   
 character(len=80) :: states_out_Tveg   
 
+character(len=80) :: states_out_dSWE_tot_subl
+character(len=80) :: states_out_dSWE_tot_salt
+character(len=80) :: states_out_dSWE_tot_susp
+character(len=80) :: states_out_histowet
+
+character(len=80) :: states_out_dSWE_tot_slide
+character(len=80) :: states_out_idem
+
 ! State variables for the HN model
 character(len=80) :: states_out_Ds01
 character(len=80) :: states_out_Ts01
@@ -115,6 +138,10 @@ character(len=80) :: states_out_Ds13
 character(len=80) :: states_out_Ts13
 character(len=80) :: states_out_Tsnow13
 character(len=80) :: states_out_Tsoil13
+character(len=80) :: states_out_Ds16
+character(len=80) :: states_out_Ts16
+character(len=80) :: states_out_Tsnow16
+character(len=80) :: states_out_Tsoil16
 character(len=80) :: states_out_Ds19
 character(len=80) :: states_out_Ts19
 character(len=80) :: states_out_Tsnow19
@@ -144,12 +171,15 @@ met_file_Sf24h = 'drive_snfh.bin'
 if (CANMOD == 1) then
   met_file_Tvt   = 'drive_stdx.bin' 
 endif
-
+if (SNTRAN == 1) then
+  met_file_Udir  = 'drive_wndx.bin'
+endif
 if (Z0PERT) pert_file_z0   = 'drive_z0px.bin'
 if (WCPERT) pert_file_wc   = 'drive_wcpx.bin'
 if (FSPERT) pert_file_fs   = 'drive_fspx.bin'
 if (ALPERT) pert_file_al   = 'drive_alpx.bin'
 if (SLPERT) pert_file_sl   = 'drive_slpx.bin'
+if ((ALRADT==1) .OR. (OSHDTN == 1)) met_file_SWdd   = 'drive_sddx.bin'
 
 open(800, file = met_file_year,  form='unformatted', access='stream', status='old')
 open(801, file = met_file_month, form='unformatted', access='stream', status='old')
@@ -168,80 +198,105 @@ open(813, file = met_file_Sf24h, form='unformatted', access='stream', status='ol
 if (CANMOD == 1) then
   open(814, file = met_file_Tvt, form='unformatted', access='stream', status='old')
 endif
-
-if (Z0PERT) open(815, file = pert_file_z0, form='unformatted', access='stream', status='old')
-if (WCPERT) open(816, file = pert_file_wc, form='unformatted', access='stream', status='old')
-if (FSPERT) open(817, file = pert_file_fs, form='unformatted', access='stream', status='old')
-if (ALPERT) open(818, file = pert_file_al, form='unformatted', access='stream', status='old')
-if (SLPERT) open(819, file = pert_file_sl, form='unformatted', access='stream', status='old')
+if (SNTRAN == 1) then
+  open(815, file = met_file_Udir, form='unformatted', access='stream', status='old')
+endif
+if (Z0PERT) open(816, file = pert_file_z0, form='unformatted', access='stream', status='old')
+if (WCPERT) open(817, file = pert_file_wc, form='unformatted', access='stream', status='old')
+if (FSPERT) open(818, file = pert_file_fs, form='unformatted', access='stream', status='old')
+if (ALPERT) open(819, file = pert_file_al, form='unformatted', access='stream', status='old')
+if (SLPERT) open(820, file = pert_file_sl, form='unformatted', access='stream', status='old')
+if ((ALRADT==1) .OR. (OSHDTN == 1)) then
+  open(821, file = met_file_SWdd,   form='unformatted', access='stream', status='old')
+endif
 
 ! Initial state variables
 
 ! Common states 
-landuse_skyvf           = 'landuse_skyvf.bin'
-landuse_lat             = 'landuse_lat.bin'
-landuse_lon             = 'landuse_lon.bin'
-landuse_dem             = 'landuse_dem.bin'
+landuse_skyvf              = 'landuse_skyvf.bin'
+landuse_lat                = 'landuse_lat.bin'
+landuse_lon                = 'landuse_lon.bin'
+landuse_dem                = 'landuse_dem.bin'
 if (TILE == 'forest') then
-  landuse_tile           = 'landuse_forest.bin'
+  landuse_tile             = 'landuse_forest.bin'
 elseif (TILE == 'glacier') then
-  landuse_tile           = 'landuse_glacier.bin'
+  landuse_tile             = 'landuse_glacier.bin'
 endif
-states_in_albs          = 'states_in_alse.bin'
-states_in_Ds            = 'states_in_hsnl.bin'
-states_in_fsnow         = 'states_in_scfe.bin'
-states_in_Nsnow         = 'states_in_nsne.bin'
-states_in_Sice          = 'states_in_sicl.bin'
-states_in_Sliq          = 'states_in_slql.bin'
-states_in_Tss           = 'states_in_tsfe.bin'
-states_in_Tsnow         = 'states_in_tsnl.bin'
-states_in_Tsoil         = 'states_in_tsll.bin'
+if (SNTRAN == 1 .OR. SNSLID == 1) then
+  landuse_glac             = 'landuse_glacier.bin'
+endif
+states_in_albs             = 'states_in_alse.bin'
+states_in_Ds               = 'states_in_hsnl.bin'
+states_in_fsnow            = 'states_in_scfe.bin'
+states_in_Nsnow            = 'states_in_nsne.bin'
+states_in_Sice             = 'states_in_sicl.bin'
+states_in_Sliq             = 'states_in_slql.bin'
+states_in_Tss              = 'states_in_tsfe.bin'
+states_in_Tsnow            = 'states_in_tsnl.bin'
+states_in_Tsoil            = 'states_in_tsll.bin'
 
 ! Open simulations
 if (SNFRAC == 0 .or. SNFRAC == 2) then
-  states_in_snowdepthmax  = 'states_in_hsmx.bin'
+  states_in_snowdepthmax   = 'states_in_hsmx.bin'
 endif
 
 if (SNFRAC == 0) then
-  states_in_snowdepthmin  = 'states_in_hsmn.bin'
-  states_in_snowdepthhist = 'states_in_hshs.bin'
-  states_in_swemin        = 'states_in_swmn.bin'
-  states_in_swemax        = 'states_in_swmx.bin'
-  states_in_swehist       = 'states_in_swhs.bin'
-  landuse_slopemu         = 'landuse_slopemu.bin'
-  landuse_xi              = 'landuse_xi.bin'
-  landuse_Ld              = 'landuse_Ld.bin'
+  states_in_snowdepthmin   = 'states_in_hsmn.bin'
+  states_in_snowdepthhist  = 'states_in_hshs.bin'
+  states_in_swemin         = 'states_in_swmn.bin'
+  states_in_swemax         = 'states_in_swmx.bin'
+  states_in_swehist        = 'states_in_swhs.bin'
+  landuse_slopemu          = 'landuse_slopemu.bin'
+  landuse_xi               = 'landuse_xi.bin'
+  landuse_Ld               = 'landuse_Ld.bin'
 endif
 
 if (TILE == 'forest') then
 ! Forest simulations
-  states_in_Qcan          = 'states_in_qcan.bin'
-  states_in_Sveg          = 'states_in_sveg.bin'
-  states_in_Tcan          = 'states_in_tcan.bin'
-  states_in_Tveg          = 'states_in_tveg.bin'
-  landuse_fveg            = 'landuse_fveg.bin'
-  landuse_fves            = 'landuse_fves.bin'
-  landuse_hcan            = 'landuse_hcan.bin'
-  landuse_lai             = 'landuse_lai.bin'
-  landuse_vfhp            = 'landuse_vfhp.bin' 
-  landuse_pmultf          = 'landuse_pmultf.bin' 
+  states_in_Qcan           = 'states_in_qcan.bin'
+  states_in_Sveg           = 'states_in_sveg.bin'
+  states_in_Tcan           = 'states_in_tcan.bin'
+  states_in_Tveg           = 'states_in_tveg.bin'
+  landuse_fveg             = 'landuse_fveg.bin'
+  landuse_fves             = 'landuse_fves.bin'
+  landuse_hcan             = 'landuse_hcan.bin'
+  landuse_lai              = 'landuse_lai.bin'
+  landuse_vfhp             = 'landuse_vfhp.bin' 
+  landuse_pmultf           = 'landuse_pmultf.bin' 
+endif
+
+if (SNTRAN == 1) then
+! SNOWTRAN3D simulations
+  states_in_histowet       = 'states_in_hiwl.bin'
+  states_in_dSWE_tot_subl  = 'states_in_sblt.bin'
+  states_in_dSWE_tot_salt  = 'states_in_sltt.bin'
+  states_in_dSWE_tot_susp  = 'states_in_sspt.bin'
+  landuse_Ld               = 'landuse_Ld.bin'
+endif
+
+if (SNSLID == 1) then
+! SnowSlide simulations
+  landuse_slope            = 'landuse_slope.bin'
+  landuse_shd              = 'landuse_shd.bin'
+  states_in_dSWE_tot_slide = 'states_in_sldt.bin'
+  states_in_idem           = 'states_in_idem.bin'
 endif
 
 ! NOTE / GM: the numbering of the files is not continuous, but it is currently consistent with JIM. 
 ! If we have no more interest in keeping this consistency, I would suggest to renumber the files to have continuous numbers 
-open(1101, file = states_in_albs,  form='unformatted', access='stream', status='old')
-open(1102, file = states_in_Ds,    form='unformatted', access='stream', status='old')
-open(1103, file = states_in_fsnow, form='unformatted', access='stream', status='old')
-open(1104, file = states_in_Nsnow, form='unformatted', access='stream', status='old')
-open(1106, file = states_in_Sice,  form='unformatted', access='stream', status='old')
-open(1107, file = states_in_Sliq,  form='unformatted', access='stream', status='old')
-open(1116, file = states_in_Tss,   form='unformatted', access='stream', status='old')
-open(1119, file = states_in_Tsnow, form='unformatted', access='stream', status='old')
-open(1120, file = states_in_Tsoil, form='unformatted', access='stream', status='old')
-open(1123, file = landuse_skyvf,   form='unformatted', access='stream', status='old')
-open(1127, file = landuse_lat,     form='unformatted', access='stream', status='old')
-open(1128, file = landuse_lon,     form='unformatted', access='stream', status='old')
-open(1129, file = landuse_dem,     form='unformatted', access='stream', status='old')
+open(1101, file = states_in_albs,     form='unformatted', access='stream', status='old')
+open(1102, file = states_in_Ds,       form='unformatted', access='stream', status='old')
+open(1103, file = states_in_fsnow,    form='unformatted', access='stream', status='old')
+open(1104, file = states_in_Nsnow,    form='unformatted', access='stream', status='old')
+open(1106, file = states_in_Sice,     form='unformatted', access='stream', status='old')
+open(1107, file = states_in_Sliq,     form='unformatted', access='stream', status='old')
+open(1116, file = states_in_Tss,      form='unformatted', access='stream', status='old')
+open(1119, file = states_in_Tsnow,    form='unformatted', access='stream', status='old')
+open(1120, file = states_in_Tsoil,    form='unformatted', access='stream', status='old')
+open(1123, file = landuse_skyvf,      form='unformatted', access='stream', status='old')
+open(1127, file = landuse_lat,        form='unformatted', access='stream', status='old')
+open(1128, file = landuse_lon,        form='unformatted', access='stream', status='old')
+open(1129, file = landuse_dem,        form='unformatted', access='stream', status='old')
 if (TILE /= 'open') then 
   open(1139, file = landuse_tile, form='unformatted', access='stream', status='old')
 endif 
@@ -271,66 +326,101 @@ if (TILE == 'forest') then
   open(1136, file = landuse_lai,    form='unformatted', access='stream', status='old')
   open(1137, file = landuse_vfhp,   form='unformatted', access='stream', status='old')
   open(1138, file = landuse_fves,   form='unformatted', access='stream', status='old')
-  open(1140, file = landuse_pmultf,  form='unformatted', access='stream', status='old')
+  open(1140, file = landuse_pmultf, form='unformatted', access='stream', status='old')
+endif
+
+if (SNTRAN == 1) then
+  open(1121, file = states_in_histowet,      form='unformatted', access='stream', status='old')
+  open(1141, file = states_in_dSWE_tot_subl, form='unformatted', access='stream', status='old') 
+  open(1142, file = states_in_dSWE_tot_salt, form='unformatted', access='stream', status='old')
+  open(1143, file = states_in_dSWE_tot_susp, form='unformatted', access='stream', status='old')
+  open(1126, file = landuse_Ld,              form='unformatted', access='stream', status='old')
+endif
+
+if (SNSLID == 1) then
+  open(1144, file = landuse_slope,            form='unformatted', access='stream', status='old')
+  open(1145, file = landuse_shd,              form='unformatted', access='stream', status='old')
+  open(1146, file = states_in_dSWE_tot_slide, form='unformatted', access='stream', status='old')
+  open(1147, file = states_in_idem,           form='unformatted', access='stream', status='old')
+endif
+
+if (SNTRAN == 1 .OR. SNSLID == 1) then
+  open(1148, file = landuse_glac, form='unformatted', access='stream', status='old')
 endif
 
 ! Final state variables
-states_out_albs          = 'states_out_alse.bin'
-states_out_Ds            = 'states_out_hsnl.bin'
-states_out_fsnow         = 'states_out_scfe.bin'
-states_out_Nsnow         = 'states_out_nsne.bin'
-states_out_Sice          = 'states_out_sicl.bin'
-states_out_Sliq          = 'states_out_slql.bin'
-states_out_Tss           = 'states_out_tsfe.bin'
-states_out_Tsnow         = 'states_out_tsnl.bin'
-states_out_Tsoil         = 'states_out_tsll.bin'
+states_out_albs             = 'states_out_alse.bin'
+states_out_Ds               = 'states_out_hsnl.bin'
+states_out_fsnow            = 'states_out_scfe.bin'
+states_out_Nsnow            = 'states_out_nsne.bin'
+states_out_Sice             = 'states_out_sicl.bin'
+states_out_Sliq             = 'states_out_slql.bin'
+states_out_Tss              = 'states_out_tsfe.bin'
+states_out_Tsnow            = 'states_out_tsnl.bin'
+states_out_Tsoil            = 'states_out_tsll.bin'
 
 if (SNFRAC == 0 .or. SNFRAC == 2) then
-  states_out_snowdepthmax  = 'states_out_hsmx.bin'
+  states_out_snowdepthmax   = 'states_out_hsmx.bin'
 endif
 
 if (SNFRAC == 0 ) then
-  states_out_snowdepthmin  = 'states_out_hsmn.bin'
-  states_out_snowdepthhist = 'states_out_hshs.bin'
-  states_out_swemin        = 'states_out_swmn.bin'
-  states_out_swemax        = 'states_out_swmx.bin'
-  states_out_swehist       = 'states_out_swhs.bin'
+  states_out_snowdepthmin   = 'states_out_hsmn.bin'
+  states_out_snowdepthhist  = 'states_out_hshs.bin'
+  states_out_swemin         = 'states_out_swmn.bin'
+  states_out_swemax         = 'states_out_swmx.bin'
+  states_out_swehist        = 'states_out_swhs.bin'
 endif
 
 if (TILE == 'forest') then
-  states_out_Qcan          = 'states_out_qcan.bin'
-  states_out_Sveg          = 'states_out_sveg.bin'
-  states_out_Tcan          = 'states_out_tcan.bin'
-  states_out_Tveg          = 'states_out_tveg.bin'
+  states_out_Qcan           = 'states_out_qcan.bin'
+  states_out_Sveg           = 'states_out_sveg.bin'
+  states_out_Tcan           = 'states_out_tcan.bin'
+  states_out_Tveg           = 'states_out_tveg.bin'
 endif
 
-! states at 01h-07h-13h-19h (UTC+1) for the subsequent HN model (<-> 00UTC,06UTC,12UTC,18UTC)
-states_out_Ds01          = 'states_out_hsn1.bin'
-states_out_Ts01          = 'states_out_tsr1.bin'
-states_out_Tsnow01       = 'states_out_tsn1.bin'
-states_out_Tsoil01       = 'states_out_tsl1.bin'
-states_out_Ds07          = 'states_out_hsn7.bin'
-states_out_Ts07          = 'states_out_tsr7.bin'
-states_out_Tsnow07       = 'states_out_tsn7.bin'
-states_out_Tsoil07       = 'states_out_tsl7.bin'
-states_out_Ds13          = 'states_out_hsn3.bin'
-states_out_Ts13          = 'states_out_tsr3.bin'
-states_out_Tsnow13       = 'states_out_tsn3.bin'
-states_out_Tsoil13       = 'states_out_tsl3.bin'
-states_out_Ds19          = 'states_out_hsn9.bin'
-states_out_Ts19          = 'states_out_tsr9.bin'
-states_out_Tsnow19       = 'states_out_tsn9.bin'
-states_out_Tsoil19       = 'states_out_tsl9.bin'
+if (SNTRAN == 1) then
+  states_out_histowet       = 'states_out_hiwl.bin'
+  states_out_dSWE_tot_subl  = 'states_out_sblt.bin'
+  states_out_dSWE_tot_salt  = 'states_out_sltt.bin'
+  states_out_dSWE_tot_susp  = 'states_out_sspt.bin'
+endif
 
-open(1201, file = states_out_albs,  form='unformatted', access='stream')
-open(1202, file = states_out_Ds,    form='unformatted', access='stream')
-open(1203, file = states_out_fsnow, form='unformatted', access='stream')
-open(1204, file = states_out_Nsnow, form='unformatted', access='stream')
-open(1206, file = states_out_Sice,  form='unformatted', access='stream')
-open(1207, file = states_out_Sliq,  form='unformatted', access='stream')
-open(1216, file = states_out_Tss,   form='unformatted', access='stream')
-open(1219, file = states_out_Tsnow, form='unformatted', access='stream')
-open(1220, file = states_out_Tsoil, form='unformatted', access='stream')
+if (SNSLID == 1) then
+  states_out_dSWE_tot_slide = 'states_out_sldt.bin'
+  states_out_idem           = 'states_out_idem.bin'
+endif
+
+! states at 01h-07h-13h-16h-19h (UTC+1) for the subsequent HN model (<-> 00UTC,06UTC,12UTC,15UTC,18UTC)
+states_out_Ds01             = 'states_out_hsn1.bin'
+states_out_Ts01             = 'states_out_tsr1.bin'
+states_out_Tsnow01          = 'states_out_tsn1.bin'
+states_out_Tsoil01          = 'states_out_tsl1.bin'
+states_out_Ds07             = 'states_out_hsn7.bin'
+states_out_Ts07             = 'states_out_tsr7.bin'
+states_out_Tsnow07          = 'states_out_tsn7.bin'
+states_out_Tsoil07          = 'states_out_tsl7.bin'
+states_out_Ds13             = 'states_out_hsn3.bin'
+states_out_Ts13             = 'states_out_tsr3.bin'
+states_out_Tsnow13          = 'states_out_tsn3.bin'
+states_out_Tsoil13          = 'states_out_tsl3.bin'
+states_out_Ds16             = 'states_out_hsn6.bin'
+states_out_Ts16             = 'states_out_tsr6.bin'
+states_out_Tsnow16          = 'states_out_tsn6.bin'
+states_out_Tsoil16          = 'states_out_tsl6.bin'
+states_out_Ds19             = 'states_out_hsn9.bin'
+states_out_Ts19             = 'states_out_tsr9.bin'
+states_out_Tsnow19          = 'states_out_tsn9.bin'
+states_out_Tsoil19          = 'states_out_tsl9.bin'
+
+open(1201, file = states_out_albs,     form='unformatted', access='stream')
+open(1202, file = states_out_Ds,       form='unformatted', access='stream')
+open(1203, file = states_out_fsnow,    form='unformatted', access='stream')
+open(1204, file = states_out_Nsnow,    form='unformatted', access='stream')
+open(1206, file = states_out_Sice,     form='unformatted', access='stream')
+open(1207, file = states_out_Sliq,     form='unformatted', access='stream')
+open(1216, file = states_out_Tss,      form='unformatted', access='stream')
+open(1219, file = states_out_Tsnow,    form='unformatted', access='stream')
+open(1220, file = states_out_Tsoil,    form='unformatted', access='stream')
 
 if (SNFRAC == 0 .or. SNFRAC == 2) then
   open(1210, file = states_out_snowdepthmax, form='unformatted', access='stream')
@@ -351,7 +441,19 @@ if (TILE == 'forest') then
   open(1226, file = states_out_Tveg, form='unformatted', access='stream')
 endif
 
-! states at 01h-07h-13h-19h (UTC+1) for the subsequent HN model (<-> 00UTC,06UTC,12UTC,18UTC)
+if (SNTRAN == 1) then
+  open(1221, file = states_out_histowet, form='unformatted', access='stream')
+  open(1250, file = states_out_dSWE_tot_subl, form='unformatted', access='stream')  
+  open(1251, file = states_out_dSWE_tot_salt, form='unformatted', access='stream')
+  open(1252, file = states_out_dSWE_tot_susp, form='unformatted', access='stream')
+endif
+
+if (SNSLID == 1) then
+  open(1253, file = states_out_dSWE_tot_slide, form='unformatted', access='stream')
+  open(1254, file = states_out_idem,           form='unformatted', access='stream')
+endif
+
+! states at 01h-07h-13h-16h-19h (UTC+1) for the subsequent HN model (<-> 00UTC,06UTC,12UTC,15UTC,18UTC)
 if (FOR_HN) then
   open(1227, file = states_out_Ds01,    form='unformatted', access='stream')  
   open(1228, file = states_out_Ts01,    form='unformatted', access='stream')
@@ -365,10 +467,14 @@ if (FOR_HN) then
   open(1236, file = states_out_Ts13,    form='unformatted', access='stream')
   open(1237, file = states_out_Tsnow13, form='unformatted', access='stream')
   open(1238, file = states_out_Tsoil13, form='unformatted', access='stream')
-  open(1239, file = states_out_Ds19,    form='unformatted', access='stream')  
-  open(1240, file = states_out_Ts19,    form='unformatted', access='stream')
-  open(1241, file = states_out_Tsnow19, form='unformatted', access='stream')
-  open(1242, file = states_out_Tsoil19, form='unformatted', access='stream')
+  open(1239, file = states_out_Ds16,    form='unformatted', access='stream')  
+  open(1240, file = states_out_Ts16,    form='unformatted', access='stream')
+  open(1241, file = states_out_Tsnow16, form='unformatted', access='stream')
+  open(1242, file = states_out_Tsoil16, form='unformatted', access='stream')
+  open(1243, file = states_out_Ds19,    form='unformatted', access='stream')  
+  open(1244, file = states_out_Ts19,    form='unformatted', access='stream')
+  open(1245, file = states_out_Tsnow19, form='unformatted', access='stream')
+  open(1246, file = states_out_Tsoil19, form='unformatted', access='stream')
 endif
 
 ! Result data

@@ -11,7 +11,7 @@ module MODE_WRITE
     integer, intent(in) :: fileid
     integer :: pos,i,j
     inquire(unit = fileid, pos = pos)
-    write(fileid, pos = pos) ((var(i,j),j=1,size(var,2)),i=1,size(var,1))
+    write(fileid, pos = pos) ((var(i,j),i=1,size(var,1)),j=1,size(var,2))
   end subroutine WRITE_2D
 
 end module MODE_WRITE

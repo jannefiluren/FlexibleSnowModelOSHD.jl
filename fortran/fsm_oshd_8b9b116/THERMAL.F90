@@ -3,9 +3,9 @@
 !-----------------------------------------------------------------------
 subroutine THERMAL(csoil,Ds1,gs1,ks1,ksnow,ksoil,Ts1,Tveg0)
 
-use MODCONF, only: CONDCT, DENSTY
+use MODCONF, only: CONDCT, DENSTY, SNTRAN, SNSLID
 
-use MODTILE, only: TILE, tthresh 
+use MODTILE, only: TILE, tthresh
 
 use CONSTANTS, only: &
   grav,              &! Acceleration due to gravity (m/s^2)
@@ -42,7 +42,7 @@ use SOILPARAMS, only: &
 use STATE_VARIABLES, only: &
   Ds,                &! Snow layer thicknesses (m)
   Nsnow,             &! Number of snow layers
-  fsnow,             &! Snow cover fraction 
+  fsnow,             &! Snow cover fraction
   Sice,              &! Ice content of snow layers (kg/m^2)
   Sliq,              &! Liquid content of snow layers (kg/m^2)
   theta,             &! Volumetric soil moisture content
@@ -51,7 +51,9 @@ use STATE_VARIABLES, only: &
   Tveg                ! Vegetation temperature (K)
 
 use LANDUSE, only: &
-  tilefrac            ! Grid cell tile fraction
+  tilefrac,          &! Grid cell tile fraction
+  glacierfrac         ! Glacier flag
+
 
 implicit none
 
@@ -118,7 +120,7 @@ do i = 1, Nx
 
   do k = 1, Nsoil
   
-    if (TILE == 'glacier') then ! Glacier soil properties
+    if (TILE == 'glacier' .or. ((SNTRAN == 1 .or. SNSLID == 1) .and. glacierfrac(i,j) > epsilon(glacierfrac(i,j)))) then ! Glacier soil properties
     
       ! Note that hcap_ice is specific heat capacity and has to be converted to volumetric heat capacity
       csoil(k,i,j) = hcap_ice * rho_ice *Dzsoil(k)
@@ -173,7 +175,7 @@ do i = 1, Nx
 
   if (tilefrac(i,j) < tthresh) goto 3 ! exclude points outside tile of interest
  
-! GM/LQ: the following lines define the properties of the layer that interacts with the surface in EBALSRF. 
+  ! GM/LQ: the following lines define the properties of the layer that interacts with the surface in EBALSRF. 
   ! to maintain numerical stability, this layer is always at least as thick at the top soil layer (10cm in default), 
   ! and layer properties incorporate soil properties for thin snowpacks. 
   ! IMPORTANT consequence of this trick: when adapting the snow layering, we need to ensure that the thickness 

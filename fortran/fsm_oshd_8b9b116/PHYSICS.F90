@@ -3,7 +3,7 @@
 !-----------------------------------------------------------------------
 subroutine PHYSICS
 
-use MODCONF, only: CANMOD, RADSBG
+use MODCONF, only: CANMOD, RADSBG, SNSLID, CHECKS
 
 use MODTILE, only: TILE
 
@@ -72,7 +72,11 @@ real :: &
   SWveg(Nx,Ny),      &! Net SW radiation absorbed by vegetation (W/m^2)
   Tveg0(Nx,Ny),      &! Vegetation temperature at start of timestep (K)
   Usc(Nx,Ny),        &! Wind speed in canopy layer (at height of turbulent flux from veg to cas) (m/s)
-  unload(Nx,Ny)       ! Snow mass unloaded from canopy (kg/m^2)
+  unload(Nx,Ny),     &! Snow mass unloaded from canopy (kg/m^2)
+  dSWE_salt(Nx,Ny),  &! SWE change due to saltation (kg/m^2)
+  dSWE_susp(Nx,Ny),  &! SWE change due to suspension (kg/m^2)
+  dSWE_subl(Nx,Ny),  &! SWE change due to sublimation (kg/m^2)
+  dSWE_slide(Nx,Ny)   ! SWE change due to snow slides (kg/m^2)
 
 integer :: & 
   n                   ! Iteration counter
@@ -102,18 +106,21 @@ do n = 1, Nitr
 end do
 
 ! BC CANOPY should be called even outside of the forest
-! because unload, intcpt,Sbveg are not initialised.
+! because unload, intcpt, Sbveg are not initialised.
 ! This routine sets it to zero where there is no canopy.
 call CANOPY(Eveg,unload,intcpt,Sbveg)
 
-call SNOW(Esrf,G,ksnow,ksoil,Melt,unload,Gsoil,Roff,meltflux_out,Sbsrf)
+call SNOW(Esrf,G,ksnow,ksoil,Melt,unload,Gsoil,Roff,meltflux_out,Sbsrf,dSWE_salt,dSWE_susp,dSWE_subl,dSWE_slide)
 
 call SOIL(csoil,Gsoil,ksoil)
 
-call CUMULATE(Roff, meltflux_out,Sbsrf,Sdirt,Sdift,LWt,asrf_out,Melt, &
+call CUMULATE(Roff,meltflux_out,Sbsrf,Sdirt,Sdift,LWt,asrf_out,Melt, &
               Esrf,Eveg,Gsoil,Hsrf,intcpt,KH,KHa,Khg,KHv,KWg,KWv,  &
               LE,LEsrf,LWsci,LWveg,Rnet,Rsrf,Sbveg,H,Swsci,SWsrf,  &
-              SWveg,Usc,unload)
+              SWveg,Usc,unload,dSWE_salt,dSWE_susp,dSWE_subl,dSWE_slide)
 
+if (CHECKS /= 0) then
+  call CHECK_SNOWPACK
+end if
 
 end subroutine PHYSICS

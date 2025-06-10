@@ -26,7 +26,7 @@ use DRIVING, only: &
 
 use GRID, only: &
   Nx,Ny               ! Grid dimensions
-  
+
 use PARAMMAPS, only: &
   canh,              &! Canopy heat capacity (J/K/m^2)
   fsky,              &! Terrain / distant canopy shading
