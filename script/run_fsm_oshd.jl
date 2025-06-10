@@ -231,7 +231,7 @@ for (istep, indata) in enumerate(eachrow(drive_data))
 
   # Run snow
 
-  snow(fsm, meteo)
+  snow(fsm, meteo, t)
 
   fortran = readlines("../fortran/temp/test_snow.txt")
 
