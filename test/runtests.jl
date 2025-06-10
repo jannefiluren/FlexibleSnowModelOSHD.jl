@@ -10,7 +10,7 @@ include(joinpath(projdir, "script", "compile_fsm.jl"))
 
 @testset "complete_season" begin
 
-  cd(joinpath(projdir, "fortran", "fsm_txt_64_1dac411"))
+  cd(joinpath(projdir, "fortran", "fsm_txt_64_8b9b116"))
 
   compile()
 
