@@ -46,6 +46,7 @@ function write_namelist(station; NALBEDO=2, NCANMOD=0, NCONDCT=1, NDENSTY=3, NEX
   &nam_driving
     zzT = 10,
     zzU = 10,
+    zzRH = 10,
     met_file = '$(in_file)',
     out_file = '$(out_file)',
   /
@@ -60,6 +61,11 @@ function write_namelist(station; NALBEDO=2, NCANMOD=0, NCONDCT=1, NDENSTY=3, NEX
     NRADSBG = $(NRADSBG),
     NZOFFST = $(NZOFFST),
     NOSHDTN = $(NOSHDTN),
+    NALRADT = 0,
+    NSNTRAN = 0,
+    NSNSLID = 0,
+    NSNOLAY = 0,
+    NCHECKS = 0,
     LHN_ON  = .FALSE.,
     LFOR_HN = .TRUE.,
   /

@@ -44,6 +44,7 @@ use PARAMETERS, only: &
   rhob,              &! Temperature factor in fresh snow density (kg/m^3/K)
   rhoc,              &! Wind factor in fresh snow density (kg s^0.5/m^3.5)
   rhof,              &! Fresh snow density (kg/m^3)
+  rhos_max,          &! Maximum snow density (kg/m^3)
   rcld,              &! Maximum density for cold snow (kg/m^3)
   rmlt,              &! Maximum density for melting snow (kg/m^3)
   snda,              &! Thermal metamorphism parameter (1/s)
@@ -153,7 +154,7 @@ do i = 1, Nx
     if (SNFRAC == 3) then
       fsnow_thres(i,j) = fsnow(i,j)
     else
-      fsnow_thres(i,j) = max(fsnow(i,j),0.1_dp)
+      fsnow_thres(i,j) = min(fsnow(i,j)+ 0.25_dp,1.0_dp)
     end if
 
     ! Heat conduction
@@ -267,6 +268,8 @@ do i = 1, Nx
           Roff_snow(i,j) = Sliq(k,i,j) - SliqMax   ! so drainage to next layer
           Sliq(k,i,j) = SliqMax
         end if
+        ! csnow needs to be updated after changing Sliq and Sice
+        csnow(k) = (Sice(k,i,j)*hcap_ice + Sliq(k,i,j)*hcap_wat) / fsnow(i,j)
         coldcont = csnow(k)*(Tm - Tsnow(k,i,j))
         if (coldcont > 0_dp) then       ! Liquid can freeze
           dSice = min(Sliq(k,i,j), fsnow(i,j)*coldcont/Lf) 
@@ -296,6 +299,8 @@ do i = 1, Nx
           Roff_snow(i,j) = Sliq(k,i,j) - SliqMax   ! so drainage to next layer
           Sliq(k,i,j) = SliqMax
         end if
+        ! csnow needs to be updated after changing Sliq and Sice
+        csnow(k) = (Sice(k,i,j)*hcap_ice + Sliq(k,i,j)*hcap_wat) / fsnow(i,j)
         coldcont = csnow(k)*(Tm - Tsnow(k,i,j))
         if (coldcont > epsilon(coldcont)) then       ! Liquid can freeze
           dSice = min(Sliq(k,i,j), fsnow(i,j)*coldcont/Lf) 
@@ -341,6 +346,7 @@ do i = 1, Nx
           rhos = (Sice(k,i,j) + Sliq(k,i,j)) / Ds(k,i,j) / fsnow(i,j)
           rhos = rhos + (rhos*grav*mass*dt/(eta0*exp(-(Tsnow(k,i,j) - Tm)/12.4_dp + rhos/55.6_dp))   &
                       + dt*rhos*snda*exp((Tsnow(k,i,j) - Tm)/23.8_dp - max(rhos - 150_dp, 0.0_dp)/21.7_dp))
+          rhos = min(rhos, rhos_max)
           Ds(k,i,j) = (Sice(k,i,j) + Sliq(k,i,j)) / rhos / fsnow(i,j)
         end if
         mass = mass + 0.5_dp*(Sice(k,i,j) + Sliq(k,i,j)) / fsnow(i,j)
@@ -356,6 +362,7 @@ do i = 1, Nx
           f2 = 1.0_dp
           eta = f1 * f2 * eta1 * (rhos / c_eta) * exp(a_eta * (Tm - Tsnow(k,i,j)) + b_eta * rhos)
           rhos = rhos + rhos*grav*mass*dt/eta
+          rhos = min(rhos, rhos_max)
           Ds(k,i,j) = (Sice(k,i,j) + Sliq(k,i,j)) / rhos / fsnow(i,j)
         end if
         mass = mass + 0.5*(Sice(k,i,j) + Sliq(k,i,j)) / fsnow(i,j)

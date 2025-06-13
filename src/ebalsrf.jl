@@ -13,7 +13,7 @@
 
 function ebalsrf(fsm::FSM, meteo::MET)
 
-  @unpack CANMOD = fsm
+  @unpack CANMOD, SNTRAN, SNSLID = fsm
 
   @unpack TILE, tthresh = fsm
 
@@ -25,7 +25,7 @@ function ebalsrf(fsm::FSM, meteo::MET)
 
   @unpack Sice, Tcan, Tsrf, Tveg = fsm
 
-  @unpack fveg, tilefrac = fsm
+  @unpack fveg, tilefrac, glacierfrac = fsm
 
   @unpack SWsrf = fsm
 
@@ -109,7 +109,7 @@ function ebalsrf(fsm::FSM, meteo::MET)
           #     - assumes the glacier is an infinite heat reservoir.
           #     - does not conserve energy.
           # The excess energy would correspond to glacier melting, which we don't track.
-          if (TILE == "glacier")
+          if (TILE == "glacier" || ((SNTRAN == 1 || SNSLID == 1) && glacierfrac[i,j] > eps(Float64)))
             if (Tsrf[i, j] + dTs[i, j] > Tm && Sice[1, i, j] <= eps(Float64))
               Qs = qsat(Ps[i, j], Tm)  #call QSAT(Ps[i,j],Tm,Qs)
               Esrf[i, j] = rho * KWg[i, j] * (Qs - Qa[i, j])

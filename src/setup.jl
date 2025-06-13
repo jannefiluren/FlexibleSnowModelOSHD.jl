@@ -3,7 +3,7 @@ function setup_point!(fsm::FSM, terrain_file; state_file="")
   # Adjust parameters depending on tile
   if (fsm.TILE == "forest")
     fsm.hfsn = 0.3    
-    fsm.z0sn = 0.005
+    fsm.z0sn = 0.01
     fsm.z0sf = 0.2*ones(Nx,Ny)
   end
 
@@ -68,6 +68,10 @@ function setup_point!(fsm::FSM, terrain_file; state_file="")
   fsm.dem[:,:] .= terrain[7]
 
   fsm.tilefrac[:,:] .= 1   # TODO read this variable from file...
+  fsm.glacierfrac[:,:] .= 0   # TODO read this variable from file...
+
+  # Set snow surface properties
+  fsm = set_snow_surf_properties(fsm)
 
   # Read states from file
   if !isempty(state_file)    # TODO this only work is Nx and Ny == 1
@@ -102,7 +106,7 @@ function setup_grid!(fsm::FSM, landuse; state_file="")
   # Adjust parameters depending on tile
   if (fsm.TILE == "forest")
     fsm.hfsn = 0.3    
-    fsm.z0sn = 0.005
+    fsm.z0sn = 0.01
     fsm.z0sf = 0.2*ones(Nx,Ny)
   end
 
@@ -174,6 +178,10 @@ function setup_grid!(fsm::FSM, landuse; state_file="")
   fsm.dem .= landuse["dem"] #TODO: what to do with NaNs in DEM?
 
   fsm.tilefrac .= 1   # TODO read this variable from file...
+  fsm.glacierfrac[:,:] .= 0   # TODO read this variable from file...
+
+  # Set snow surface properties
+  fsm = set_snow_surf_properties(fsm)
 
   # Read states from file
   if !isempty(state_file)    # TODO this only work is Nx and Ny == 1
@@ -203,8 +211,67 @@ function setup_grid!(fsm::FSM, landuse; state_file="")
 
 end
 
+
 function latlon!(fsm, landuse) #TODO
   fsm.lat .= 46.83
   fsm.lon .= 9.8092
+end
+
+
+function set_snow_surf_properties(fsm)
+
+  # Tuned snow surface properties
+
+  if fsm.OSHDTN == 0
+
+    fsm.adm = 100
+    fsm.adc[:,:] = 1000
+    fsm.afs[:,:] = fsm.asmx
+    if (fsm.TILE == "glacier" || ((fsm.SNTRAN == 1 || fsm.SNSLID == 1) && fsm.glacierfrac(i,j) > eps(Float64)))
+      fsm.z0_snow[:,:] = 0.0009
+    else
+      fsm.z0_snow[:,:] = fsm.z0sn
+    end
+
+  else
+
+    fsm.adm = 130
+
+    for j = 1:fsm.Ny
+      for i = 1:fsm.Nx
+      
+        # Elevation-dependent tuning of cold snow albedo decay time
+        if (fsm.dem[i,j] >= 2300)
+          fsm.adc[i,j]  = 6000
+        elseif (fsm.dem[i,j] <= 1500)
+          fsm.adc[i,j] = 3000
+        else
+          fsm.adc[i,j] = 6000 + (2300 - fsm.dem[i,j]) / (2300 - 1500) * (3000 - 6000)
+        end
+        
+        # Fresh snow albedo is now constant (previously elevation-dependent)
+        fsm.afs[i,j] = fsm.asmx
+        
+        # Elevation-dependent tuning of snow roughness length
+        if (fsm.TILE == "glacier" || ((fsm.SNTRAN == 1 || fsm.SNSLID == 1) && fsm.glacierfrac[i,j] > eps(Float64)))
+          fsm.z0_snow[i,j] = 0.0009
+        elseif (fsm.TILE == "forest")
+          fsm.z0_snow[i,j] = fsm.z0sn
+        else
+          if (fsm.dem[i,j] >= 2300)
+            fsm.z0_snow[i,j] = 0.01
+          elseif (fsm.dem[i,j] >= 1500)
+            fsm.z0_snow[i,j] = 0.2 + (fsm.dem[i,j] - 1500) / (2300 - 1500) * (0.01 - 0.2)
+          else
+            fsm.z0_snow[i,j] = 0.2
+          end
+        end
+        
+      end
+    end
+
+  end
+
+  return fsm
 
 end

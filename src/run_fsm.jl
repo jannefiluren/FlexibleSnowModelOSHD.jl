@@ -29,6 +29,11 @@ function run_fsm_point(station)
     meteo.Ps[:, :] .= indata[13]
     meteo.Sf24h[:, :] .= indata[14]
 
+
+    # TODO: read read data for Sdird
+    meteo.Sdird[:, :] = meteo.Sdir[:, :]
+
+    
     # Run model
 
     drive!(fsm, meteo)

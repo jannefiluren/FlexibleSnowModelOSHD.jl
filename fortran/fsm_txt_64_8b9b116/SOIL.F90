@@ -5,6 +5,8 @@ subroutine SOIL(csoil,Gsoil,ksoil)
 
 use, intrinsic :: iso_fortran_env, only: dp=>real64
 
+use MODCONF, only: SNTRAN, SNSLID
+
 use MODTILE, only: TILE, tthresh 
 
 use CONSTANTS, only: &
@@ -22,7 +24,8 @@ use STATE_VARIABLES, only: &
   Tsoil               ! Soil layer temperatures (K)
 
 use LANDUSE, only: &
-  tilefrac            ! Grid cell tile fraction
+  tilefrac,          &! Grid cell tile fraction
+  glacierfrac         ! Glacier flag
 
 use TEST
 
@@ -78,7 +81,7 @@ do i = 1, Nx
   ! Cap glacier temperatures to 0°C
   ! This does not conserve energy.
   ! The excess energy would correspond to glacier melting, which we don't track.
-  if (TILE == 'glacier') then
+  if (TILE == 'glacier' .or. ((SNTRAN == 1 .or. SNSLID == 1) .and. glacierfrac(i,j) > epsilon(glacierfrac(i,j)))) then
     do k = 1, Nsoil
       Tsoil(k,i,j) = min(Tsoil(k,i,j),Tm)
     end do

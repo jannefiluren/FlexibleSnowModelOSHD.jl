@@ -26,8 +26,16 @@
   RADSBG::Int = 0
   ZOFFST::Int = 0
   OSHDTN::Int = 1
+  ALRADT::Int = 0
+  SNTRAN::Int = 0
+  SNSLID::Int = 0
   HN_ON::Bool = false
   FOR_HN::Bool = true
+  Z0PERT::Bool = false
+  WCPERT::Bool = false
+  FSPERT::Bool = false
+  ALPERT::Bool = false
+  SLPERT::Bool = false
 
   tthresh::T = 0.1    # TODO check if this is the best handling
   TILE::String = "open"    # TODO check if this is the best handling and type
@@ -39,7 +47,7 @@
   avg0::T = 0.1
   avgs::T = 0.4
   cden::T = 0.004
-  cvai::T = 6.6
+  cvai::T = 4.4
   cveg::T = 20
   Gcn1::T = 0.5
   Gcn2::T = 0
@@ -53,8 +61,8 @@
 
   # Defaults for snow parameters
   a_eta::T = 0.1
-  asmx::T = 0.8
-  asmn::T = 0.5
+  asmx::T = 0.86
+  asmn::T = 0.6
   b_eta::T = 0.023
   bthr::T = 2
   c_eta::T = 250
@@ -66,6 +74,8 @@
   rhob::T = 6
   rhoc::T = 26
   rhof::T = 109
+  rhos_min::T = 50
+  rhos_max::T = 750
   rcld::T = 300
   rgr0::T = 5e-5
   rmlt::T = 500
@@ -91,9 +101,15 @@
   psr::T  = 0.1
   wcan::T = 2.5
   zsub::T = 2
-  zgf::T = 5
-  zgr::T = 5
+  zgf::T = 1
+  zgr::T = 0
   khcf::T = 3
+
+  # Surface parameters
+  adm::T = -999  # TODO: what to do with defaults here
+  adc::Array{T,2} = -999*ones(Nx,Ny)  # TODO: what to do with defaults here
+  afs::Array{T,2} = -999*ones(Nx,Ny)  # TODO: what to do with defaults here
+  z0_snow::Array{T,2} = -999*ones(Nx,Ny)  # TODO: what to do with defaults here
 
   # Surface properties
   alb0::Array{T,2} = 0.2*ones(Nx,Ny)
@@ -122,6 +138,7 @@
   lon::Array{T, 2} = zeros(Nx,Ny)
   dem::Array{T, 2} = zeros(Nx,Ny)
   tilefrac::Array{T,2} = zeros(Nx,Ny)
+  glacierfrac::Array{T,2} = zeros(Nx,Ny)
 
   # Derived soil parameters
   b::Array{T, 2} = zeros(Nx,Ny)
@@ -157,7 +174,7 @@
 
   # Radiation - temporary arrays
 
-  afs::Array{T,2} = zeros(Nx, Ny)
+  #afs::Array{T,2} = zeros(Nx, Ny)
   alb::Array{T,2} = zeros(Nx,Ny)
   asrf_out::Array{T,2} = zeros(Nx,Ny)
   Sdirt::Array{T,2} = zeros(Nx,Ny)
@@ -257,6 +274,7 @@ end
 
   Sdir::Array{T, 2} = zeros(Nx, Ny)
   Sdif::Array{T, 2} = zeros(Nx, Ny)
+  Sdird::Array{T, 2} = zeros(Nx, Ny)
   LW::Array{T, 2} = zeros(Nx, Ny)
   Sf::Array{T, 2} = zeros(Nx, Ny)
   Rf::Array{T, 2} = zeros(Nx, Ny)

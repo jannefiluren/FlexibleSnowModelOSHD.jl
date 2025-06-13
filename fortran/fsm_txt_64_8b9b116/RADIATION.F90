@@ -3,9 +3,8 @@
 !-----------------------------------------------------------------------
 subroutine RADIATION(alb,SWsrf,SWveg,Sdirt,Sdift,asrf_out,SWsci,LWt)
 
-use, intrinsic :: iso_fortran_env, only: dp=>real64
-
-use MODCONF, only: CANMOD, RADSBG, ALBEDO, OSHDTN
+  use, intrinsic :: iso_fortran_env, only: dp=>real64
+use MODCONF, only: CANMOD, RADSBG, ALBEDO, OSHDTN,ALRADT
 
 use MODPERT, only: ALPERT
 use MODTILE, only: tthresh 
@@ -28,12 +27,14 @@ use DRIVING, only: &
   Sf24h,             &! Snowfall 24hr (kg/m2)
   Ta,                &! Air temperature (K)
   Tv,                &! Time-varying transmissivity for dSWR
-  alP                 ! albedo perturbation for fresh snow
+  alP,               &! Albedo perturbation for fresh snow
+  Sdird               ! Direct-beam shortwave radiation, per horizontal surface area (W/m2)
 
 use GRID, only: &
   Nx,Ny               ! Grid dimensions
 
 use PARAMETERS, only: &
+  adm,               &! Melting snow albedo decay time (h)
   asmx,              &! Maximum albedo for fresh snow
   asmn,              &! Minimum albedo for melting snow
   avg0,              &! Snow-free vegetation albedo
@@ -41,12 +42,14 @@ use PARAMETERS, only: &
   Talb,              &! Albedo decay temperature threshold (C)
   tcld,              &! Cold snow albedo decay timescale (s)
   tmlt,              &! Melting snow albedo decay timescale (s)
-  adfs,              & ! forest albedo decay factor
-  adfl,              & ! forest albedo decay factor
+  adfs,              &! Forest albedo decay factor
+  adfl,              &! Forest albedo decay factor
   fsar,              &! Albedo adjustment range for canopy dependence 
   Sfmin               ! Minimum 24h snowfall to refresh albedo (kg/m^2)
-  
+
 use PARAMMAPS, only: &
+  adc,               &! Cold snow albedo decay time (h)
+  afs,               &! Maximum albedo for fresh snow
   alb0,              &! Snow-free ground albedo
   fsky,              &! Sky view fraction
   scap,              &! Canopy snow capacity (kg/m^2)
@@ -58,13 +61,11 @@ use STATE_VARIABLES, only: &
   Sliq,              &! Liquid content of snow layers (kg/m^2)
   fsnow,             &! Snow cover fraction
   Sveg,              &! Snow mass on vegetation (kg/m^2)
-  Tsnow,             &! Snow layer temperatures (K)
   Tsrf                ! Surface skin temperature (K)
 
 use LANDUSE, only: &
   fsky_terr,         &! Terain sky view factor
   fveg,              &! Canopy cover fraction
-  dem,               &! Terrain elevation (m)
   tilefrac            ! Grid cell tile fraction
 
 use TEST
@@ -87,6 +88,9 @@ real*8, intent(out) :: &
   SWsci(Nx,Ny)        ! Subcanopy incoming SWR (W/m^2)
 
 real*8 :: &
+  adc_loc,           &! Local cold snow albedo decay time (h)
+  adm_loc,           &! Local melting snow albedo decay time (h)
+  afs_loc,           &! Local maximum albedo for fresh snow
   alim,              &! Limiting snow albedo
   acan,              &! Canopy albedo
   asrf,              &! Surface albedo
@@ -99,10 +103,7 @@ real*8 :: &
   tdif,              &! Canopy transmissivity for diffuse radiation
   tdir,              &! Canopy transmissivity for direct-beam radiation
   SWtopo_out,        &! Outgoing SW radiation corrected for subgrid topography (W/m^2)
-  Sun_elev,          &! Solar elevation angle
-  adm,               &! Melting snow albedo decay time (h)
-  adc,               &! Cold snow albedo decay time (h)
-  afs                 ! Maximum albedo for fresh snow - local variable, constant or tuned depending on elevation
+  Sun_elev            ! Solar elevation angle
 
 ! Snow albedo
 do j = 1, Ny
@@ -110,28 +111,16 @@ do i = 1, Nx
 
   if (tilefrac(i,j) < tthresh) goto 1 ! exclude points outside tile of interest
   
-  ! New Snow albedo 
-  if (ALPERT .eqv. .TRUE.) then
-    afs = alP(i,j)
-  else
-    if (OSHDTN == 0) then 
-      afs = asmx
-    else ! OSHDTN == 1
-      ! 11/2021 tuning: high elevation afs changed from 0.86 to 0.92
-      if (dem(i,j) >= 2300_dp) then
-        afs  = 0.92_dp
-      else if (dem(i,j) <= 1500_dp) then
-        afs = 0.80_dp
-      else
-        afs = 0.92_dp + (2300_dp - dem(i,j)) / (2300_dp - 1500_dp) * (0.80_dp - 0.92_dp)
-      end if
-    end if
-  end if
+  ! LQ we need to copy `adc(i,j)` et al. into `*_loc` to avoid erroneously updating it every  timestep.
+  adc_loc = adc(i,j)
+  adm_loc = adm
+  afs_loc = afs(i,j)
+
   if (ALBEDO == 0) then
   ! Diagnostic
-    albs(i,j) = asmn + (afs - asmn)*(Tsrf(i,j) - Tm) / Talb
-    if (albs(i,j) < min(afs, asmn)) albs(i,j) = min(afs, asmn)
-    if (albs(i,j) > max(afs, asmn)) albs(i,j) = max(afs, asmn)
+    albs(i,j) = asmn + (afs_loc - asmn)*(Tsrf(i,j) - Tm) / Talb
+    if (albs(i,j) < min(afs_loc, asmn)) albs(i,j) = min(afs_loc, asmn)
+    if (albs(i,j) > max(afs_loc, asmn)) albs(i,j) = max(afs_loc, asmn)
 
   elseif (ALBEDO == 1) then
   ! Prognostic
@@ -150,45 +139,51 @@ do i = 1, Nx
     end if     
 
     rt = 1_dp/tau + Sf(i,j)/Sfmin
-    alim = (asmn/tau + Sf(i,j)*afs/Sfmin)/rt
+    alim = (asmn/tau + Sf(i,j)*afs_loc/Sfmin)/rt
     albs(i,j) = alim + (albs(i,j) - alim)*exp(-rt*dt)
-    if (albs(i,j) < min(afs, asmn)) albs(i,j) = min(afs, asmn)
-    if (albs(i,j) > max(afs, asmn)) albs(i,j) = max(afs, asmn)
+    if (albs(i,j) < min(afs_loc, asmn)) albs(i,j) = min(afs_loc, asmn)
+    if (albs(i,j) > max(afs_loc, asmn)) albs(i,j) = max(afs_loc, asmn)
 
   else ! ALBEDO == 2
   ! Prognostic, tuned, copied from JIM
     SWEtmp = sum(Sice(:,i,j) + Sliq(:,i,j))
-    !! DECAY RATES
-    ! Melting and cold snow decay times
-    if ((OSHDTN==0) .AND. (ALPERT .EQV. .FALSE.)) then
-      ! albedo perturbation only intends at modifying the fresh snow albedo, not the decay time.
-      adm = 100_dp
-      adc = 1000_dp
-    else
-      ! BC: NB, keep formerly tuned decay rates if albedo perturbations switched on
-      if (month > 6 .AND. month < 10) then
-        adm = 50_dp
-      else
-        adm = 130_dp
-      end if
-      adc = 3000_dp
+
+    ! BC 08.23: aspect-dependent albedo tuning. Activated for oper season 2024
+    ! or optionally.
+    if ((ALRADT == 1) .OR. (OSHDTN == 1)) then
+      ! BC Oct 23: Jan's suggestion: modify only when the decay rate should be increased (ad* DECREASE), not decreased
+      if ((Sdir(i,j) > epsilon(Sdir(i,j))) .AND. (Sdird(i,j) < Sdir(i,j))) then
+        adm_loc = adm_loc * (Sdird(i,j))/(Sdir(i,j))
+        adc_loc = adc_loc * (Sdird(i,j))/(Sdir(i,j))
+        if (adm_loc < epsilon(adm_loc)) then
+          adm_loc = epsilon(adm_loc)
+        endif
+        if (adc_loc < epsilon(adc_loc)) then
+          adc_loc = epsilon(adc_loc)
+        endif
+      endif
     endif
-    if (Tsrf(i,j) >= Tm .AND. Tsnow(1,i,j) >= Tm) then  ! was only based on Tss
-      albs(i,j) = (albs(i,j) - asmn)*exp(-(dt/3600_dp)/adm) + asmn
+
+    if (ALPERT) then
+      adm_loc = adm_loc * alP(i,j)
+      adc_loc = adc_loc * alP(i,j)
+    endif
+    if (Tsrf(i,j) >= Tm) then
+      albs(i,j) = (albs(i,j) - asmn)*exp(-(dt/3600_dp)/adm_loc) + asmn
     else
-      albs(i,j) = albs(i,j) - (dt/3600_dp)/adc
+      albs(i,j) = albs(i,j) - (dt/3600_dp)/adc_loc
     end if
     if (SWEtmp < 75.0) then ! more stuff showing on and up through snow
-      afs = afs * 0.80_dp
+      afs_loc = afs_loc * 0.80_dp
     end if
     ! Reset to fresh snow albedo (wasn't originally available; only else term)
     if ((Sf(i,j) * dt) > 0.0 .AND. Sf24h(i,j) > Sfmin) then
-      albs(i,j) = afs
+      albs(i,j) = afs_loc
     else
-      albs(i,j) = albs(i,j) + (afs - albs(i,j))*Sf(i,j)*dt/Sfmin
+      albs(i,j) = albs(i,j) + (afs_loc - albs(i,j))*Sf(i,j)*dt/Sfmin
     end if
     !! End Adjustments
-    if (albs(i,j) > afs) albs(i,j) = afs
+    if (albs(i,j) > afs_loc) albs(i,j) = afs_loc
     if (albs(i,j) < asmn) albs(i,j) = asmn
   endif
 
@@ -205,8 +200,10 @@ do i = 1, Nx
 
   ! Surface albedo
   asrf = albs(i,j)*(1_dp-fveg(i,j)*fsar)  
-  if (fsnow(i,j) <= epsilon(fsnow)) asrf = alb0(i,j)
-
+  if (fsnow(i,j) <= epsilon(fsnow)) then
+    asrf = alb0(i,j)
+    albs(i,j) = alb0(i,j)
+  endif
 
   ! Partial snowcover on canopy
   fcans = 0_dp
@@ -253,14 +250,14 @@ do i = 1, Nx
     SWsci(i,j) = tdif*Sdif_aux + tdir*Sdirt(i,j)
   endif 
   
-    ! Thermal emissions from surroundings 
-    ! Terrain LWR if not calculated later; 
-    LWt(i,j) = fsky_terr(i,j)*LW(i,j) + (1_dp - fsky_terr(i,j))*sb*Ta(i,j)**4_dp   
+  ! Thermal emissions from surroundings
+  ! Terrain LWR if not calculated later
+  LWt(i,j) = fsky_terr(i,j)*LW(i,j) + (1_dp - fsky_terr(i,j))*sb*Ta(i,j)**4_dp
 
-    ! LW overwritten by LWt only if EBALFOR is used, where terrain impacts are accounted for already 
-    if (CANMOD == 0 .OR. fveg(i,j) == 0) then
-      LW(i,j) = LWt(i,j)
-    endif
+  ! LW overwritten by LWt only if EBALFOR is not used, where terrain impacts are accounted for already
+  if (CANMOD == 0 .OR. fveg(i,j) == 0) then
+    LW(i,j) = LWt(i,j)
+  endif
             
   2 continue 
   

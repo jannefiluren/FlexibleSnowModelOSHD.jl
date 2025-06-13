@@ -1,6 +1,8 @@
 function soil(fsm::FSM)
 
-  @unpack TILE, tthresh = fsm
+  @unpack SNTRAN, SNSLID = fsm
+
+  @unpack TILE, tthresh, glacierfrac = fsm
 
   @unpack dt = fsm
 
@@ -58,7 +60,7 @@ function soil(fsm::FSM)
         # Cap glacier temperatures to 0°C
         # This does not conserve energy.
         # The excess energy would correspond to glacier melting, which we don't track.
-        if (TILE == "glacier")
+        if (TILE == "glacier" || ((SNTRAN == 1 || SNSLID == 1) && glacierfrac(i,j) > eps(Float64)))
           for k = 1:Nsoil
             Tsoil[k, i, j] = min(Tsoil[k, i, j], Tm)
           end

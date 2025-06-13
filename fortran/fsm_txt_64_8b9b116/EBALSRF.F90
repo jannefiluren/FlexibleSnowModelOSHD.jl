@@ -7,7 +7,7 @@ subroutine EBALSRF(Ds1,KH,KHa,KHv,KWg,KWv,ks1,SWsrf,SWveg,Ts1, &
 
 use, intrinsic :: iso_fortran_env, only: dp=>real64
 
-use MODCONF, only: CANMOD
+use MODCONF, only: CANMOD, SNTRAN, SNSLID
 
 use MODTILE, only: TILE, tthresh 
 
@@ -42,7 +42,8 @@ use STATE_VARIABLES, only: &
 
 use LANDUSE, only : &
   fveg,              &! Canopy cover fraction
-  tilefrac            ! Grid cell tile fraction
+  tilefrac,          &! Grid cell tile fraction
+  glacierfrac         ! Glacier flag
 
 use TEST
 
@@ -171,7 +172,7 @@ do i = 1, Nx
     !     - assumes the glacier is an infinite heat reservoir.
     !     - does not conserve energy.
     ! The excess energy would correspond to glacier melting, which we don't track.
-    if (TILE == 'glacier') then
+    if (TILE == 'glacier' .or. ((SNTRAN == 1 .or. SNSLID == 1) .and. glacierfrac(i,j) > epsilon(glacierfrac(i,j)))) then
       if (Tsrf(i,j) + dTs > Tm .and. Sice(1,i,j) <= epsilon(Sice(1,i,j))) then
         call QSAT(Ps(i,j),Tm,Qs)
         Esrf(i,j) = rho*KWg(i,j)*(Qs - Qa(i,j))  

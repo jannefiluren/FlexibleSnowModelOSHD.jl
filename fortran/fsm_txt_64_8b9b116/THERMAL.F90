@@ -5,7 +5,7 @@ subroutine THERMAL(csoil,Ds1,gs1,ks1,ksnow,ksoil,Ts1,Tveg0)
 
 use, intrinsic :: iso_fortran_env, only: dp=>real64
 
-use MODCONF, only: CONDCT, DENSTY
+use MODCONF, only: CONDCT, DENSTY, SNTRAN, SNSLID
 
 use MODTILE, only: TILE, tthresh 
 
@@ -53,7 +53,8 @@ use STATE_VARIABLES, only: &
   Tveg                ! Vegetation temperature (K)
 
 use LANDUSE, only: &
-  tilefrac            ! Grid cell tile fraction
+  tilefrac,          &! Grid cell tile fraction
+  glacierfrac         ! Glacier flag
 
 use TEST
 
@@ -122,7 +123,7 @@ do i = 1, Nx
 
   do k = 1, Nsoil
   
-    if (TILE == 'glacier') then ! Glacier soil properties
+    if (TILE == 'glacier' .or. ((SNTRAN == 1 .or. SNSLID == 1) .and. glacierfrac(i,j) > epsilon(glacierfrac(i,j)))) then ! Glacier soil properties
     
       ! Note that hcap_ice is specific heat capacity and has to be converted to volumetric heat capacity
       csoil(k,i,j) = hcap_ice * rho_ice *Dzsoil(k)
@@ -177,7 +178,7 @@ do i = 1, Nx
 
   if (tilefrac(i,j) < tthresh) goto 3 ! exclude points outside tile of interest
  
-! GM/LQ: the following lines define the properties of the layer that interacts with the surface in EBALSRF. 
+  ! GM/LQ: the following lines define the properties of the layer that interacts with the surface in EBALSRF. 
   ! to maintain numerical stability, this layer is always at least as thick at the top soil layer (10cm in default), 
   ! and layer properties incorporate soil properties for thin snowpacks. 
   ! IMPORTANT consequence of this trick: when adapting the snow layering, we need to ensure that the thickness 
@@ -195,18 +196,5 @@ do i = 1, Nx
   
 end do
 end do
-
-if (dump_data == 1) then
-  open(1, file="temp/test_thermal.txt")
-  write(1,*) Ds1
-  write(1,*) gs1
-  write(1,*) ks1
-  write(1,*) Ts1
-  write(1,*) Tveg0
-  write(1,*) csoil
-  write(1,*) ksnow
-  write(1,*) ksoil
-  close(1) 
-end if
 
 end subroutine THERMAL

@@ -4,7 +4,6 @@
 module CONSTANTS
 
 use, intrinsic :: iso_fortran_env, only: dp=>real64 
-
 real*8, parameter :: &
   cp = 1005_dp,         &! Specific heat capacity of air (J/K/kg)
   eps = 0.622_dp,       &! Ratio of molecular weights of water and dry air
@@ -20,18 +19,22 @@ real*8, parameter :: &
   I0 = 1367_dp,         &! Solar constant (W/m^2)
   Lf = 0.334e6_dp,      &! Latent heat of fusion (J/kg)
   Lv = 2.501e6_dp,      &! Latent heat of vapourisation (J/kg)
-  Ls = Lf + Lv,         &! Latent heat of sublimation (J/kg)
+  Ls = Lf + Lv,      &! Latent heat of sublimation (J/kg)
   pi = 3.14159_dp,      &! pi
   Rair = 287_dp,        &! Gas constant for air (J/K/kg)
   Rwat = 462_dp,        &! Gas constant for water vapour (J/K/kg)
+  Runi = 8313_dp,       &! Universal gas constant (J/kmol/K)
   rho_ice = 917_dp,     &! Density of ice (kg/m^3)
   rho_wat = 1000_dp,    &! Density of water (kg/m^3)
+  rho_air = 1.275_dp,   &! Density of air (kg/m^3)
   sb = 5.67e-8_dp,      &! Stefan-Boltzmann constant (W/m^2/K^4)
   em_snow = 0.99_dp,    &! Emissivity snow for Stefan-Boltzmann
   em_soil = 0.90_dp,    &! Emissivity soil for Stefan-Boltzmann
   Tm = 273.15_dp,       &! Melting point (K)
   vkman = 0.4_dp,       &! Von Karman constant
-  undef =  1.e+6_dp      ! Initialization value for allocatables
+  xM = 18.01_dp,        &! Molecular weight of water (kg/kmol)
+  visc_air = 13.e-6_dp, &! Kinematic viscosity of air (m^2/s)
+  undef = 1.e+6_dp       ! Initialization value for allocatables
 integer, parameter :: &
   iundef = 1.e+6      ! Initialization value for integer allocatables
 end module CONSTANTS
@@ -40,20 +43,28 @@ end module CONSTANTS
 ! Model configuration
 !-----------------------------------------------------------------------
 module MODCONF
-! Process options                            : Possible values
+! Process options                                         : Possible values
 integer :: &
-  ALBEDO,     &! snow albedo                 : 0, 1, 2
-  CANMOD,     &! forest canopy               : 0, 1
-  CONDCT,     &! snow thermal conductivity   : 0, 1
-  DENSTY,     &! snow density                : 0, 1, 2, 3
-  EXCHNG,     &! turbulent exchange          : 0, 1
-  HYDROL,     &! snow hydraulics             : 0, 1, 2
-  SNFRAC,     &! snow cover fraction         : 0, 1, 2, 3, 4
-  RADSBG,     &! subgrid radiation param     : 0, 1
+  ALBEDO,     &! snow albedo                              : 0, 1, 2
+  CANMOD,     &! forest canopy                            : 0, 1
+  CONDCT,     &! snow thermal conductivity                : 0, 1
+  DENSTY,     &! snow density                             : 0, 1, 2, 3
+  EXCHNG,     &! turbulent exchange                       : 0, 1
+  HYDROL,     &! snow hydraulics                          : 0, 1, 2
+  SNFRAC,     &! snow cover fraction                      : 0, 1, 2, 3, 4
+  RADSBG,     &! subgrid radiation param                  : 0, 1
 ! Driving data options
-  ZOFFST,     &! measurement height offset    : 0, 1
+  ZOFFST,     &! measurement height offset                : 0, 1
 ! OSHD-specific options
-  OSHDTN       ! oshd-specific tuning options of fresh snow albedo, snow roughness lengths and fresh snow density: 0, 1
+  OSHDTN,     &! oshd-specific tuning options             : 0, 1
+               ! of fresh snow albedo, snow roughness lengths and fresh snow density
+  ALRADT,     &! activate tuning of the albedo decay      : 0, 1
+               ! as a function of incoming direct shortwave radiation
+! FSM2trans specific options
+  SNTRAN,     &! snow transport                           : 0, 1
+  SNSLID,     &! snow slides                              : 0, 1
+  SNOLAY,     &! density-dependent layering               : 0, 1
+  CHECKS       ! check state variables at every time step : 0, 1, 2
 logical :: &
   HN_ON,      &!activate the new snow model
   FOR_HN       !write 18h states for the hn model.
@@ -85,42 +96,46 @@ end module MODTILE
 module MODOUTPUT
 ! list of diagnostic variables that can be written to output bin files.
 ! at the moment, only 2d real variables are handled.
-character(len=4), dimension(35) :: &
-  WRITE_DIAG_VARS = (/'rotc', &  ! Roff      Total runoff, snow and bare soil (kg/m^2)
-                      'hsnt', &  ! snowdepth Total snowdepth (m)
-                      'swet', &  ! SWE       Total SWE (kg/m^2)
-                      'slqt', &  ! Sliq_out  Total LWC (kg/m^2)
-                      'swtb', &  ! Sdirt     Incoming direct beam radiation corrected for subgrid topography (W/m^2)
-                      'swtd', &  ! Sdift     Incoming diffuse beam radiation corrected for subgrid topography (W/m^2)
-                      'lwtr', &  ! Lwt       Incoming longwave radiation corrected for subgrid topography (W/m^2)
+character(len=4), dimension(39) :: &
+  WRITE_DIAG_VARS = (/'rotc', &  ! Roff         Total runoff, snow and bare soil (kg/m^2)
+                      'hsnt', &  ! snowdepth    Total snowdepth (m)
+                      'swet', &  ! SWE          Total SWE (kg/m^2)
+                      'slqt', &  ! Sliq_out     Total LWC (kg/m^2)
+                      'swtb', &  ! Sdirt        Incoming direct beam radiation corrected for subgrid topography (W/m^2)
+                      'swtd', &  ! Sdift        Incoming diffuse beam radiation corrected for subgrid topography (W/m^2)
+                      'lwtr', &  ! Lwt          Incoming longwave radiation corrected for subgrid topography (W/m^2)
                       'romc', &  ! meltflux_out Runoff from snowmelt at the base of snow (kg/m^2)
-                      'sbsc', &  ! Sbsrf     Snow sublimation rate (kg/m^2/s)
-                      'asrf', &  ! asrf_out  Surface albedo
-                      'emlt', &  ! Melt      Surface melt rate (kg/m^2/s)
-                      'esrf', &  ! Esrf      Moisture flux from the surface (kg/m^2/s)
-                      'eveg', &  ! Eveg      Moisture flux from vegetation (kg/m^2/s)
-                      'ghsl', &  ! Gsoil     Heat flux into soil (W/m^2)
-                      'hesr', &  ! Hsrf      Sensible heat flux from the surface (W/m^2)
-                      'intc', &  ! intcpt    Canopy interception (kg/m^2)
-                      'khag', &  ! KH        Eddy diffusivity for heat to the atmosphere (m/s)
-                      'khac', &  ! KHa       Eddy diffusivity for heat from the canopy air space (m/s)
-                      'khgr', &  ! KHg       Eddy diffusivity for heat from the ground (m/s)
-                      'khve', &  ! KHv       Eddy diffusivity for heat from vegetation (m/s)
-                      'kwgr', &  ! KWg       Eddy diffusivity for water from the ground (m/s)
-                      'kwve', &  ! KWv       Eddy diffusivity for water from vegetation (m/s)
-                      'lahe', &  ! LE        Latent heat flux to the atmosphere (W/m^2)
-                      'lesr', &  ! LEsrf     Latent heat flux from the surface (W/m^2)
-                      'lwsc', &  ! LWsci     Subcanopy incoming longwave radiation (W/m^2)
-                      'lwve', &  ! LWveg     Net longwave radiation absorbed by vegetation (W/m^2)
-                      'rnet', &  ! Rnet      Net radiation (W/m^2)
-                      'rnsr', &  ! Rsrf      Net radiation at surface (W/m^2)
-                      'sbve', &  ! Sbveg     Sublimation from vegetation (kg/m^2)
-                      'sehe', &  ! H         Sensible heat flux to the atmosphere (W/m^2)
-                      'swsc', &  ! SWsci     Subcanopy incoming shortwave radiation (W/m^2)
-                      'swsr', &  ! SWsrf     Net SW radiation absorbed by the surface (W/m^2)
-                      'swve', &  ! SWveg     Net SW radiation absorbed by vegetation (W/m^2)
-                      'uasc', &  ! Usc       Wind speed in canopy layer (at height of turbulent flux from veg to cas) (m/s)
-                      'unld'  &  ! unload    Snow mass unloaded from canopy (kg/m^2)
+                      'sbsc', &  ! Sbsrf        Snow sublimation rate (kg/m^2/s)
+                      'asrf', &  ! asrf_out     Surface albedo
+                      'emlt', &  ! Melt         Surface melt rate (kg/m^2/s)
+                      'esrf', &  ! Esrf         Moisture flux from the surface (kg/m^2/s)
+                      'eveg', &  ! Eveg         Moisture flux from vegetation (kg/m^2/s)
+                      'ghsl', &  ! Gsoil        Heat flux into soil (W/m^2)
+                      'hesr', &  ! Hsrf         Sensible heat flux from the surface (W/m^2)
+                      'intc', &  ! intcpt       Canopy interception (kg/m^2)
+                      'khag', &  ! KH           Eddy diffusivity for heat to the atmosphere (m/s)
+                      'khac', &  ! KHa          Eddy diffusivity for heat from the canopy air space (m/s)
+                      'khgr', &  ! KHg          Eddy diffusivity for heat from the ground (m/s)
+                      'khve', &  ! KHv          Eddy diffusivity for heat from vegetation (m/s)
+                      'kwgr', &  ! KWg          Eddy diffusivity for water from the ground (m/s)
+                      'kwve', &  ! KWv          Eddy diffusivity for water from vegetation (m/s)
+                      'lahe', &  ! LE           Latent heat flux to the atmosphere (W/m^2)
+                      'lesr', &  ! LEsrf        Latent heat flux from the surface (W/m^2)
+                      'lwsc', &  ! LWsci        Subcanopy incoming longwave radiation (W/m^2)
+                      'lwve', &  ! LWveg        Net longwave radiation absorbed by vegetation (W/m^2)
+                      'rnet', &  ! Rnet         Net radiation (W/m^2)
+                      'rnsr', &  ! Rsrf         Net radiation at surface (W/m^2)
+                      'sbve', &  ! Sbveg        Sublimation from vegetation (kg/m^2)
+                      'sehe', &  ! H            Sensible heat flux to the atmosphere (W/m^2)
+                      'swsc', &  ! SWsci        Subcanopy incoming shortwave radiation (W/m^2)
+                      'swsr', &  ! SWsrf        Net SW radiation absorbed by the surface (W/m^2)
+                      'swve', &  ! SWveg        Net SW radiation absorbed by vegetation (W/m^2)
+                      'uasc', &  ! Usc          Wind speed in canopy layer (at height of turbulent flux from veg to cas) (m/s)
+                      'unld', &  ! unload       Snow mass unloaded from canopy (kg/m^2)
+                      'sltc', &  ! dSWE_salt    SWE change due to saltation (kg/m^2)
+                      'sspc', &  ! dSWE_susp    SWE change due to suspension (kg/m^2)
+                      'sblc', &  ! dSWE_subl    SWE change due to sublimation (kg/m^2)
+                      'sldc'  &  ! dSWE_slide   SWE change due to snow slides (kg/m^2)
                       /)
    ! GM Note: Energy-balance relevant diagnostics omitted in this list can be derived from existing variables:
                     !Hveg = H-Hsrf
@@ -129,7 +144,7 @@ character(len=4), dimension(35) :: &
                     !Rveg  = SWveg + LWveg      
 ! list of state variables that can be written to output bin files.
 ! at the moment, only 2d real variables are handled.
-character(len=4), dimension(11):: &
+character(len=4), dimension(15):: &
   WRITE_STATE_VARS = (/&
                   'alse', &  ! albs
                 ! 'hsnl', &  ! Ds(3d var)
@@ -149,14 +164,18 @@ character(len=4), dimension(11):: &
                   'qcan', &  ! Qcan
                   'sveg', &  ! Sveg
                   'tcan', &  ! Tcan
-                  'tveg'  &  ! Tveg
+                  'tveg', &  ! Tveg
+                  'sblt', &  ! dSWE_tot_subl
+                  'sltt', &  ! dSWE_tot_salt
+                  'sspt', &  ! dSWE_tot_susp
+                  'sldt'  &  ! dSWE_tot_slide
                   /)
-character(len=4), dimension(35) :: &
+character(len=4), dimension(39) :: &
   LIST_DIAG_RESULTS  ! List of diagnostic variables that the user wants to write into output bin files (subset of WRITE_DIAG_VARS)
-character(len=4), dimension(11) :: &
+character(len=4), dimension(15) :: &
   LIST_STATE_RESULTS ! List of result variables that the user wants to write into output bin files (subset of WRITE_STATE_VARS)
-logical, dimension(35)  :: WRITE_DIAG_TABLE  ! table specifying whether the corresponding variables in WRITE_DIAG_VARS should be written or not.
-logical, dimension(11) :: WRITE_STATE_TABLE ! table specifying whether the corresponding variables in WRITE_STATE_VARS should be written or not.
+logical, dimension(39) :: WRITE_DIAG_TABLE  ! table specifying whether the corresponding variables in WRITE_DIAG_VARS should be written or not.
+logical, dimension(15) :: WRITE_STATE_TABLE ! table specifying whether the corresponding variables in WRITE_STATE_VARS should be written or not.
 end module MODOUTPUT
 
 !-----------------------------------------------------------------------
@@ -180,7 +199,8 @@ real*8 :: &
 real*8 :: &
   dt,                &! Timestep (s)
   zT,                &! Temperature measurement height (m)
-  zU                  ! Wind speed measurement height (m)
+  zU,                &! Wind speed measurement height (m)
+  zRH                 ! Relative humidity measurement height (m)
 real*8, allocatable :: &
   LW(:,:),           &! Incoming longwave radiation (W/m^2)
   Ps(:,:),           &! Surface pressure (Pa)
@@ -194,11 +214,13 @@ real*8, allocatable :: &
   Ta(:,:),           &! Air temperature (K)
   Tv(:,:),           &! Time-varying transmissivity for direct SWR (-)
   Ua(:,:),           &! Wind speed (m/s)
+  Udir(:,:),         &! Wind direction (degrees, clockwise from N)
   z0P(:,:),          &! z0 perturbations
-  wcP(:,:),          &! liquid water capacity perturbations
-  fsP(:,:),          &! fresh snow density perturbations
-  alP(:,:),          &! albedo perturbations
-  slP(:,:)            ! settling perturbations
+  wcP(:,:),          &! Liquid water capacity perturbations
+  fsP(:,:),          &! Fresh snow density perturbations
+  alP(:,:),          &! Albedo perturbations
+  slP(:,:),          &! Settling perturbations
+  Sdird(:,:)          ! Direct-beam shortwave radiation, per horizontal surface area (W/m2)
 end module DRIVING
 
 !-----------------------------------------------------------------------
@@ -209,6 +231,9 @@ integer :: &
   Nsmax,             &! Maximum number of snow layers
   Nsoil,             &! Number of soil layers
   Nx,Ny               ! Grid dimensions
+real*8 :: &
+  Ds_min,            &! Minimum possible snow layer thickness (m)
+  Ds_surflay          ! Maximum thickness of surface fine snow layering (m)
 real*8, allocatable :: &
   Dzsnow(:),         &! Minimum snow layer thicknesses (m)
   Dzsoil(:)           ! Soil layer thicknesses (m)
@@ -248,6 +273,7 @@ real*8 :: &
 ! Snow parameters
 real*8 :: &
   a_eta,             &! Temperature factor for Crocus B92 compaction (K^-1)
+  adm,               &! Melting snow albedo decay time (h)
   asmx,              &! Maximum albedo for fresh snow
   asmn,              &! Minimum albedo for melting snow
   b_eta,             &! First density factor for Crocus B92 compaction (m^3/kg)
@@ -263,6 +289,8 @@ real*8 :: &
   rhob,              &! Temperature factor in fresh snow density (kg/m^3/K)
   rhoc,              &! Wind factor in fresh snow density (kg s^0.5/m^3.5)
   rhof,              &! Fresh snow density (kg/m^3)
+  rhos_min,          &! Minimum snow density (kg/m^3)
+  rhos_max,          &! Maximum snow density (kg/m^3)
   rcld,              &! Maximum density for cold snow (kg/m^3)
   rmlt,              &! Maximum density for melting snow (kg/m^3)
   snda,              &! Thermal metamorphism parameter (1/s)
@@ -296,6 +324,8 @@ end module PARAMETERS
 !-----------------------------------------------------------------------
 module PARAMMAPS
 real*8, allocatable :: &
+  adc(:,:),          &! Cold snow albedo decay time (h)
+  afs(:,:),          &! Maximum albedo for fresh snow
   alb0(:,:),         &! Snow-free ground albedo
   canh(:,:),         &! Canopy heat capacity (J/K/m^2)
   fcly(:,:),         &! Soil clay fraction
@@ -304,7 +334,9 @@ real*8, allocatable :: &
   scap(:,:),         &! Canopy snow capacity (kg/m^2)
   trcn(:,:),         &! Canopy transmissivity
   VAI(:,:),          &! Vegetation area index
-  z0sf(:,:)           ! Snow-free roughness length (m)
+  vegsnowd_xy(:,:),  &! Vegetation snow holding capacity (m)
+  z0sf(:,:),         &! Snow-free roughness length (m)
+  z0_snow(:,:)        ! Roughness length of snow (m)
 end module PARAMMAPS
 
 !-----------------------------------------------------------------------
@@ -342,21 +374,36 @@ integer, allocatable :: &
 real*8, allocatable ::     &
   albs(:,:),             &! Snow albedo
   Ds(:,:,:),             &! Snow layer thicknesses (m)
+  histowet(:,:,:),       &! Historical variable for past wetting of a layer (0-1)
   rgrn(:,:,:),           &! Snow layer grain radius (m)
   Sice(:,:,:),           &! Ice content of snow layers (kg/m^2)
   Sliq(:,:,:),           &! Liquid content of snow layers (kg/m^2)
   Tsnow(:,:,:),          &! Snow layer temperatures (K)
-  swehist(:,:,:),        &! history of SWE during last 14 days (kg/m^2). Most recent entries first.
-  swemin(:,:),           &! Minimum swe during the season (m)
-  swemax(:,:),           &! Maximum swe during the season (m)
-  snowdepthhist(:,:,:),  &! history of Snow depth during last 14 days (m). Most recent entries first.
-  snowdepthmin(:,:),     &! Minimum Snow depth at time step of swemin (m)
-  snowdepthmax(:,:)       ! Maximum Snow depth at time stemp of swemax(m)
+  swehist(:,:,:),        &! History of SWE during last 14 days (kg/m^2). Most recent entries first.
+  swemin(:,:),           &! Minimum SWE during the season (m)
+  swemax(:,:),           &! Maximum SWE during the season (m)
+  snowdepthhist(:,:,:),  &! History of snow depth during last 14 days (m). Most recent entries first.
+  snowdepthmin(:,:),     &! Minimum snow depth at time step of swemin (m)
+  snowdepthmax(:,:)       ! Maximum snow depth at time stemp of swemax(m)
 
 ! Soil state variables
 real*8, allocatable :: &
-  theta(:,:,:),      &! Volumetric moisture content of soil layers
-  Tsoil(:,:,:)        ! Soil layer temperatures (K)
+  theta(:,:,:),          &! Volumetric moisture content of soil layers
+  Tsoil(:,:,:)            ! Soil layer temperatures (K)
+  
+! SnowTran3D state variables
+real*8, allocatable ::     &
+  dSWE_tot_subl(:,:),    &! Cumulated SWE change due to sublimation (kg/m^2)
+  dSWE_tot_salt(:,:),    &! Cumulated SWE change due to saltation (kg/m^2)
+  dSWE_tot_susp(:,:)      ! Cumulated SWE change due to suspension (kg/m^2)
+  
+! SnowSlide state variables
+real*8, allocatable ::     &
+  dSWE_tot_slide(:,:)     ! Cumulated SWE change due to snow slides (kg/m^2)
+  
+integer, allocatable ::  &
+  index_sorted_dem(:,:)   ! Location (i,j) of sorted grid points
+  
 end module STATE_VARIABLES
 
 !-----------------------------------------------------------------------
@@ -379,17 +426,114 @@ real*8, allocatable :: &
   Ld(:,:),           &! grid cell size or domain size (m)
   lat(:,:),          &! latitude of each grid cell (center?)
   lon(:,:),          &! longitude of each grid cell (center?) 
-  dem(:,:),          &! grid elevation
-  pmultf(:,:)          ! precip multiplier to revert precip correction applied to open area
+  dem(:,:),          &! grid elevation (m)
+  dem_sorted(:),     &! sorted grid elevation (m)
+  slope(:,:),        &! slope (deg)
+  Shd(:,:),          &! snow holding depth, for SnowSlide (m)
+  pmultf(:,:)         ! precip multiplier to revert precip correction applied to open area
 
 ! Tile properties 
 real*8, allocatable :: &
-  tilefrac(:,:)       ! Tile fraction 
+  tilefrac(:,:),     &! Tile fraction 
+  glacierfrac(:,:)    ! Glacier flag
+  
 end module LANDUSE
 
 !-----------------------------------------------------------------------
-! Input / output unit numbers
+! Parameters for SnowTran3D
 !-----------------------------------------------------------------------
+module PARAM_SNOWTRAN3D
+real*8, parameter :: &
+
+  ! Define whether the threshold surface shear velocity will be
+  ! constant during the simulation (Utau_t_flag = 0.0), or whether
+  ! it will evolve as a funtion of air temperature and wind speed
+  ! (Utau_t_flag = 1.0).
+  !!! (recommended default value: Utau_t_flag = 0.0)
+  Utau_t_flag = 1.0,    &! Flag for variable threshold friction velocitiy (1.0) or constant (0.0)
+
+  ! For the case of Utau_t_flag = 0.0, define what the threshold
+  ! surface shear velocity (m/s) will be during the simulation.
+  !!! (recommended default value: Utau_t_const = 0.25)
+  Utau_t_const = 0.25,  &! Constant threshold friction velocity (m/s) used if Utau_t_flag = 0.0
+
+  ! Define whether you want two-layer accounting for soft (movable)
+  ! and hard (unmovable) layers (flag = 0.0 = off, flag = 1.0 = on).
+  !!! (recommended default value: twolayer_flag = 1.0)
+  twolayer_flag = 1.0,  &! Flag for soft/hard layers distinction
+
+  ! Define whether you want the upwind boundaries to have zero
+  ! incoming transport flux, or the equilibrium transport flux.
+  ! bc_flag = 0.0 corresponds to a zero flux, and bc_flag = 1.0
+  ! corresponds to the equilibrium flux.
+  !!! (recommended default value: bc_flag = 0.0)
+  bc_flag = 0.0,        &! Boundary condition flag
+
+  ! Density of snow deposited by snowdrift
+  !!! (recommended default value: rho_snow = 300.0)
+  rho_snow = 300.0,     &! Constant snow density (kg/m^3)
+
+  ! The blowby parameter is implemented to account for the erosion
+  ! of the tops of deep snow accumulations.  It corrects a
+  ! deficiency in the du*/dx* < 0 formulation.  It is a number that
+  ! should range from 0 to 1.0, and represents the fraction of the
+  ! upwind saltation flux that is transfered farther downwind into
+  ! the next grid cell.  So, the bigger the number, the less
+  ! peaked the drift accumulation profile is.  blowby = 0.0 is the
+  ! original model.  The Tabler surfaces can be used to do the
+  ! same kind of thing.
+  !!! (recommended default value: blowby = 0.0)
+  blowby = 0.0           ! Fraction of the saltation flux transferred downwind
+  
+end module PARAM_SNOWTRAN3D
+
+!-----------------------------------------------------------------------
+! Constants for SnowTran3D
+!-----------------------------------------------------------------------
+module CONSTANTS_SNOWTRAN3D
+real*8, parameter :: &
+
+  ! Constants related to surface shear stress and saltation transport.
+  fetch = 500.0,        &! Equilibrium fetch distance (m)
+  xmu = 3.0,            &! Scaling constant for non-equilibrium saltation transport
+  C_z = 0.12,           &! Coefficient 0.12 in Liston and Sturm (1998) eq. 5 p. 500
+  h_const = 1.6,        &! Coefficient 1.6 in Liston and Sturm (1998) eq. 14 p. 501
+  wind_min = 4.0,       &! Minimum wind speed to compute snow transport (m/s)
+  
+  ! Constants related to suspended snow profile.
+  Up_const = 2.8,       &! Constant coefficient for calculation of U_p
+  dz_susp = 0.20,       &! dz in suspension layer (m)
+  ztop_susp = 2.0,      &! Height of the top of suspension layer (m)
+  fall_vel = 0.3,       &! Particle-settling velocity, s in L&S 1998 eq. 12 (m/s)
+  Ur_const = 0.5         ! Constant coefficient beta in L&S 1998, eq. 13
+  
+end module CONSTANTS_SNOWTRAN3D
+
+!-----------------------------------------------------------------------
+! Parameters for SnowSlide
+!-----------------------------------------------------------------------
+module PARAM_SNOWSLIDE
+real*8, parameter :: &
+
+  ! Dynamic ratio for the snow holding depth during an avalanche
+  !!! (recommended default value: dyn_ratio = 0.7)
+  dyn_ratio = 0.7,  &! Dynamic snow holding depth ratio
+
+  ! Density of snow deposits by avalanches
+  !!! (recommended default value: rho_snow = 300.0)
+  rho_deposit = 300.0,  &! Constant snow avalanche deposit density (kg/m^3)  
+
+  ! Snow slide can only be triggered above a certain slope
+  !!! (recommended default value: slope_min = 25 deg)
+  slope_min = 25.0,     &! Minimum slope for snow slide occurrence (deg)
+  
+  ! Snow holding depth has a min threshold 
+  !!! (recommended default value: Shd_min = 0.05 m)
+  Shd_min = 0.05         ! Minimum snow holding depth (m)
+  
+end module PARAM_SNOWSLIDE
+
+
 module IOUNITS
   integer, parameter :: &
     udmp = 11,         &! Dump file unit number

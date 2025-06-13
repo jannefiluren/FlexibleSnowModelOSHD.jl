@@ -17,7 +17,7 @@ function snow(fsm::FSM, meteo::MET, t)
 
   @unpack Dzsnow, Dzsoil, Nsmax, Nsoil, Nx, Ny = fsm
 
-  @unpack a_eta, b_eta, c_eta, eta0, eta1, rgr0, rho0, rhob, rhoc, rhof, rcld, rmlt, snda, trho, Wirr = fsm
+  @unpack a_eta, b_eta, c_eta, eta0, eta1, rgr0, rho0, rhob, rhoc, rhof, rcld, rmlt, snda, trho, Wirr, rhos_max = fsm
 
   @unpack Ds, Nsnow, fsnow, rgrn, Sice, Sliq, Tsnow, Tsoil, Tsrf = fsm
   
@@ -72,7 +72,7 @@ function snow(fsm::FSM, meteo::MET, t)
           if (SNFRAC == 3)
             fsnow_thres[i, j] = fsnow[i, j]
           else
-            fsnow_thres[i, j] = max(fsnow[i, j], 0.1)
+            fsnow_thres[i,j] = min(fsnow[i,j]+ 0.25_dp,1.0_dp)
           end
 
           # Heat conduction
@@ -186,6 +186,8 @@ function snow(fsm::FSM, meteo::MET, t)
                 Roff_snow[i, j] = Sliq[k, i, j] - SliqMax   # so drainage to next layer
                 Sliq[k, i, j] = SliqMax
               end
+              # csnow needs to be updated after changing Sliq and Sice
+              csnow[k] = (Sice[k,i,j]*hcap_ice + Sliq[k,i,j]*hcap_wat) / fsnow[i,j]
               coldcont = csnow[k] * (Tm - Tsnow[k, i, j])
               if (coldcont > 0)       # Liquid can freeze
                 dSice = min(Sliq[k, i, j], fsnow[i, j] * coldcont / Lf)
@@ -218,6 +220,8 @@ function snow(fsm::FSM, meteo::MET, t)
                 Roff_snow[i, j] = Sliq[k, i, j] - SliqMax   # so drainage to next layer
                 Sliq[k, i, j] = SliqMax
               end
+              # csnow needs to be updated after changing Sliq and Sice
+              csnow[k] = (Sice[k,i,j]*hcap_ice + Sliq[k,i,j]*hcap_wat) / fsnow[i,j]
               coldcont = csnow[k] * (Tm - Tsnow[k, i, j])
               if (coldcont > eps(Float64))       # Liquid can freeze
                 dSice = min(Sliq[k, i, j], fsnow[i, j] * coldcont / Lf)
@@ -266,6 +270,7 @@ function snow(fsm::FSM, meteo::MET, t)
               if (Ds[k, i, j] > eps(Float64))
                 rhos = (Sice[k, i, j] + Sliq[k, i, j]) / Ds[k, i, j] / fsnow[i, j]
                 rhos = rhos + (rhos * grav * mass * dt / (eta0 * exp(-(Tsnow[k, i, j] - Tm) / 12.4 + rhos / 55.6)) + dt * rhos * snda * exp((Tsnow[k, i, j] - Tm) / 23.8 - max(rhos - 150, 0.0) / 21.7))
+                rhos = min(rhos, rhos_max)
                 Ds[k, i, j] = (Sice[k, i, j] + Sliq[k, i, j]) / rhos / fsnow[i, j]
               end
               mass = mass + 0.5 * (Sice[k, i, j] + Sliq[k, i, j]) / fsnow[i, j]
@@ -281,6 +286,7 @@ function snow(fsm::FSM, meteo::MET, t)
                 f2 = 1.0
                 eta = f1 * f2 * eta1 * (rhos / c_eta) * exp(a_eta * (Tm - Tsnow[k, i, j]) + b_eta * rhos)
                 rhos = rhos + rhos * grav * mass * dt / eta
+                rhos = min(rhos, rhos_max)
                 Ds[k, i, j] = (Sice[k, i, j] + Sliq[k, i, j]) / rhos / fsnow[i, j]
               end
               mass = mass + 0.5 * (Sice[k, i, j] + Sliq[k, i, j]) / fsnow[i, j]

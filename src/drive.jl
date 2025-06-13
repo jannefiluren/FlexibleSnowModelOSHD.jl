@@ -88,6 +88,9 @@ function drive_grid!(meteo::MET, fsm::FSM, t::DateTime)
   meteo.Tc .= meteo.Ta .- Tm
   meteo.Ps = meteo_in["pail"]["data"]
 
+  # TODO: read read data for Sdird
+  meteo.Sdird[:, :] = meteo.Sdir[:, :]
+
   meteo.es .= e0 .* exp.(17.5043 .* meteo.Tc ./ (241.3 .+ meteo.Tc))
   meteo.Qa .= (meteo.RH ./ 100) .* eps_fsm .* meteo.es ./ meteo.Ps
 

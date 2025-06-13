@@ -37,7 +37,8 @@ use DRIVING, only: &
   wcP,               &! liquid water capacity perturbations
   fsP,               &! fresh snow density perturbations
   alP,               &! albedo perturbations
-  slP                 ! settling perturbations
+  slP,               &! settling perturbations
+  Sdird
 
 use GRID, only: &
   Nx,Ny               ! Grid dimensions
@@ -57,6 +58,10 @@ real*8 :: &
 integer :: i,j,where,eastatus 
 
 read(umet,*,end=1) year, month, day, hour, Sdir, Sdif, LW, Sf, Rf, Ta, RH, Ua, Ps, Sf24h
+
+Sdird = Sdir
+
+
 
 ! ! FSM driving data
 ! inquire(unit=800, pos=where)
