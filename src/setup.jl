@@ -107,12 +107,12 @@ function setup_grid!(fsm::FSM, landuse; state_file="")
   if (fsm.TILE == "forest")
     fsm.hfsn = 0.3    
     fsm.z0sn = 0.01
-    fsm.z0sf = 0.2*ones(Nx,Ny)
+    fsm.z0sf = 0.2*ones(fsm.Nx, fsm.Ny)
   end
 
   if (fsm.TILE == "glacier")
-    fsm.alb0 = 0.3*ones(Nx,Ny)
-    fsm.z0sf = 0.04*ones(Nx,Ny)
+    fsm.alb0 = 0.3*ones(fsm.Nx, fsm.Ny)
+    fsm.z0sf = 0.04*ones(fsm.Nx, fsm.Ny)
   end
 
   if (fsm.TILE != "forest") 
