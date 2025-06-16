@@ -12,10 +12,10 @@ close(landuse_file)
 Nx = round(Int, landuse["nrows"])
 Ny = round(Int, landuse["ncols"])
 
-fsm = FSM{Float64}(Nx=Nx, Ny=Ny)
+fsm = FSM{Float64, Int64}(Nx=Nx, Ny=Ny)
 setup_grid!(fsm, landuse)
 
-meteo = MET{Float64}(Nx=Nx, Ny=Ny)
+meteo = MET{Float64, Int64}(Nx=Nx, Ny=Ny)
 
 t = DateTime(2022,09,01,06,00,00)
 

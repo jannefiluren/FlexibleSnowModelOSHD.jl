@@ -7,3 +7,5 @@ test_*.txt
 nlst_from_julia.nam
 /.vscode
 /scratch
+/FSM*
+/.CondaPkg

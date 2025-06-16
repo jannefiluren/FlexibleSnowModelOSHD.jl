@@ -17,3 +17,13 @@ Short instructions on how to find errors between fortran and julia:
 7) Run the last timestep with both codes and use prints and stops to debug.
 
 8) Run fortran using ./FSM2_TXT_64.exe nlst_input_fake_one_timestep_64.nam
+
+# Replace number is vs code
+
+Regex: [+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)
+
+Replacement: T($1)
+
+# Discussion on types
+
+https://discourse.julialang.org/t/how-to-code-a-type-flexible-model-that-is-type-stable/124138

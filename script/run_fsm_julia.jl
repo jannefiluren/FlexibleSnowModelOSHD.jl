@@ -25,7 +25,7 @@ function run_fsm_julia(station)
   output_file = "../fortran/output_julia/output_" * replace(station, "." => "_") * "_test.txt"
   terrain_file = "../fortran/input/terrain_" * replace(station,"." => "_") * ".txt"
 
-  fsm = FSM{Float64}()
+  fsm = FSM{Float64, Int64}()
   setup!(fsm, terrain_file)
   
   fout = open(output_file, "w")

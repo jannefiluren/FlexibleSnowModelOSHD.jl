@@ -53,8 +53,8 @@ end
 
 # Setup model
 
-fsm = FSM{Float64}(Nx=nstat)
-met_curr = MET{Float64}(Nx=nstat)
+fsm = FSM{Float64, Int64}(Nx=nstat)
+met_curr = MET{Float64, Int64}(Nx=nstat)
 
 setup_grid!(fsm, landuse)
 

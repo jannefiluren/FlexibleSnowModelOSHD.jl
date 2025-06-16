@@ -7,10 +7,10 @@ function run_fsm_point(station)
 
   drive_data = readdlm(drive_file)
 
-  fsm = FSM{Float64}()
+  fsm = FSM{Float64, Int64}()
   setup_point!(fsm, terrain_file)
 
-  meteo = MET{Float64}()
+  meteo = MET{Float64, Int64}()
 
   output_data = zeros(size(drive_data, 1), 9)
 
@@ -88,10 +88,10 @@ function run_fsm_grid(starttime::DateTime=DateTime(2022,09,01,06,00,00), endtime
   Nx = round(Int, landuse["nrows"])
   Ny = round(Int, landuse["ncols"])
 
-  fsm = FSM{Float64}(Nx=Nx, Ny=Ny)
+  fsm = FSM{Float64, Int64}(Nx=Nx, Ny=Ny)
   setup_grid!(fsm, landuse)
 
-  meteo = MET{Float64}(Nx=Nx, Ny=Ny)
+  meteo = MET{Float64, Int64}(Nx=Nx, Ny=Ny)
 
   times = collect(starttime:Hour(1):endtime)
 
@@ -163,10 +163,10 @@ function run_fsm_grid_par(starttime::DateTime=DateTime(2022,09,01,06,00,00), end
   Nx = round(Int, landuse["nrows"])
   Ny = round(Int, landuse["ncols"])
 
-  fsm = FSM{Float64}(Nx=Nx, Ny=Ny)
+  fsm = FSM{Float64, Int64}(Nx=Nx, Ny=Ny)
   setup_grid!(fsm, landuse)
 
-  meteo = MET{Float64}(Nx=Nx, Ny=Ny)
+  meteo = MET{Float64, Int64}(Nx=Nx, Ny=Ny)
 
   times = collect(starttime:Hour(1):endtime)
 

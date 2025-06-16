@@ -8,10 +8,10 @@ using DelimitedFiles
 
 drive_data = readdlm(drive_file)
 
-fsm = FSM{Float64}()
+fsm = FSM{Float64, Int64}()
 setup_point!(fsm, terrain_file, state_file=state_file)
 
-meteo = MET{Float64}()
+meteo = MET{Float64, Int64}()
 
 include("../src/parameters.jl")
 include("../src/initialize.jl")

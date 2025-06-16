@@ -4,10 +4,12 @@ using Parameters
 using DelimitedFiles
 using MAT
 using Dates
+using PythonCall
 
 include("parameters.jl")
 include("types.jl")
 include("setup.jl")
+include("setup_original.jl")
 include("qsat.jl")
 include("tridiag.jl")
 include("drive.jl")
@@ -26,7 +28,7 @@ include("soil_par.jl")
 include("snowcoverfraction.jl")
 include("run_fsm.jl")
 
-export FSM, MET, setup_point!, setup_grid!
+export FSM, MET, setup_point!, setup_grid!, setup_original
 export qsat, tridiag!
 export radiation, thermal, sfexch, ebalsrf, snow, soil
 export radiation_par, thermal_par, sfexch_par, ebalsrf_par, snow_par, soil_par
