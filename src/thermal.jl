@@ -7,7 +7,7 @@
 # ks1 = zeros(Nx, Ny)
 # Tveg0 = zeros(Nx, Ny)
 
-function thermal(fsm::FSM)
+function thermal(fsm::FSM{Tf, Ti}) where {Tf<:Real, Ti<:Integer}
 
   @unpack Dzsoil, Nsmax, Nsoil, Nx, Ny = fsm
 
@@ -35,7 +35,7 @@ function thermal(fsm::FSM)
           # Density function
           for k = 1:Nsnow[i, j]
             rhos = rhof
-            if ((DENSTY != 0) && (Ds[k, i, j] > eps(Float64)) && fsnow[i, j] > eps(Float64))
+            if ((DENSTY != 0) && (Ds[k, i, j] > eps(Tf)) && fsnow[i, j] > eps(Tf))
               rhos = (Sice[k, i, j] + Sliq[k, i, j]) / Ds[k, i, j] / fsnow[i, j]
             end
             ksnow[k, i, j] = hcon_ice * (rhos / rho_ice)^bthr
@@ -57,7 +57,7 @@ function thermal(fsm::FSM)
 
         for k = 1:Nsoil
 
-          if (TILE == "glacier" || ((SNTRAN == 1 || SNSLID == 1) && glacierfrac[i,j] > eps(Float64))) # Glacier soil properties
+          if (TILE == "glacier" || ((SNTRAN == 1 || SNSLID == 1) && glacierfrac[i,j] > eps(Tf))) # Glacier soil properties
 
             # Note that hcap_ice is specific heat capacity and has to be converted to volumetric heat capacity
             csoil[k, i, j] = hcap_ice * rho_ice * Dzsoil[k]
@@ -72,7 +72,7 @@ function thermal(fsm::FSM)
 
             csoil[k, i, j] = hcap_soil[i, j] * Dzsoil[k]
             ksoil[k, i, j] = hcon_soil[i, j]
-            if (theta[k, i, j] > eps(Float64))
+            if (theta[k, i, j] > eps(Tf))
               dthudT = 0.0
               sthu = theta[k, i, j]
               sthf = 0.0
@@ -90,11 +90,11 @@ function thermal(fsm::FSM)
               Smf = rho_ice * sthf / (rho_wat * Vsat[i, j])
               Smu = sthu / Vsat[i, j]
               thice = 0.0
-              if (Smf > eps(Float64))
+              if (Smf > eps(Tf))
                 thice = Vsat[i, j] * Smf / (Smu + Smf)
               end
               thwat = 0.0
-              if (Smu > eps(Float64))
+              if (Smu > eps(Tf))
                 thwat = Vsat[i, j] * Smu / (Smu + Smf)
               end
               hcon_sat = hcon_soil[i, j] * (hcon_wat^thwat) * (hcon_ice^thice) / (hcon_air^Vsat[i, j])

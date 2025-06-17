@@ -11,7 +11,7 @@
 # Rnet = zeros(Nx,Ny)
 # Rsrf = zeros(Nx,Ny)
 
-function ebalsrf(fsm::FSM, meteo::MET)
+function ebalsrf(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Integer}
 
   @unpack CANMOD, SNTRAN, SNSLID = fsm
 
@@ -53,7 +53,7 @@ function ebalsrf(fsm::FSM, meteo::MET)
           # Saturation humidity and density of air
           Qs = qsat(Ps[i, j], Tsrf[i, j])  #call QSAT(Ps[i,j],Tsrf[i,j],Qs)
           Lh = Lv
-          if (Tsrf[i, j] < Tm || Sice[1, i, j] > eps(Float64))
+          if (Tsrf[i, j] < Tm || Sice[1, i, j] > eps(Tf))
             Lh = Ls
           end
           D = Lh * Qs / (Rwat * Tsrf[i, j]^2)
@@ -75,7 +75,7 @@ function ebalsrf(fsm::FSM, meteo::MET)
           dR = -4 * sb * Tsrf[i, j]^3 * dTs[i, j]
 
           # Surface melting
-          if (Tsrf[i, j] + dTs[i, j] > Tm && Sice[1, i, j] > eps(Float64))
+          if (Tsrf[i, j] + dTs[i, j] > Tm && Sice[1, i, j] > eps(Tf))
             # Melt[i, j] = 0.0
             # for si in 1:size(Sice, 1)
             #   Melt[i, j] += Sice[si, i, j]
@@ -109,8 +109,8 @@ function ebalsrf(fsm::FSM, meteo::MET)
           #     - assumes the glacier is an infinite heat reservoir.
           #     - does not conserve energy.
           # The excess energy would correspond to glacier melting, which we don't track.
-          if (TILE == "glacier" || ((SNTRAN == 1 || SNSLID == 1) && glacierfrac[i,j] > eps(Float64)))
-            if (Tsrf[i, j] + dTs[i, j] > Tm && Sice[1, i, j] <= eps(Float64))
+          if (TILE == "glacier" || ((SNTRAN == 1 || SNSLID == 1) && glacierfrac[i,j] > eps(Tf)))
+            if (Tsrf[i, j] + dTs[i, j] > Tm && Sice[1, i, j] <= eps(Tf))
               Qs = qsat(Ps[i, j], Tm)  #call QSAT(Ps[i,j],Tm,Qs)
               Esrf[i, j] = rho * KWg[i, j] * (Qs - Qa[i, j])
               G[i, j] = 2 * ks1[i, j] * (Tm - Ts1[i, j]) / Ds1[i, j]
@@ -140,7 +140,7 @@ function ebalsrf(fsm::FSM, meteo::MET)
           # end
           Ssub = sum(@view Sice[:, i, j])
           Ssub -= Melt[i, j] * dt
-          if (Ssub > eps(Float64) && Esrf[i, j] * dt > Ssub)
+          if (Ssub > eps(Tf) && Esrf[i, j] * dt > Ssub)
             Esrf[i, j] = Ssub / dt
             LE[i, j] = Ls * Esrf[i, j]
             H[i, j] = Rnet[i, j] - G[i, j] - LE[i, j] - Lf * Melt[i, j]
@@ -156,7 +156,7 @@ function ebalsrf(fsm::FSM, meteo::MET)
           if (CANMOD == 0)
             # Add fluxes from canopy in zero-layer model
             Eveg[i, j] = 0.0
-            if (fveg[i, j] > eps(Float64))
+            if (fveg[i, j] > eps(Tf))
               Eveg[i, j] = -KWv[i, j] * Esrf[i, j] / (KHa[i, j] + KWv[i, j])
               H[i, j] = KHa[i, j] * H[i, j] / (KHa[i, j] + KHv[i, j])
               Lh = Ls

@@ -6,7 +6,7 @@
 # KWv = zeros(Nx, Ny)
 # Usc = zeros(Nx, Ny)
 
-function sfexch(fsm::FSM, meteo::MET)
+function sfexch(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Integer}
 
   @unpack CANMOD, ZOFFST, EXCHNG, OSHDTN, SNFRAC = fsm
 
@@ -59,7 +59,7 @@ function sfexch(fsm::FSM, meteo::MET)
             z0g = z0sf[i, j]
           end
         else
-          if (fsnow[i, j] <= eps(Float64))
+          if (fsnow[i, j] <= eps(Tf))
             z0g = z0sf[i, j]
           end
         end
@@ -72,7 +72,7 @@ function sfexch(fsm::FSM, meteo::MET)
           rgo = log(zT / z0h) / (vkman * ustar)
 
           # Forest
-          if (fveg[i, j] > eps(Float64))
+          if (fveg[i, j] > eps(Tf))
             z0g = (zgf + zgr * fveg[i, j]) * z0g
             z0h = 0.1 * z0g
             dh = rchd * hcan[i, j]
@@ -118,7 +118,7 @@ function sfexch(fsm::FSM, meteo::MET)
         if (fveg[i, j] == 0)
           KH[i, j] = fh * vkman * ustar / log(zT1 / z0h)
           Qs = qsat(Ps[i, j], Tsrf[i, j])  #call QSAT(Ps[i,j],Tsrf[i,j],Qs)
-          if (Sice[1, i, j] > eps(Float64) || Qa[i, j] > Qs)
+          if (Sice[1, i, j] > eps(Tf) || Qa[i, j] > Qs)
             KWg[i, j] = KH[i, j]
           else
             KWg[i, j] = gs1[i, j] * KH[i, j] / (gs1[i, j] + KH[i, j])
@@ -147,7 +147,7 @@ function sfexch(fsm::FSM, meteo::MET)
             KWg[i, j] = gs1[i, j] * KHg[i, j] / (gs1[i, j] + KHg[i, j])
           end
           Qs = qsat(Ps[i, j], Tveg[i, j])  #call QSAT(Ps[i,j],Tveg[i,j],Qs)
-          if (Sveg[i, j] > eps(Float64) || Qcan[i, j] > Qs)
+          if (Sveg[i, j] > eps(Tf) || Qcan[i, j] > Qs)
             KWv[i, j] = KHv[i, j]
           else
             KWv[i, j] = gsnf * KHv[i, j] / (gsnf + KHv[i, j])
