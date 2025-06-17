@@ -1,6 +1,6 @@
 function open_files(base_folder, fsm::FSM)
 
-  bin_folder = joinpath(base_folder, "FSM_HS/bin_files")
+  bin_folder = joinpath(base_folder, "FSM_HS_single/bin_files")
 
   io = Dict()
   io["year"]  = open(joinpath(bin_folder, "drive_year.bin"), "r")

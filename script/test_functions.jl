@@ -1,6 +1,6 @@
 function test(base_folder, file, variable, test_vel)
 
-  file = joinpath(base_folder, "FSM_HS/bin_files", file)
+  file = joinpath(base_folder, "FSM_HS_single/bin_files", file)
 
   for line in eachline(open(file))
     line = strip(line)

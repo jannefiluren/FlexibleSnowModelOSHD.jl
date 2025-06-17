@@ -26,7 +26,7 @@ include("test_run_against_jim_compile_run.jl")
 
 # Create object from bin files
 
-fsm = setup_original(Float32, Int32, joinpath(base_folder, "FSM_HS/bin_files"));
+fsm = setup_original(Float32, Int32, joinpath(base_folder, "FSM_HS_single/bin_files"));
 meteo = MET{Float32, Int32}(Nx=fsm.Nx, Ny=fsm.Ny)
 
 # Open files
