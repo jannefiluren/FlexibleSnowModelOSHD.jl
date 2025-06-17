@@ -2,7 +2,7 @@
 
 julia_version = "1.11.4"
 manifest_format = "2.0"
-project_hash = "6523a0c922131d5cf6275f836032683d1e950444"
+project_hash = "ff8057c543fe4d61215f0a09fe4a53ee31a1ea7d"
 
 [[deps.AbstractTrees]]
 git-tree-sha1 = "2d9c9a55f9c93e8887ad391fbae72f8ef55e1177"
@@ -54,6 +54,12 @@ deps = ["Artifacts", "Bzip2_jll", "CompilerSupportLibraries_jll", "Fontconfig_jl
 git-tree-sha1 = "fde3bf89aead2e723284a8ff9cdf5b551ed700e8"
 uuid = "83423d85-b0ee-5818-9007-b63ccbeb887a"
 version = "1.18.5+0"
+
+[[deps.ChangePrecision]]
+deps = ["LinearAlgebra", "Random", "Statistics"]
+git-tree-sha1 = "2ac5097b3caf70b772901abd824e09f991e47296"
+uuid = "3cb15238-376d-56a3-8042-d33272777c9a"
+version = "1.1.1"
 
 [[deps.CodecZlib]]
 deps = ["TranscodingStreams", "Zlib_jll"]

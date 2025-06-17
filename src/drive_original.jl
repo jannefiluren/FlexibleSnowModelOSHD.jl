@@ -38,6 +38,10 @@ end
 
 function drive_original!(io, meteo::MET{Tf, Ti}, fsm::FSM) where {Tf <: Real, Ti <: Integer}
 
+  read!(io["year"], meteo.year)
+  read!(io["month"], meteo.month)
+  read!(io["day"], meteo.day)
+  read!(io["hour"], meteo.hour)
   read!(io["sdrx"], meteo.Sdir)
   read!(io["sdfx"], meteo.Sdif)
   read!(io["lwrx"], meteo.LW)

@@ -275,6 +275,10 @@ end
   #base variables
   Nx::Tint = 1
   Ny::Tint = 1
+  year::Array{Tint, 2} = -9999*ones(1, 1)
+  month::Array{Tint, 2} = -9999*ones(1, 1)
+  day::Array{Tint, 2} = -9999*ones(1, 1)
+  hour::Array{Tfloat, 2} = -9999*ones(1, 1)
 
   Sdir::Array{Tfloat, 2} = zeros(Nx, Ny)
   Sdif::Array{Tfloat, 2} = zeros(Nx, Ny)
