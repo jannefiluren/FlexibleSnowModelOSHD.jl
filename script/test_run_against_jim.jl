@@ -12,30 +12,17 @@ base_folder = "D:/julia"
 test_setup = false
 test_drive = false
 test_radiation = false
-test_thermal = true
+test_thermal = false
 test_sfexch = false
 test_ebalsrf = false
-test_snow = false
+test_snow = true
 test_soil = false
 
 
-# Compile fsm in jim_operational
+# Compile and run original fortran code
 
-curr_dir = pwd()
+include("test_run_against_jim_compile_run.jl")
 
-cd(joinpath(base_folder, "jim_operational/FSM_SOURCE_CODE/code"))
-run(`compil_FSM.bat`)
-cd(curr_dir)
-
-# Move executable to bin folder
-
-mv(joinpath(base_folder, "jim_operational/FSM_SOURCE_CODE/FSM2.exe"), joinpath(base_folder, "FSM_HS/bin_files/FSM2.exe"), force=true)
-
-# Run
-
-cd(joinpath(base_folder, "FSM_HS/bin_files"))
-run(`FSM2.exe OPTIONS.nam`)
-cd(curr_dir)
 
 # Create object from bin files
 
@@ -54,7 +41,7 @@ end
 
 # Loop over time
 
-for i = 1:1
+for i = 1:24
 
   # Read drive
 

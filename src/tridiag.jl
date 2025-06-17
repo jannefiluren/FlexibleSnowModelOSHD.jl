@@ -1,6 +1,6 @@
-function tridiag!(x, Nvec, gamma, Nmax, a, b, c, r)
+function tridiag!(x::Vector{Tf}, Nvec, gamma, Nmax, a, b, c, r) where Tf <: Real
 
-  fill!(gamma, zero(Float64))
+  fill!(gamma, zero(Tf))
 
   beta = b[1]
   x[1] = r[1] / beta
