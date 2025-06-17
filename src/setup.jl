@@ -165,7 +165,7 @@ function setup_grid!(fsm::FSM, landuse; state_file="")
   fsm.scap[:,:] .= fsm.cvai*fsm.VAI[:,:]
 
   #skyview-factor
-  fsm.fsky_terr = landuse["res_skyvf"]
+  fsm.fsky_terr = landuse["skyvf"]["data"]
   fsm.fsky_terr[isnan.(fsm.fsky_terr)] .= 1.0 #TODO lus.sbg_skyvf does not exist in .mat-file
 
   fsm.slopemu = sqrt.(landuse["dhdxdy"] ./ 2)

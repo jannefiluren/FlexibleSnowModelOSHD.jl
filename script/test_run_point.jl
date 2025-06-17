@@ -2,11 +2,19 @@ using ProgressMeter
 using MAT
 using Dates
 using FSMOSHD
-using Plots
+using CSV
+using Tables
+
+
+# Settings
+
+base_folder = "D:/julia"
+
 
 # Helper functions
 
 searchdir(path, key) = filter(x -> occursin(key, x), readdir(path))
+
 
 # Read landuse data
 
@@ -16,6 +24,7 @@ landuse["res_skyvf"] = ones(nstat,1)
 landuse["dhdxdy"] = ones(nstat,1)
 landuse["sd"] = ones(nstat,1)
 landuse["dem"] = landuse["dem"]["data"]
+
 
 # Read input data
 
@@ -40,7 +49,7 @@ Ps = zeros(length(times), nstat)
 
     Sdir[i, :] = met_single["sdri"]["data"]     # "direct shortwave radiation, per inclined surface area, within topography, above canopy"
     Sdif[i, :] = met_single["sdfd"]["data"]     # "diffuse shortwave radiation, per horizontal surface area, within topography, above canopy"
-    Sdird[i, :] = met_single["sdri"]["data"]    # TODO: read read data for Sdird
+    Sdird[i, :] = met_single["sdrd"]["data"]    # "direct shortwave radiation, per horizontal surface area, within topography, above canopy"
     LW[i, :] = met_single["lwrs"]["data"]       # "longwave radiation, above topography"
     Rf[i, :] = met_single["prfc"]["data"]       # "rainfall"
     Sf[i, :] = met_single["psfc"]["data"]       # "snowfall (snow + graupel)"
@@ -57,6 +66,7 @@ fsm = FSM{Float64, Int64}(Nx=nstat)
 met_curr = MET{Float64, Int64}(Nx=nstat)
 
 setup_grid!(fsm, landuse)
+
 
 # Run model
 
@@ -103,14 +113,13 @@ snowdepth = zeros(length(times), nstat)
 end
 
 
-
 # Load reference results
 
 snowdepth_ref = similar(snowdepth)
 
 @showprogress "Reading reference results..." for (i, t) in enumerate(times)
 
-  folder = "D:/MODEL_DATA_FSM/FSM_HS/LATEST_00h_RUN/OUTPUT_OSHD_STAT/RESULTS_01h_opn"
+  folder = "D:/julia/FSM_HS_all/LATEST_00h_RUN/OUTPUT_OSHD_STAT/RESULTS_01h_opn"
   filename = searchdir(folder, "MODELDATA_" * Dates.format(t, "yyyymmddHHMM"))
 
   file = matopen(joinpath(folder, filename[1]))
@@ -122,6 +131,7 @@ snowdepth_ref = similar(snowdepth)
 end
 
 
-istat = 602
-plot(snowdepth[:,istat])
-plot!(snowdepth_ref[:,istat])
+# Write results to files
+
+CSV.write(joinpath(base_folder,"FSM_HS_all","snowdepth_julia.csv"), Tables.table(snowdepth))
+CSV.write(joinpath(base_folder,"FSM_HS_all","snowdepth_matlab.csv"), Tables.table(snowdepth_ref))
