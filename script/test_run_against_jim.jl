@@ -3,101 +3,75 @@ using Dates
 
 # Helper functions
 
-include("test_functions.jl")
-
+include("test_run_against_jim_functions.jl")
 
 # Settings
 
-base_folder = "D:/julia"
-test_setup = false
-test_drive = false
-test_radiation = false
-test_thermal = false
-test_sfexch = false
-test_ebalsrf = false
-test_snow = true
-test_soil = false
+config = Dict()
+config["base_folder"] = "D:/julia"
+config["test_setup"] = false
+config["test_drive"] = false
+config["test_radiation"] = false
+config["test_thermal"] = false
+config["test_sfexch"] = false
+config["test_ebalsrf"] = false
+config["test_snow"] = false
+config["test_soil"] = false
+config["test_snow_final"] = true
 
+# Compile model
 
-# Compile and run original fortran code
-
-include("test_run_against_jim_compile_run.jl")
-
-
-# Create object from bin files
-
-fsm = setup_original(Float32, Int32, joinpath(base_folder, "FSM_HS_single/bin_files"));
-meteo = MET{Float32, Int32}(Nx=fsm.Nx, Ny=fsm.Ny)
-
-# Open files
-
-io = open_files(base_folder, fsm)
-
-# Test setup
-
-if test_setup
-  verify_setup(base_folder, fsm)
-end
+compile_fortran_code(config["base_folder"])
 
 # Loop over time
 
-for i = 1:24
+times = Date(2025,3,1):Date(2025,4,1)
 
-  # Read drive
+for time in times
 
-  drive_original!(io, meteo, fsm)
+  # Run model from matlab
+  
+  cmd = `matlab -nosplash -nodesktop -batch "cd('D:\julia\FSMOSHD\script'); test_run_point_function($(year(time)), $(month(time)), $(day(time))); exit"`
+  
+  pr = run(cmd; wait=true)
+  
+  # Run tests
+  
+  failure = test_run_against_jim(config)
 
-  if test_drive
-    verify_drive(base_folder, meteo)
-  end
-
-  # Run radiation
-
-  t = DateTime(meteo.year[1], meteo.month[1], meteo.day[1], meteo.hour[1], 00, 00)
-
-  radiation(fsm, meteo, t)
-
-  if test_radiation
-    verify_radiation(base_folder, fsm)
-  end
-
-  # Run thermal
-
-  thermal(fsm)
-
-  if test_thermal
-    verify_thermal(base_folder, fsm)
-  end
-
-  # Run sfexch and ebalsrf
-
-  for i in 1:fsm.Nitr
-    sfexch(fsm, meteo)
-    ebalsrf(fsm, meteo)
-  end
-
-  if test_sfexch
-    verify_sfexch(base_folder, fsm)
-  end
-
-  if test_ebalsrf
-    verify_ebalsrf(base_folder, fsm)
-  end
-
-  # Run snow
-
-  snow(fsm, meteo, t)
-
-  if test_snow
-    verify_snow(base_folder, fsm)
-  end
-
-  # Run soil
-
-  soil(fsm)
-
-  if test_soil
-    verify_soil(base_folder, fsm)
+  if failure
+    @error "Mismatch between results"
+    break
   end
 
 end
+
+
+
+
+
+
+# using FSMOSHD
+# using Dates
+
+# # Helper functions
+
+# include("test_run_against_jim_functions.jl")
+
+# # Settings
+
+# config = Dict()
+# config["base_folder"] = "D:/julia"
+# config["test_setup"] = false
+# config["test_drive"] = false
+# config["test_radiation"] = false
+# config["test_thermal"] = false
+# config["test_sfexch"] = true
+# config["test_ebalsrf"] = false
+# config["test_snow"] = false
+# config["test_soil"] = false
+# config["test_snow_final"] = false
+
+# # Run tests
+
+# test_run_against_jim(config)

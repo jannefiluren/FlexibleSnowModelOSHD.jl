@@ -1,4 +1,121 @@
-function test(base_folder, file, variable, test_vel)
+function test_run_against_jim(config)
+
+  # Run original fortran code
+
+  run_fsmoshd_original(config["base_folder"])
+
+  # Create object from bin files
+
+  fsm = setup_original(Float32, Int32, joinpath(config["base_folder"], "FSM_HS_single/bin_files"))
+  meteo = MET{Float32,Int32}(Nx=fsm.Nx, Ny=fsm.Ny)
+
+  # Open files
+
+  io = open_files(config["base_folder"], fsm)
+
+  # Test setup
+
+  if config["test_setup"]
+    verify_setup(config["base_folder"], fsm)
+  end
+
+  # Loop over time
+
+  for i = 1:24
+
+    # Read drive
+
+    drive_original!(io, meteo, fsm)
+
+    if config["test_drive"]
+      verify_drive(config["base_folder"], meteo)
+    end
+
+    # Run radiation
+
+    t = DateTime(meteo.year[1], meteo.month[1], meteo.day[1], meteo.hour[1], 00, 00)
+
+    radiation(fsm, meteo, t)
+
+    if config["test_radiation"]
+      verify_radiation(config["base_folder"], fsm)
+    end
+
+    # Run thermal
+
+    thermal(fsm)
+
+    if config["test_thermal"]
+      verify_thermal(config["base_folder"], fsm)
+    end
+
+    # Run sfexch and ebalsrf
+
+    for i in 1:fsm.Nitr
+      sfexch(fsm, meteo)
+      ebalsrf(fsm, meteo)
+    end
+
+    if config["test_sfexch"]
+      verify_sfexch(config["base_folder"], fsm)
+    end
+
+    if config["test_ebalsrf"]
+      verify_ebalsrf(config["base_folder"], fsm)
+    end
+
+    # Run snow
+
+    snow(fsm, meteo, t)
+
+    if config["test_snow"]
+      verify_snow(config["base_folder"], fsm)
+    end
+
+    # Run soil
+
+    soil(fsm)
+
+    if config["test_soil"]
+      verify_soil(config["base_folder"], fsm)
+    end
+
+  end
+
+  if config["test_snow_final"]
+    verify_snow(config["base_folder"], fsm)
+  end
+
+end
+
+
+function compile_fortran_code(base_folder)
+
+  curr_dir = pwd()
+  
+  cd(joinpath(base_folder, "jim_operational/FSM_SOURCE_CODE/code"))
+  run(`compil_FSM.bat`)
+  cd(curr_dir)
+  
+  cp(joinpath(base_folder, "jim_operational/FSM_SOURCE_CODE/FSM2.exe"), joinpath(base_folder, "FSM_HS_single/bin_files/FSM2.exe"), force=true)
+
+end
+
+
+function run_fsmoshd_original(base_folder)
+
+  curr_dir = pwd()
+
+  cd(joinpath(base_folder, "FSM_HS_single/bin_files"))
+  run(`FSM2.exe OPTIONS.nam`)
+  cd(curr_dir)
+
+end
+
+
+function test(base_folder, file, variable, test_val)
+
+  failure = false
 
   file = joinpath(base_folder, "FSM_HS_single/bin_files", file)
 
@@ -8,12 +125,17 @@ function test(base_folder, file, variable, test_vel)
       parts = split(line, ' ', keepempty=false)
       if length(parts) > 1
         ref_val = parse.(Float32, parts[2:end])
-        atol = isapprox(ref_val, test_vel; atol=1e-7)
-        rtol = isapprox(ref_val, test_vel; rtol=1e-5)
-        println("Abs tol: ", atol, " | Rel tol: ", rtol, "   ", variable)
+        atol = isapprox(ref_val, test_val; atol=1e-7)
+        rtol = isapprox(ref_val, test_val; rtol=1e-5)
+        println("Abs tol: ", atol, " | Rel tol: ", rtol, "   ", variable, " (diff=", test_val - ref_val, ")")
+        if atol == false && rtol == false
+          failure = true
+        end
       end
     end
   end
+
+  return failure
 
 end
 
@@ -97,7 +219,7 @@ function verify_thermal(base_folder, fsm)
   test(base_folder, file, "Tveg0 ", fsm.Tveg0)
   test(base_folder, file, "csoil ", fsm.csoil)
   test(base_folder, file, "ksnow ", fsm.ksnow)
-  test(base_folder, file, "ksoil ", fsm.ksoil )
+  test(base_folder, file, "ksoil ", fsm.ksoil)
 end
 
 
