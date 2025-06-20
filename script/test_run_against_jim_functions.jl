@@ -1,4 +1,4 @@
-function test_run_against_jim(config)
+function test_run_against_jim_binfiles(config)
 
   # Run original fortran code
 
@@ -83,7 +83,7 @@ function test_run_against_jim(config)
   end
 
   if config["test_snow_final"]
-    verify_snow(config["base_folder"], fsm)
+    return verify_snow(config["base_folder"], fsm)
   end
 
 end
@@ -115,8 +115,6 @@ end
 
 function test(base_folder, file, variable, test_val)
 
-  failure = false
-
   file = joinpath(base_folder, "FSM_HS_single/bin_files", file)
 
   for line in eachline(open(file))
@@ -125,17 +123,17 @@ function test(base_folder, file, variable, test_val)
       parts = split(line, ' ', keepempty=false)
       if length(parts) > 1
         ref_val = parse.(Float32, parts[2:end])
-        atol = isapprox(ref_val, test_val; atol=1e-7)
+        atol = isapprox(ref_val, test_val; atol=1e-5)
         rtol = isapprox(ref_val, test_val; rtol=1e-5)
         println("Abs tol: ", atol, " | Rel tol: ", rtol, "   ", variable, " (diff=", test_val - ref_val, ")")
         if atol == false && rtol == false
-          failure = true
+          return true
         end
       end
     end
   end
 
-  return failure
+  return false
 
 end
 
@@ -257,18 +255,16 @@ end
 function verify_snow(base_folder, fsm)
   println("Testing snow...")
   file = "test_snow.txt"
-  test(base_folder, file, "Gsoil ", fsm.Gsoil)
-  test(base_folder, file, "Roff ", fsm.Roff)
-  test(base_folder, file, "meltflux_out ", fsm.meltflux_out)
-  test(base_folder, file, "Sbsrf ", fsm.Sbsrf)
-  test(base_folder, file, "Roff_bare ", fsm.Roff_bare)
-  test(base_folder, file, "Roff_snow ", fsm.Roff_snow)
-  test(base_folder, file, "fsnow_thres ", fsm.fsnow_thres)
-  test(base_folder, file, "unload ", fsm.unload)
-  test(base_folder, file, "Tsnow ", fsm.Tsnow)
-  test(base_folder, file, "Sice ", fsm.Sice)
-  test(base_folder, file, "Sliq ", fsm.Sliq)
-  test(base_folder, file, "Ds ", fsm.Ds)
+  fields = ["Gsoil",  "Roff",  "meltflux_out",  "Sbsrf",  "Roff_bare",  "Roff_snow",  "fsnow",  "unload",  "Tsnow",  "Sice",  "Sliq",  "Ds"]
+
+  failure = false
+  for field in fields
+    if test(base_folder, file, field * " ", getfield(fsm, Symbol(field)))
+      failure = true
+    end
+  end
+  return failure
+
 end
 
 

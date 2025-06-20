@@ -25,19 +25,26 @@ compile_fortran_code(config["base_folder"])
 
 # Loop over time
 
-times = Date(2025,3,1):Date(2025,4,1)
+time_start = Date(2024,9,1)
+time_end = Date(2025,4,1)
+
+times = time_start:time_end
 
 for time in times
 
   # Run model from matlab
   
-  cmd = `matlab -nosplash -nodesktop -batch "cd('D:\julia\FSMOSHD\script'); test_run_point_function($(year(time)), $(month(time)), $(day(time))); exit"`
+  if times[1] == time_start
+    cmd = `matlab -batch "cd('D:\julia\FSMOSHD\script'); test_run_point_function($(year(time)), $(month(time)), $(day(time)), 'initialize')"`
+  else
+    cmd = `matlab -batch "cd('D:\julia\FSMOSHD\script'); test_run_point_function($(year(time)), $(month(time)), $(day(time)), 'reinitialize')"`
+  end
   
   pr = run(cmd; wait=true)
   
   # Run tests
   
-  failure = test_run_against_jim(config)
+  failure = test_run_against_jim_binfiles(config)
 
   if failure
     @error "Mismatch between results"
