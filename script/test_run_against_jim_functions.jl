@@ -1,13 +1,13 @@
-function test_run_against_jim_binfiles(config)
+function test_run_against_jim_binfiles(config, fsm, meteo, ctime, station, matfiles=false)
 
   # Run original fortran code
 
   run_fsmoshd_original(config["base_folder"])
 
-  # Create object from bin files
+  # Determine is_domain
 
-  fsm = setup_original(Float32, Int32, joinpath(config["base_folder"], "FSM_HS_single/bin_files"))
-  meteo = MET{Float32,Int32}(Nx=fsm.Nx, Ny=fsm.Ny)
+  landuse = matread("K:/OSHD_AUX/DATA_LUS/OSHD_LUS_STAT.mat")
+  is_domain = landuse["acro"] .== station
 
   # Open files
 
@@ -22,18 +22,25 @@ function test_run_against_jim_binfiles(config)
   # Loop over time
 
   for i = 1:24
-
+    
     # Read drive
 
-    drive_original!(io, meteo, fsm)
+    dt = Dates.Hour(i-1)
+    t = DateTime(year(ctime + dt), month(ctime + dt), day(ctime + dt), hour(ctime + dt), 00, 00)
+    
+    if matfiles
+      drive_matfiles!(t, meteo, fsm, is_domain)
+    else
+      drive_binfiles!(io, meteo, fsm)
+    end
 
     if config["test_drive"]
-      verify_drive(config["base_folder"], meteo)
+      if verify_drive(config["base_folder"], meteo, t)
+        return true, meteo
+      end
     end
 
     # Run radiation
-
-    t = DateTime(meteo.year[1], meteo.month[1], meteo.day[1], meteo.hour[1], 00, 00)
 
     radiation(fsm, meteo, t)
 
@@ -85,8 +92,10 @@ function test_run_against_jim_binfiles(config)
   close_files(io)
 
   if config["test_snow_final"]
-    return verify_snow(config["base_folder"], fsm)
+    return verify_snow(config["base_folder"], fsm), meteo
   end
+
+  return false, meteo
 
 end
 
@@ -123,6 +132,7 @@ function test(base_folder, file, variable, test_val)
 
   file = joinpath(base_folder, "FSM_HS_single/bin_files", file)
 
+  failed = false
   open(file) do io
     for line in eachline(io)
       line = strip(line)
@@ -134,14 +144,14 @@ function test(base_folder, file, variable, test_val)
           rtol = isapprox(ref_val, test_val; rtol=1e-4)
           println("Abs tol: ", atol, " | Rel tol: ", rtol, "   ", variable, " (diff=", test_val - ref_val, ")")
           if atol == false && rtol == false
-            return true
+            failed = true
           end
         end
       end
     end
   end
 
-  return false
+  return failed
 
 end
 
@@ -178,9 +188,9 @@ function verify_setup(base_folder, fsm)
 end
 
 
-function verify_drive(base_folder, meteo)
-  println("Testing meteo...")
-  file = "test_meteo.txt"
+function verify_drive(base_folder, meteo, t)
+  println("Testing meteo for hour: " * @sprintf("%02d", hour(t)))
+  file = "test_meteo_" * @sprintf("%02d", hour(t)) * ".txt"
   test(base_folder, file, "year", meteo.year)
   test(base_folder, file, "month", meteo.month)
   test(base_folder, file, "day", meteo.day)
@@ -265,13 +275,13 @@ function verify_snow(base_folder, fsm)
   file = "test_snow.txt"
   fields = ["Gsoil",  "Roff",  "meltflux_out",  "Sbsrf",  "Roff_bare",  "Roff_snow",  "fsnow",  "unload",  "Tsnow",  "Sice",  "Sliq",  "Ds"]
 
-  failure = false
+  failed = false
   for field in fields
     if test(base_folder, file, field * " ", getfield(fsm, Symbol(field)))
-      failure = true
+      failed = true
     end
   end
-  return failure
+  return failed
 
 end
 

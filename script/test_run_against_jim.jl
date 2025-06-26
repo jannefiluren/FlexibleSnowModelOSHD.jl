@@ -1,5 +1,7 @@
 using FSMOSHD
 using Dates
+using MAT
+using Printf
 
 # Helper functions
 
@@ -19,33 +21,45 @@ config["test_snow"] = false
 config["test_soil"] = false
 config["test_snow_final"] = true
 
+time_initialize = DateTime(2024,9,1,6,0,0)
+time_start = DateTime(2024,9,1,6,0,0)
+time_end = DateTime(2025,6,1,6,0,0)
+
+station = "MCH.JUN2"
+matfiles = false
+
 # Compile model
 
 compile_fortran_code(config["base_folder"])
 
 # Loop over time
 
-time_initialize = Date(2024,9,1)
-time_start = Date(2024,9,1)
-time_end = Date(2025,6,1)
+times = time_start:Dates.Day(1):time_end
 
-times = time_start:time_end
+for currtime in times
 
-for time in times
+  global fsm, meteo
 
   # Run model from matlab
   
-  if time == time_initialize
-    cmd = `matlab -batch "cd('D:\julia\FSMOSHD\script'); test_run_point_function($(year(time)), $(month(time)), $(day(time)), 'initialize')"`
+  if currtime == time_initialize
+    cmd = `matlab -batch "cd('D:\julia\FSMOSHD\script'); test_run_point_function($(year(currtime)), $(month(currtime)), $(day(currtime)), 'initialize')"`
   else
-    cmd = `matlab -batch "cd('D:\julia\FSMOSHD\script'); test_run_point_function($(year(time)), $(month(time)), $(day(time)), 'reinitialize')"`
+    cmd = `matlab -batch "cd('D:\julia\FSMOSHD\script'); test_run_point_function($(year(currtime)), $(month(currtime)), $(day(currtime)), 'reinitialize')"`
   end
   
   pr = run(cmd; wait=true)
+
+  # Setup
+
+  if currtime == times[1]
+    fsm = setup_original(Float32, Int32, joinpath(config["base_folder"], "FSM_HS_single/bin_files"))
+    meteo = MET{Float32,Int32}(Nx=fsm.Nx, Ny=fsm.Ny)
+  end
   
   # Run tests
   
-  failure = test_run_against_jim_binfiles(config)
+  failure, meteo = test_run_against_jim_binfiles(config, fsm, meteo, currtime, station, matfiles)
 
   if failure
     @error "Mismatch between results"
