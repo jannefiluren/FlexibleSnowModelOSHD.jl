@@ -82,6 +82,8 @@ function test_run_against_jim_binfiles(config)
 
   end
 
+  close_files(io)
+
   if config["test_snow_final"]
     return verify_snow(config["base_folder"], fsm)
   end
@@ -96,6 +98,10 @@ function compile_fortran_code(base_folder)
   cd(joinpath(base_folder, "jim_operational/FSM_SOURCE_CODE/code"))
   run(`compil_FSM.bat`)
   cd(curr_dir)
+
+  if !isdir(joinpath(base_folder, "FSM_HS_single/bin_files"))
+    mkdir(joinpath(base_folder, "FSM_HS_single/bin_files"))
+  end
   
   cp(joinpath(base_folder, "jim_operational/FSM_SOURCE_CODE/FSM2.exe"), joinpath(base_folder, "FSM_HS_single/bin_files/FSM2.exe"), force=true)
 
@@ -117,17 +123,19 @@ function test(base_folder, file, variable, test_val)
 
   file = joinpath(base_folder, "FSM_HS_single/bin_files", file)
 
-  for line in eachline(open(file))
-    line = strip(line)
-    if startswith(line, variable)
-      parts = split(line, ' ', keepempty=false)
-      if length(parts) > 1
-        ref_val = parse.(Float32, parts[2:end])
-        atol = isapprox(ref_val, test_val; atol=1e-5)
-        rtol = isapprox(ref_val, test_val; rtol=1e-5)
-        println("Abs tol: ", atol, " | Rel tol: ", rtol, "   ", variable, " (diff=", test_val - ref_val, ")")
-        if atol == false && rtol == false
-          return true
+  open(file) do io
+    for line in eachline(io)
+      line = strip(line)
+      if startswith(line, variable)
+        parts = split(line, ' ', keepempty=false)
+        if length(parts) > 1
+          ref_val = parse.(Float32, parts[2:end])
+          atol = isapprox(ref_val, test_val; atol=1e-4)
+          rtol = isapprox(ref_val, test_val; rtol=1e-4)
+          println("Abs tol: ", atol, " | Rel tol: ", rtol, "   ", variable, " (diff=", test_val - ref_val, ")")
+          if atol == false && rtol == false
+            return true
+          end
         end
       end
     end

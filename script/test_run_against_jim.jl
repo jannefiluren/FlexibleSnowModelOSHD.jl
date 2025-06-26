@@ -25,8 +25,9 @@ compile_fortran_code(config["base_folder"])
 
 # Loop over time
 
+time_initialize = Date(2024,9,1)
 time_start = Date(2024,9,1)
-time_end = Date(2025,4,1)
+time_end = Date(2025,6,1)
 
 times = time_start:time_end
 
@@ -34,7 +35,7 @@ for time in times
 
   # Run model from matlab
   
-  if times[1] == time_start
+  if time == time_initialize
     cmd = `matlab -batch "cd('D:\julia\FSMOSHD\script'); test_run_point_function($(year(time)), $(month(time)), $(day(time)), 'initialize')"`
   else
     cmd = `matlab -batch "cd('D:\julia\FSMOSHD\script'); test_run_point_function($(year(time)), $(month(time)), $(day(time)), 'reinitialize')"`
