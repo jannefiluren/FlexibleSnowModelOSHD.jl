@@ -20,10 +20,6 @@ searchdir(path, key) = filter(x -> occursin(key, x), readdir(path))
 
 landuse = matread("K:/OSHD_AUX/DATA_LUS/OSHD_LUS_STAT.mat")
 nstat = length(landuse["acro"])
-landuse["res_skyvf"] = ones(nstat,1)
-landuse["dhdxdy"] = ones(nstat,1)
-landuse["sd"] = ones(nstat,1)
-landuse["dem"] = landuse["dem"]["data"]
 
 
 # Read input data
@@ -62,10 +58,8 @@ end
 
 # Setup model
 
-fsm = FSM{Float64, Int64}(Nx=nstat)
-met_curr = MET{Float64, Int64}(Nx=nstat)
-
-setup_grid!(fsm, landuse)
+fsm = setup_matfiles(Float32, Int32)
+met_curr = MET{Float32, Int32}(Nx=nstat)
 
 
 # Run model
@@ -84,7 +78,7 @@ snowdepth = zeros(length(times), nstat)
   met_curr.Rf[:, :] .= Rf[i, :]
   met_curr.Ta[:, :] .= Ta[i, :]
   met_curr.RH[:, :] .= RH[i, :]
-  met_curr.Ua[:, :] .= Ua[i, :] * 0.7
+  met_curr.Ua[:, :] .= Ua[i, :]
   met_curr.Ps[:, :] .= Ps[i, :]
 
   met_curr.Sf24h[:, :] .= sum(Sf[max(i-23,1):i,:], dims=1)'

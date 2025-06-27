@@ -36,18 +36,19 @@ function drive(fsm, data)
 end
 
 
-function drive!(fsm::FSM, meteo::MET)
+function drive!(fsm::FSM, meteo::MET{Tf,Ti}) where {Tf<:Real,Ti<:Integer}
 
   @unpack dt = fsm
 
   @unpack Tc, es, Qa, Ua, Sf, Rf, Ta, RH, Ps = meteo
 
   Ua .= max.(Ua, 0.1)
+  Ua .= 0.7 .* Ua
 
   Sf .= Sf ./ dt
   Rf .= Rf ./ dt
   Tc .= Ta .- Tm
-  es .= e0 .* exp.(17.5043 .* Tc ./ (241.3 .+ Tc))
+  es .= e0 .* exp.(Tf(17.504) .* Tc ./ (Tf(241.3) .+ Tc))
   Qa .= (RH ./ 100) .* eps_fsm .* es ./ Ps
 
 end
