@@ -26,7 +26,7 @@ time_start = DateTime(2024,9,1,6,0,0)
 time_end = DateTime(2025,6,1,6,0,0)
 
 station = "MCH.JUN2"
-matfiles = false
+matfiles = true
 
 # Compile model
 
@@ -43,9 +43,9 @@ for currtime in times
   # Run model from matlab
   
   if currtime == time_initialize
-    cmd = `matlab -batch "cd('D:\julia\FSMOSHD\script'); test_run_point_function($(year(currtime)), $(month(currtime)), $(day(currtime)), 'initialize')"`
+    cmd = `matlab -batch "cd('D:\julia\FSMOSHD\script'); test_run_point_function($(year(currtime)), $(month(currtime)), $(day(currtime)), 'initialize', '$(station)')"`
   else
-    cmd = `matlab -batch "cd('D:\julia\FSMOSHD\script'); test_run_point_function($(year(currtime)), $(month(currtime)), $(day(currtime)), 'reinitialize')"`
+    cmd = `matlab -batch "cd('D:\julia\FSMOSHD\script'); test_run_point_function($(year(currtime)), $(month(currtime)), $(day(currtime)), 'reinitialize', '$(station)')"`
   end
   
   pr = run(cmd; wait=true)

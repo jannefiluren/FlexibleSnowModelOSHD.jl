@@ -1,6 +1,6 @@
 % Restart an existing run (single station)
 
-function test_run_point_function(year, month, day, init_type)
+function test_run_point_function(year, month, day, init_type, station)
 
 run_id = 0;
 run_id_hn = -1;
@@ -11,7 +11,7 @@ init_type = string(init_type);   %"reinitialize";
 states_folder_reinit = "D:\julia\FSM_HS_single\LATEST_00h_RUN";
 silent = 0;
 hourly_output = "full_research";
-sel_stat = {'MCH.JUN2'};
+sel_stat = {station};
 run_folder = "D:\julia\FSM_HS_single\bin_files";
 stop_run = true;
 
