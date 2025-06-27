@@ -1,25 +1,44 @@
-function setup_original(Tf, Ti, folder::String)
+function setup_matfiles(Tf, Ti, station::String = "")
+
+
+  # Landuse
+
+  landuse = matread("K:/OSHD_AUX/DATA_LUS/OSHD_LUS_STAT.mat")
+
+  if isempty(station)
+    is_domain = ones(Bool, size(landuse["dem"]["data"]))
+  else
+    is_domain = landuse["acro"] .== station
+  end
+
+  if ~haskey(landuse, "dhxydy")
+    landuse["dhxydy"] = ones(size(landuse["dem"]["data"]))
+  end
+
+  if ~haskey(landuse, "sddem")
+    landuse["sddem"] = ones(size(landuse["dem"]["data"]))
+  end
 
   # Constants
 
   undefined = 1.e+6
 
-  # Read namelist file
+  # # Read namelist file
 
-  f90nml = pyimport("f90nml")
-  nml = f90nml.read(joinpath(folder, "OPTIONS.nam"))
-  nml = pyconvert(Dict, nml)
+  # f90nml = pyimport("f90nml")
+  # nml = f90nml.read(joinpath(folder, "OPTIONS.nam"))
+  # nml = pyconvert(Dict, nml)
 
   # Initialization of variables
 
-  nam_grid = pyconvert(Dict,nml["nam_grid"])
+  # nam_grid = pyconvert(Dict,nml["nam_grid"])
 
-  Nsmax      = haskey(nam_grid, lowercase("NNsmax")) ? nam_grid[lowercase("NNsmax")] : 3
-  Nsoil      = haskey(nam_grid, lowercase("NNsoil")) ? nam_grid[lowercase("NNsoil")] : 4
-  Nx         = haskey(nam_grid, lowercase("NNx")) ? nam_grid[lowercase("NNx")] : 1
-  Ny         = haskey(nam_grid, lowercase("NNy")) ? nam_grid[lowercase("NNy")] : 1
-  Ds_min     = haskey(nam_grid, lowercase("DDs_min")) ? nam_grid[lowercase("DDs_min")] : 0.01
-  Ds_surflay = haskey(nam_grid, lowercase("DDs_surflay")) ? nam_grid[lowercase("DDs_surflay")] : 0.5
+  Nsmax      = 3
+  Nsoil      = 4
+  Nx         = convert(Ti, sum(is_domain))   # TODO fix
+  Ny         = 1   # TODO fix
+  Ds_min     = 0.01
+  Ds_surflay = 0.5
 
   # Create fsm object
 
@@ -27,50 +46,50 @@ function setup_original(Tf, Ti, folder::String)
 
   # Driving data
 
-  nam_driving = pyconvert(Dict,nml["nam_driving"])
+  # nam_driving = pyconvert(Dict,nml["nam_driving"])
 
-  fsm.zT     = haskey(nam_driving, lowercase("zzT")) ? nam_driving[lowercase("zzT")] : 10
-  fsm.zU     = haskey(nam_driving, lowercase("zzU")) ? nam_driving[lowercase("zzU")] : 10
-  fsm.zRH    = haskey(nam_driving, lowercase("zzRH")) ? nam_driving[lowercase("zzRH")] : 10
+  fsm.zT   = 10
+  fsm.zU   = 10
+  fsm.zRH  = 10
 
   # Model configuration
 
-  nam_modconf = pyconvert(Dict,nml["nam_modconf"])
+  # nam_modconf = pyconvert(Dict,nml["nam_modconf"])
 
-  fsm.ALBEDO = haskey(nam_modconf, lowercase("NALBEDO")) ? nam_modconf[lowercase("NALBEDO")] : -1
-  fsm.CANMOD = haskey(nam_modconf, lowercase("NCANMOD")) ? nam_modconf[lowercase("NCANMOD")] : -1
-  fsm.CONDCT = haskey(nam_modconf, lowercase("NCONDCT")) ? nam_modconf[lowercase("NCONDCT")] : -1
-  fsm.DENSTY = haskey(nam_modconf, lowercase("NDENSTY")) ? nam_modconf[lowercase("NDENSTY")] : -1
-  fsm.EXCHNG = haskey(nam_modconf, lowercase("NEXCHNG")) ? nam_modconf[lowercase("NEXCHNG")] : -1
-  fsm.HYDROL = haskey(nam_modconf, lowercase("NHYDROL")) ? nam_modconf[lowercase("NHYDROL")] : -1
-  fsm.SNFRAC = haskey(nam_modconf, lowercase("NSNFRAC")) ? nam_modconf[lowercase("NSNFRAC")] : -1
-  fsm.RADSBG = haskey(nam_modconf, lowercase("NRADSBG")) ? nam_modconf[lowercase("NRADSBG")] : -1
-  fsm.ZOFFST = haskey(nam_modconf, lowercase("NZOFFST")) ? nam_modconf[lowercase("NZOFFST")] : -1
-  fsm.OSHDTN = haskey(nam_modconf, lowercase("NOSHDTN")) ? nam_modconf[lowercase("NOSHDTN")] : -1
-  fsm.ALRADT = haskey(nam_modconf, lowercase("NALRADT")) ? nam_modconf[lowercase("NALRADT")] : -1
-  fsm.SNTRAN = haskey(nam_modconf, lowercase("NSNTRAN")) ? nam_modconf[lowercase("NSNTRAN")] : -1
-  fsm.SNSLID = haskey(nam_modconf, lowercase("NSNSLID")) ? nam_modconf[lowercase("NSNSLID")] : -1
-  fsm.SNOLAY = haskey(nam_modconf, lowercase("NSNOLAY")) ? nam_modconf[lowercase("NSNOLAY")] : -1
-  fsm.CHECKS = haskey(nam_modconf, lowercase("NCHECKS")) ? nam_modconf[lowercase("NCHECKS")] : -1
-  fsm.HN_ON = haskey(nam_modconf, lowercase("LHN_ON")) ? nam_modconf[lowercase("LHN_ON")] : false
-  fsm.FOR_HN = haskey(nam_modconf, lowercase("LFOR_HN")) ? nam_modconf[lowercase("LFOR_HN")] : false
+  fsm.ALBEDO = 2
+  fsm.CANMOD = 0
+  fsm.CONDCT = 1
+  fsm.DENSTY = 3
+  fsm.EXCHNG = 1
+  fsm.HYDROL = 2
+  fsm.SNFRAC = 3
+  fsm.RADSBG = 0
+  fsm.ZOFFST = 0
+  fsm.OSHDTN = 1
+  fsm.ALRADT = 0
+  fsm.SNTRAN = 0
+  fsm.SNSLID = 0
+  fsm.SNOLAY = 0
+  fsm.CHECKS = 0
+  fsm.HN_ON  = false
+  fsm.FOR_HN = true
 
   # Model perturbations
 
-  nam_modpert = pyconvert(Dict,nml["nam_modpert"])
+  # nam_modpert = pyconvert(Dict,nml["nam_modpert"])
 
-  fsm.Z0PERT = haskey(nam_modpert, lowercase("NZ0PERT")) ? nam_modpert[lowercase("NZ0PERT")] : false
-  fsm.WCPERT = haskey(nam_modpert, lowercase("NWCPERT")) ? nam_modpert[lowercase("NWCPERT")] : false
-  fsm.FSPERT = haskey(nam_modpert, lowercase("NFSPERT")) ? nam_modpert[lowercase("NFSPERT")] : false
-  fsm.ALPERT = haskey(nam_modpert, lowercase("NALPERT")) ? nam_modpert[lowercase("NALPERT")] : false
-  fsm.SLPERT = haskey(nam_modpert, lowercase("NSLPERT")) ? nam_modpert[lowercase("NSLPERT")] : false
+  fsm.Z0PERT = false
+  fsm.WCPERT = false
+  fsm.FSPERT = false
+  fsm.ALPERT = false
+  fsm.SLPERT = false
 
   # Modelled tile
 
-  nam_modtile = pyconvert(Dict,nml["nam_modtile"])
+  # nam_modtile = pyconvert(Dict,nml["nam_modtile"])
 
-  fsm.TILE = haskey(nam_modtile, lowercase("CTILE")) ? nam_modtile[lowercase("CTILE")] : "open"
-  fsm.tthresh = haskey(nam_modtile, lowercase("rtthresh")) ? nam_modtile[lowercase("rtthresh")] : 0.1
+  fsm.TILE = "open"
+  fsm.tthresh = 0.1
 
   # Defaults for numerical solution parameters
   fsm.Nitr = 4
@@ -292,19 +311,19 @@ function setup_original(Tf, Ti, folder::String)
   #
   ##-4- !!!!!!!!!!!!!!!!!!!! READ DRIVING/STATES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   #! states relevant to both open and forest simulation
-  read!(joinpath(folder, "states_in_alse.bin"), fsm.albs)
-  read!(joinpath(folder, "states_in_hsnl.bin"), fsm.Ds)
-  read!(joinpath(folder, "states_in_scfe.bin"), fsm.fsnow)
-  read!(joinpath(folder, "states_in_nsne.bin"), fsm.Nsnow)
-  read!(joinpath(folder, "states_in_sicl.bin"), fsm.Sice)
-  read!(joinpath(folder, "states_in_slql.bin"), fsm.Sliq)
-  read!(joinpath(folder, "states_in_tsfe.bin"), fsm.Tsrf)
-  read!(joinpath(folder, "states_in_tsnl.bin"), fsm.Tsnow)
-  read!(joinpath(folder, "states_in_tsll.bin"), fsm.Tsoil)
-  read!(joinpath(folder, "landuse_skyvf.bin"), fsm.fsky_terr)
-  read!(joinpath(folder, "landuse_lat.bin"), fsm.lat)
-  read!(joinpath(folder, "landuse_lon.bin"), fsm.lon)
-  read!(joinpath(folder, "landuse_dem.bin"), fsm.dem)
+  fsm.albs .= 0.85                                                               # read!(joinpath(folder, "states_in_alse.bin"), fsm.albs)
+  fsm.Ds .= 0                                                                    # read!(joinpath(folder, "states_in_hsnl.bin"), fsm.Ds)
+  fsm.fsnow .= 0                                                                 # read!(joinpath(folder, "states_in_scfe.bin"), fsm.fsnow)
+  fsm.Nsnow .= 0                                                                 # read!(joinpath(folder, "states_in_nsne.bin"), fsm.Nsnow)
+  fsm.Sice .= 0                                                                  # read!(joinpath(folder, "states_in_sicl.bin"), fsm.Sice)
+  fsm.Sliq .= 0                                                                  # read!(joinpath(folder, "states_in_slql.bin"), fsm.Sliq)
+  fsm.Tsrf .= Tm                                                                 # read!(joinpath(folder, "states_in_tsfe.bin"), fsm.Tsrf)
+  fsm.Tsnow .= Tm                                                                # read!(joinpath(folder, "states_in_tsnl.bin"), fsm.Tsnow)
+  fsm.Tsoil .= 285                                                               # read!(joinpath(folder, "states_in_tsll.bin"), fsm.Tsoil)
+  fsm.fsky_terr .= landuse["skyvf"]["data"][is_domain]                           # read!(joinpath(folder, "landuse_skyvf.bin"), fsm.fsky_terr)
+  fsm.lat .= landuse["y"][is_domain]                                             # read!(joinpath(folder, "landuse_lat.bin"), fsm.lat)   # TODO this wrong - currently swiss coords
+  fsm.lon .= landuse["x"][is_domain]                                             # read!(joinpath(folder, "landuse_lon.bin"), fsm.lon)   # TODO this wrong - currently swiss coords
+  fsm.dem .= landuse["dem"]["data"][is_domain]                                   # read!(joinpath(folder, "landuse_dem.bin"), fsm.dem)
 
   # Cap glacier temperatures to 0°C 
   if (fsm.TILE == "glacier")
@@ -312,7 +331,7 @@ function setup_original(Tf, Ti, folder::String)
     for i = 1:fsm.Nx
       fsm.Tsrf[i,j] = min(fsm.Tsrf[i,j],Tm)
       for k = 1:fsm.Nsoil
-        Tsoil[k,i,j] = min(Tsoil[k,i,j],Tm)
+        fsm.Tsoil[k,i,j] = min(fsm.Tsoil[k,i,j],Tm)
       end
     end
     end
@@ -322,10 +341,10 @@ function setup_original(Tf, Ti, folder::String)
   if (fsm.TILE == "open")
     fsm.tilefrac .= fsm.dem./fsm.dem   # temporary fix to get ones within our entire domain, assuming we always want to run an open tile. may have to be revisited
     if (fsm.SNTRAN == 1 || fsm.SNSLID == 1)
-      read!(joinpath(folder, landuse_glac), fsm.glacierfrac)
+      # read!(joinpath(folder, landuse_glac), fsm.glacierfrac)    TODO add this later
     end
   else
-    read!(joinpath(folder, landuse_tile), fsm.tilefrac)
+    # read!(joinpath(folder, landuse_tile), fsm.tilefrac)   TODO add this later
   end 
 
   if (fsm.TILE == "open" && (fsm.SNTRAN == 1 || fsm.SNSLID == 1))   # Cap glacier temperatures only in relevant pixels, and alter snow free albedo and roughness lengths
@@ -344,18 +363,18 @@ function setup_original(Tf, Ti, folder::String)
   end
 
   if (fsm.SNFRAC == 0 || fsm.SNFRAC == 2)
-    read!(joinpath(folder, "states_in_hsmx.bin"), fsm.snowdepthmax)
+    fsm.snowdepthmax .= 0     # read!(joinpath(folder, "states_in_hsmx.bin"), fsm.snowdepthmax)
   end
 
   if (fsm.SNFRAC == 0)
     # states specific to open runs
-    read!(joinpath(folder, "states_in_hsmn.bin"), fsm.snowdepthmin)
-    read!(joinpath(folder, "states_in_hshs.bin"), fsm.snowdepthhist)
-    read!(joinpath(folder, "states_in_swmn.bin"), fsm.swemin)
-    read!(joinpath(folder, "states_in_swmx.bin"), fsm.swemax)
-    read!(joinpath(folder, "states_in_swhs.bin"), fsm.swehist)
-    read!(joinpath(folder, "landuse_slopemu.bin"), fsm.slopemu)
-    read!(joinpath(folder, "landuse_xi.bin"), fsm.xi)
+    fsm.snowdepthmin .= 0  # read!(joinpath(folder, "states_in_hsmn.bin"), fsm.snowdepthmin)
+    fsm.snowdepthhist .= 0 # read!(joinpath(folder, "states_in_hshs.bin"), fsm.snowdepthhist)
+    fsm.swemin .= 0   # read!(joinpath(folder, "states_in_swmn.bin"), fsm.swemin)
+    fsm.swemax .= 0   # read!(joinpath(folder, "states_in_swmx.bin"), fsm.swemax)
+    fsm.swehist .= 0   # read!(joinpath(folder, "states_in_swhs.bin"), fsm.swehist)
+    fsm.slopemu .= 0   # read!(joinpath(folder, "landuse_slopemu.bin"), fsm.slopemu)
+    fsm.xi      # read!(joinpath(folder, "landuse_xi.bin"), fsm.xi)
   end
 
   if (fsm.SNFRAC == 0 || fsm.SNTRAN == 1)
@@ -372,16 +391,16 @@ function setup_original(Tf, Ti, folder::String)
     fsm.fves[:,:] .= 1 .- exp.(-fsm.kveg.*fsm.VAI[:,:])
   else # TILE == 'forest'
     # lus fields specific to forest runs
-    read!(joinpath(folder, "states_in_qcan.bin"), fsm.Qcan)
-    read!(joinpath(folder, "states_in_sveg.bin"), fsm.Sveg)
-    read!(joinpath(folder, "states_in_tcan.bin"), fsm.Tcan)
-    read!(joinpath(folder, "states_in_tveg.bin"), fsm.Tveg)
-    read!(joinpath(folder, "landuse_fveg.bin"), fsm.fveg)
-    read!(joinpath(folder, "landuse_hcan.bin"), fsm.hcan)
-    read!(joinpath(folder, "landuse_lai.bin"), fsm.lai)
-    read!(joinpath(folder, "landuse_vfhp.bin"), fsm.vfhp)
-    read!(joinpath(folder, "landuse_fves.bin"), fsm.fves)
-    read!(joinpath(folder, "landuse_pmultf.bin"), fsm.pmultf)
+    # read!(joinpath(folder, "states_in_qcan.bin"), fsm.Qcan)  TODO add later
+    # read!(joinpath(folder, "states_in_sveg.bin"), fsm.Sveg)
+    # read!(joinpath(folder, "states_in_tcan.bin"), fsm.Tcan)
+    # read!(joinpath(folder, "states_in_tveg.bin"), fsm.Tveg)
+    # read!(joinpath(folder, "landuse_fveg.bin"), fsm.fveg)
+    # read!(joinpath(folder, "landuse_hcan.bin"), fsm.hcan)
+    # read!(joinpath(folder, "landuse_lai.bin"), fsm.lai)
+    # read!(joinpath(folder, "landuse_vfhp.bin"), fsm.vfhp)
+    # read!(joinpath(folder, "landuse_fves.bin"), fsm.fves)
+    # read!(joinpath(folder, "landuse_pmultf.bin"), fsm.pmultf)
     
     # derived canopy properties 
     fsm.VAI[:,:] = fsm.lai[:,:]
@@ -405,18 +424,18 @@ function setup_original(Tf, Ti, folder::String)
 
   if (fsm.SNTRAN == 1)
     # states specific to SNOWTRAN3D
-    read!(joinpath(folder, "states_in_hiwl.bin"), histowet)
-    read!(joinpath(folder, "states_in_sblt.bin"), dSWE_tot_subl)
-    read!(joinpath(folder, "states_in_sltt.bin"), dSWE_tot_salt)
-    read!(joinpath(folder, "states_in_sspt.bin"), dSWE_tot_susp)
+    # read!(joinpath(folder, "states_in_hiwl.bin"), histowet)  TODO add later
+    # read!(joinpath(folder, "states_in_sblt.bin"), dSWE_tot_subl)
+    # read!(joinpath(folder, "states_in_sltt.bin"), dSWE_tot_salt)
+    # read!(joinpath(folder, "states_in_sspt.bin"), dSWE_tot_susp)
   end
 
   if (fsm.SNSLID == 1)
     # states specific to SnowSlide
-    read!(joinpath(folder, "landuse_slope.bin"), slope)
-    read!(joinpath(folder, "landuse_shd.bin"), Shd)
-    read!(joinpath(folder, "states_in_sldt.bin"), dSWE_tot_slide)
-    read!(joinpath(folder, "states_in_idem.bin"), index_sorted_dem)
+    # read!(joinpath(folder, "landuse_slope.bin"), slope)  TODO add later
+    # read!(joinpath(folder, "landuse_shd.bin"), Shd)
+    # read!(joinpath(folder, "states_in_sldt.bin"), dSWE_tot_slide)
+    # read!(joinpath(folder, "states_in_idem.bin"), index_sorted_dem)
   end
 
   # Tuned snow surface properties

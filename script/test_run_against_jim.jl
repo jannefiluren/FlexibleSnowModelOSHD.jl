@@ -53,7 +53,11 @@ for currtime in times
   # Setup
 
   if currtime == times[1]
-    fsm = setup_original(Float32, Int32, joinpath(config["base_folder"], "FSM_HS_single/bin_files"))
+    if matfiles
+      fsm = setup_matfiles(Float32, Int32, station)
+    else
+      fsm = setup_binfiles(Float32, Int32, joinpath(config["base_folder"], "FSM_HS_single/bin_files"))
+    end
     meteo = MET{Float32,Int32}(Nx=fsm.Nx, Ny=fsm.Ny)
   end
   

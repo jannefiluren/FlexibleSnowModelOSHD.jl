@@ -9,7 +9,8 @@ init_type = "initialize";
 silent = 0;
 hourly_output = "full_research";
 sel_stat = {'MCH.JUN2'};
-ansmsg = start_oshd_fsm(run_id,run_id_hn,time_start,geom,"init_type",init_type,"silent",silent,"hourly_output",hourly_output,"sel_stat",sel_stat,"root_folder",root_folder);
+soil_init_file = "";
+ansmsg = start_oshd_fsm(run_id,run_id_hn,time_start,geom,"init_type",init_type,"silent",silent,"hourly_output",hourly_output,"sel_stat",sel_stat,"root_folder",root_folder,"soil_init_file",soil_init_file);
 
 
 %% Restart an existing run (single station)
@@ -26,7 +27,8 @@ hourly_output = "full_research"
 sel_stat = {'MCH.JUN2'};
 run_folder = "D:\julia\FSM_HS_single\bin_files";
 stop_run = true;
-ansmsg = start_oshd_fsm(run_id,run_id_hn,time_start,geom,"init_type",init_type,"silent",silent,"hourly_output",hourly_output,"states_folder_reinit",states_folder_reinit,"sel_stat",sel_stat,"root_folder",root_folder,"run_folder",run_folder,"stop_run",stop_run);
+soil_init_file = "";
+ansmsg = start_oshd_fsm(run_id,run_id_hn,time_start,geom,"init_type",init_type,"silent",silent,"hourly_output",hourly_output,"states_folder_reinit",states_folder_reinit,"sel_stat",sel_stat,"root_folder",root_folder,"run_folder",run_folder,"stop_run",stop_run,"soil_init_file",soil_init_file);
 
 
 %% Initialize a new run (all stations)
@@ -38,5 +40,6 @@ root_folder = "D:\julia";
 geom = "point";
 init_type = "initialize";
 silent = 0;
-hourly_output = "full_research"
-ansmsg = start_oshd_fsm(run_id,run_id_hn,time_start,geom,"init_type",init_type,"silent",silent,"hourly_output",hourly_output,"root_folder",root_folder);
+hourly_output = "full_research";
+soil_init_file = "";
+ansmsg = start_oshd_fsm(run_id,run_id_hn,time_start,geom,"init_type",init_type,"silent",silent,"hourly_output",hourly_output,"root_folder",root_folder,"soil_init_file",soil_init_file);
