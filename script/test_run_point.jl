@@ -56,9 +56,14 @@ Ps = zeros(length(times), nstat)
 end
 
 
+# Prepare landuse
+
+landuse = prepare_landuse_stations()
+
+
 # Setup model
 
-fsm = setup_matfiles(Float32, Int32)
+fsm = setup_matfiles(Float32, Int32, landuse)
 met_curr = MET{Float32, Int32}(Nx=nstat)
 
 

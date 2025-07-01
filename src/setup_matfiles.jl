@@ -1,23 +1,4 @@
-function setup_matfiles(Tf, Ti, station::String = "")
-
-
-  # Landuse
-
-  landuse = matread("K:/OSHD_AUX/DATA_LUS/OSHD_LUS_STAT.mat")
-
-  if isempty(station)
-    is_domain = ones(Bool, size(landuse["dem"]["data"]))
-  else
-    is_domain = landuse["acro"] .== station
-  end
-
-  if ~haskey(landuse, "dhxydy")
-    landuse["dhxydy"] = ones(size(landuse["dem"]["data"]))
-  end
-
-  if ~haskey(landuse, "sddem")
-    landuse["sddem"] = ones(size(landuse["dem"]["data"]))
-  end
+function setup_matfiles(Tf, Ti, landuse::Dict; SNFRAC = nothing)
 
   # Constants
 
@@ -35,7 +16,7 @@ function setup_matfiles(Tf, Ti, station::String = "")
 
   Nsmax      = 3
   Nsoil      = 4
-  Nx         = convert(Ti, sum(is_domain))   # TODO fix
+  Nx         = convert(Ti, sum(landuse["is_domain"]))   # TODO fix
   Ny         = 1   # TODO fix
   Ds_min     = 0.01
   Ds_surflay = 0.5
@@ -62,7 +43,7 @@ function setup_matfiles(Tf, Ti, station::String = "")
   fsm.DENSTY = 3
   fsm.EXCHNG = 1
   fsm.HYDROL = 2
-  fsm.SNFRAC = 3
+  fsm.SNFRAC = SNFRAC === nothing ? 3 : SNFRAC
   fsm.RADSBG = 0
   fsm.ZOFFST = 0
   fsm.OSHDTN = 1
@@ -320,10 +301,10 @@ function setup_matfiles(Tf, Ti, station::String = "")
   fsm.Tsrf .= Tm                                                                 # read!(joinpath(folder, "states_in_tsfe.bin"), fsm.Tsrf)
   fsm.Tsnow .= Tm                                                                # read!(joinpath(folder, "states_in_tsnl.bin"), fsm.Tsnow)
   fsm.Tsoil .= 285                                                               # read!(joinpath(folder, "states_in_tsll.bin"), fsm.Tsoil)
-  fsm.fsky_terr .= landuse["skyvf"]["data"][is_domain]                           # read!(joinpath(folder, "landuse_skyvf.bin"), fsm.fsky_terr)
-  fsm.lat .= landuse["y"][is_domain]                                             # read!(joinpath(folder, "landuse_lat.bin"), fsm.lat)   # TODO this wrong - currently swiss coords
-  fsm.lon .= landuse["x"][is_domain]                                             # read!(joinpath(folder, "landuse_lon.bin"), fsm.lon)   # TODO this wrong - currently swiss coords
-  fsm.dem .= landuse["dem"]["data"][is_domain]                                   # read!(joinpath(folder, "landuse_dem.bin"), fsm.dem)
+  fsm.fsky_terr .= landuse["skyvf"]["data"][landuse["is_domain"]]                # read!(joinpath(folder, "landuse_skyvf.bin"), fsm.fsky_terr)
+  fsm.lat .= landuse["y"][landuse["is_domain"]]                                  # read!(joinpath(folder, "landuse_lat.bin"), fsm.lat)   # TODO this wrong - currently swiss coords
+  fsm.lon .= landuse["x"][landuse["is_domain"]]                                  # read!(joinpath(folder, "landuse_lon.bin"), fsm.lon)   # TODO this wrong - currently swiss coords
+  fsm.dem .= landuse["dem"]["data"][landuse["is_domain"]]                        # read!(joinpath(folder, "landuse_dem.bin"), fsm.dem)
 
   # Cap glacier temperatures to 0°C 
   if (fsm.TILE == "glacier")

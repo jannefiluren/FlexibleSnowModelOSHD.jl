@@ -21,6 +21,7 @@ include("ebalsrf.jl")
 include("snow.jl")
 include("soil.jl")
 include("snowcoverfraction.jl")
+include("prepare_landuse.jl")
 
 export FSM, MET, setup_binfiles, setup_matfiles
 export qsat, tridiag!
@@ -28,5 +29,6 @@ export radiation, thermal, sfexch, ebalsrf, snow, soil
 export drive, drive!, drive_grid!
 export open_files, close_files, drive_binfiles!, drive_matfiles!
 export snowcoverfraction!
+export prepare_landuse_stations
 
 end # module FSMOSHD

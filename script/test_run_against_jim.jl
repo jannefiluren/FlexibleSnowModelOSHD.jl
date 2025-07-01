@@ -22,7 +22,7 @@ config["test_soil"] = false
 config["test_snow_final"] = true
 
 time_initialize = DateTime(2024,9,1,6,0,0)
-time_start = DateTime(2024,11,5,6,0,0)
+time_start = DateTime(2024,9,1,6,0,0)
 time_end = DateTime(2025,6,1,6,0,0)
 
 station = "MCH.JUN2"
@@ -31,6 +31,10 @@ matfiles = false
 # Compile model
 
 compile_fortran_code(config["base_folder"])
+
+# Prepare landuse
+
+landuse = prepare_landuse_stations(station)
 
 # Loop over time
 
@@ -54,7 +58,7 @@ for currtime in times
 
   if currtime == times[1]
     if matfiles
-      fsm = setup_matfiles(Float32, Int32, station)
+      fsm = setup_matfiles(Float32, Int32, landuse)
     else
       fsm = setup_binfiles(Float32, Int32, joinpath(config["base_folder"], "FSM_HS_single/bin_files"))
     end
