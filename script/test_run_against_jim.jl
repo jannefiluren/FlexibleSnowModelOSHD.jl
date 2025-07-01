@@ -22,11 +22,11 @@ config["test_soil"] = false
 config["test_snow_final"] = true
 
 time_initialize = DateTime(2024,9,1,6,0,0)
-time_start = DateTime(2024,9,1,6,0,0)
+time_start = DateTime(2024,11,5,6,0,0)
 time_end = DateTime(2025,6,1,6,0,0)
 
 station = "MCH.JUN2"
-matfiles = true
+matfiles = false
 
 # Compile model
 

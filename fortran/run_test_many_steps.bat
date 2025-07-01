@@ -1,3 +1,0 @@
-FSM2_TXT_64.exe nlst_first_half_64.nam
-
-FSM2_TXT_64.exe nlst_input_fake_long_64.nam
