@@ -1,4 +1,4 @@
-function setup_matfiles(Tf, Ti, landuse::Dict; SNFRAC = nothing)
+function setup_matfiles(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int; SNFRAC = nothing)
 
   # Constants
 
@@ -16,8 +16,8 @@ function setup_matfiles(Tf, Ti, landuse::Dict; SNFRAC = nothing)
 
   Nsmax      = 3
   Nsoil      = 4
-  Nx         = convert(Ti, sum(landuse["is_domain"]))   # TODO fix
-  Ny         = 1   # TODO fix
+  # Nx         = 1   # TODO fix
+  # Ny         = 1   # TODO fix
   Ds_min     = 0.01
   Ds_surflay = 0.5
 
@@ -245,11 +245,11 @@ function setup_matfiles(Tf, Ti, landuse::Dict; SNFRAC = nothing)
   end
 
   if (fsm.SNFRAC == 0)
-    snowdepthmin[:,:]     .= undefined
-    snowdepthhist[:,:,:]  .= undefined
-    swemin[:,:]           .= undefined
-    swemax[:,:]           .= undefined
-    swehist[:,:,:]        .= undefined
+    fsm.snowdepthmin[:,:]     .= undefined
+    fsm.snowdepthhist[:,:,:]  .= undefined
+    fsm.swemin[:,:]           .= undefined
+    fsm.swemax[:,:]           .= undefined
+    fsm.swehist[:,:,:]        .= undefined
   end
 
   if (fsm.SNTRAN == 1)
@@ -301,10 +301,10 @@ function setup_matfiles(Tf, Ti, landuse::Dict; SNFRAC = nothing)
   fsm.Tsrf .= Tm                                                                 # read!(joinpath(folder, "states_in_tsfe.bin"), fsm.Tsrf)
   fsm.Tsnow .= Tm                                                                # read!(joinpath(folder, "states_in_tsnl.bin"), fsm.Tsnow)
   fsm.Tsoil .= 285                                                               # read!(joinpath(folder, "states_in_tsll.bin"), fsm.Tsoil)
-  fsm.fsky_terr .= landuse["skyvf"]["data"][landuse["is_domain"]]                # read!(joinpath(folder, "landuse_skyvf.bin"), fsm.fsky_terr)
-  fsm.lat .= landuse["y"][landuse["is_domain"]]                                  # read!(joinpath(folder, "landuse_lat.bin"), fsm.lat)   # TODO this wrong - currently swiss coords
-  fsm.lon .= landuse["x"][landuse["is_domain"]]                                  # read!(joinpath(folder, "landuse_lon.bin"), fsm.lon)   # TODO this wrong - currently swiss coords
-  fsm.dem .= landuse["dem"]["data"][landuse["is_domain"]]                        # read!(joinpath(folder, "landuse_dem.bin"), fsm.dem)
+  fsm.fsky_terr .= landuse["skyvf"]["data"]                                      # read!(joinpath(folder, "landuse_skyvf.bin"), fsm.fsky_terr)
+  fsm.lat .= landuse["y"]                                                        # read!(joinpath(folder, "landuse_lat.bin"), fsm.lat)   # TODO this wrong - currently swiss coords
+  fsm.lon .= landuse["x"]                                                        # read!(joinpath(folder, "landuse_lon.bin"), fsm.lon)   # TODO this wrong - currently swiss coords
+  fsm.dem .= landuse["dem"]["data"]                                              # read!(joinpath(folder, "landuse_dem.bin"), fsm.dem)
 
   # Cap glacier temperatures to 0°C 
   if (fsm.TILE == "glacier")
@@ -320,7 +320,7 @@ function setup_matfiles(Tf, Ti, landuse::Dict; SNFRAC = nothing)
 
   # model tile fractions 
   if (fsm.TILE == "open")
-    fsm.tilefrac .= fsm.dem./fsm.dem   # temporary fix to get ones within our entire domain, assuming we always want to run an open tile. may have to be revisited
+    fsm.tilefrac = fsm.dem./fsm.dem   # temporary fix to get ones within our entire domain, assuming we always want to run an open tile. may have to be revisited
     if (fsm.SNTRAN == 1 || fsm.SNSLID == 1)
       # read!(joinpath(folder, landuse_glac), fsm.glacierfrac)    TODO add this later
     end
@@ -354,12 +354,12 @@ function setup_matfiles(Tf, Ti, landuse::Dict; SNFRAC = nothing)
     fsm.swemin .= 0   # read!(joinpath(folder, "states_in_swmn.bin"), fsm.swemin)
     fsm.swemax .= 0   # read!(joinpath(folder, "states_in_swmx.bin"), fsm.swemax)
     fsm.swehist .= 0   # read!(joinpath(folder, "states_in_swhs.bin"), fsm.swehist)
-    fsm.slopemu .= 0   # read!(joinpath(folder, "landuse_slopemu.bin"), fsm.slopemu)
-    fsm.xi      # read!(joinpath(folder, "landuse_xi.bin"), fsm.xi)
+    fsm.slopemu .= landuse["slopemu"]   # read!(joinpath(folder, "landuse_slopemu.bin"), fsm.slopemu)
+    fsm.xi .= landuse["xi"]      # read!(joinpath(folder, "landuse_xi.bin"), fsm.xi)
   end
 
   if (fsm.SNFRAC == 0 || fsm.SNTRAN == 1)
-    read!(joinpath(folder, "landuse_Ld.bin"), fsm.Ld)
+    fsm.Ld .= landuse["Ld"]    # read!(joinpath(folder, "landuse_Ld.bin"), fsm.Ld)
   end
 
   if (fsm.TILE != "forest")

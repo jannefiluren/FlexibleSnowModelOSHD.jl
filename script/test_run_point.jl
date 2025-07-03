@@ -63,7 +63,7 @@ landuse = prepare_landuse_stations()
 
 # Setup model
 
-fsm = setup_matfiles(Float32, Int32, landuse)
+fsm = setup_matfiles(Float32, Int32, landuse, sum(landuse["is_domain"]), 1)
 met_curr = MET{Float32, Int32}(Nx=nstat)
 
 

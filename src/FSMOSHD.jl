@@ -29,6 +29,6 @@ export radiation, thermal, sfexch, ebalsrf, snow, soil
 export drive, drive!, drive_grid!
 export open_files, close_files, drive_binfiles!, drive_matfiles!
 export snowcoverfraction!
-export prepare_landuse_stations
+export prepare_landuse_stations, prepare_landuse_grid
 
 end # module FSMOSHD

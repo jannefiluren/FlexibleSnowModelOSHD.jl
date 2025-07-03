@@ -69,37 +69,40 @@ function compute_pliquid!(Rf, ptot, ta, thres_prec=274.19, m_prec=0.1500)
 
 end
 
-function drive_grid!(meteo::MET, fsm::FSM, t::DateTime)
+function drive_grid!(meteo::MET{Tf, Ti}, fsm::FSM{Tf, Ti}, t::DateTime) where {Tf<:Real, Ti<:Integer}
 
-  folder = joinpath("W:/DATA_COSMO/OUTPUT_OSHD_0250/PROCESSED_ANALYSIS/COSMO_1EFA", Dates.format(t, "yyyy.mm"))
-  filename = searchdir(folder, "COSMODATA_" * Dates.format(t, "yyyymmddHHMM") * "_C1EFA_")
+  @unpack dt = fsm
 
-  meteo_in = matread(joinpath(folder, filename[1]))
+  @unpack Sdir, Sdif, Sdird, LW, Sf, Rf, Ta, RH, Ua, Ps, Tc, es, Qa, Sf24h, Sf_history = meteo
 
-  meteo.Ta = meteo_in["tais"]["data"]
-  meteo.RH = meteo_in["rhus"]["data"]
-  meteo.Ua = meteo_in["wnsc"]["data"]
-  meteo.Ua[meteo.Ua .< 0.1] .= 0.1
-  meteo.Sdir = meteo_in["sdri"]["data"]
-  meteo.Sdif = meteo_in["sdfd"]["data"]
-  meteo.LW = meteo_in["lwrc"]["data"]
-  ptot = meteo_in["prcs"]["data"] ./ fsm.dt
-  compute_psolid!(meteo.Sf, ptot, meteo.Ta)
-  compute_pliquid!(meteo.Rf, ptot, meteo.Ta)
-  meteo.Tc .= meteo.Ta .- Tm
-  meteo.Ps = meteo_in["pail"]["data"]
+  folder = joinpath("K:/DATA_ICON/OUTPUT_OSHD_0250/PROCESSED_ANALYSIS/ICON_1EFA", Dates.format(t, "yyyy.mm"))
+  filename = searchdir(folder, "ICONDATA_" * Dates.format(t, "yyyymmddHHMM") * "_C1EFA_")
 
-  # TODO: read read data for Sdird
-  meteo.Sdird[:, :] = meteo.Sdir[:, :]
+  met_single = matread(joinpath(folder, filename[1]))
 
-  meteo.es .= e0 .* exp.(17.5043 .* meteo.Tc ./ (241.3 .+ meteo.Tc))
-  meteo.Qa .= (meteo.RH ./ 100) .* eps_fsm .* meteo.es ./ meteo.Ps
+  Sdir .= met_single["sdri"]["data"]     # "direct shortwave radiation, per inclined surface area, within topography, above canopy"
+  Sdif .= met_single["sdfd"]["data"]     # "diffuse shortwave radiation, per horizontal surface area, within topography, above canopy"
+  Sdird .= met_single["sdrd"]["data"]    # "direct shortwave radiation, per horizontal surface area, within topography, above canopy"
+  LW .= met_single["lwrs"]["data"]       # "longwave radiation, above topography"
+  Rf .= met_single["prfc"]["data"]       # "rainfall"
+  Sf .= met_single["psfc"]["data"]       # "snowfall (snow + graupel)"
+  Ta .= met_single["tais"]["data"]       # "air temperature"
+  RH .= met_single["rhus"]["data"]       # "relative humidity"
+  Ua .= met_single["wnss"]["data"]       # "wind speed"
+  Ps .= met_single["pail"]["data"]       # "local air pressure"
 
-  #computation of Sf24h assuming hourly input
+  Ua .= max.(Ua, 0.1)
+  Ua .= 0.7 .* Ua
+  Sf .= Sf ./ dt
+  Rf .= Rf ./ dt
+  Tc .= Ta .- Tm
+  es .= e0 .* exp.(Tf(17.504) .* Tc ./ (Tf(241.3) .+ Tc))
+  Qa .= (RH ./ 100) .* eps_fsm .* es ./ Ps
+
   curr_hour = Dates.value(Hour(t)) + 1 #0h -> 1; 23h -> 24
-  meteo.Sf24h .+= meteo.Sf .* fsm.dt
-  meteo.Sf24h .-= meteo.Sf_history[:,:,curr_hour] .* fsm.dt
-  meteo.Sf_history[:,:,curr_hour] = meteo.Sf
+  Sf24h .+= Sf .* dt
+  Sf24h .-= Sf_history[:,:,curr_hour] .* dt
+  Sf_history[:,:,curr_hour] = Sf
 
   #TODO: missing: Tv
 
