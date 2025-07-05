@@ -1,0 +1,117 @@
+using ProgressMeter
+using MAT
+using Dates
+using FSMOSHD
+using CSV
+using Tables
+
+
+# tstart = DateTime(2024,9,1,6)
+# tend = DateTime(2025,6,1,6)
+# run_operational(tstart, tend)
+
+
+function run_operational(tstart::DateTime, tend::DateTime, restart::Bool=false)
+
+  # Settings
+
+  base_folder = "D:/julia/FSM_julia_operational"
+  
+  # Read landuse data
+
+  landuse = prepare_landuse_grid()
+
+  # Setup model
+
+  Nx = size(landuse["dem"]["data"], 1)
+  Ny = size(landuse["dem"]["data"], 2)
+
+  fsm = setup_matfiles(Float32, Int32, landuse, Nx, Ny, SNFRAC=0)
+  met_curr = MET{Float32,Int32}(Nx=Nx, Ny=Ny)
+
+  if restart
+    read_states!(fsm, base_folder, tstart)
+  end
+
+  # Run model
+
+  mkpath(joinpath(base_folder, "results"))
+  mkpath(joinpath(base_folder, "states"))
+
+  times = tstart:Hour(1):tend
+
+  @showprogress "Running snow model..." for (i, t) in enumerate(times)
+
+    drive_grid!(met_curr, fsm, t)
+
+    radiation(fsm, met_curr, t)
+
+    thermal(fsm)
+
+    for i in 1:fsm.Nitr
+      sfexch(fsm, met_curr)
+      ebalsrf(fsm, met_curr)
+    end
+
+    snow(fsm, met_curr, t)
+
+    soil(fsm)
+
+    if hour(t) == 5
+      write_results(fsm, base_folder, t)
+      write_states(fsm, base_folder, t)
+    end
+
+  end
+
+end
+
+
+searchdir(path, key) = filter(x -> occursin(key, x), readdir(path))
+
+
+function write_results(fsm, folder, t)
+
+  matwrite(joinpath(folder, "results", Dates.format(t + Dates.Hour(1), "yyyymmddHHMM") * "_output.mat"),
+        Dict(
+          "hs" => dropdims(sum(fsm.Ds, dims=1), dims=1) .* fsm.fsnow,
+          "fsnow" => fsm.fsnow
+        ); compress=true)
+
+end
+
+
+function write_states(fsm, folder, t)
+
+  variables = ["albs", "Ds", "Nsnow", "Qcan", "rgrn", "histowet", "Sice", "Sliq",
+    "Sveg", "Tcan", "theta", "Tsnow", "Tsoil", "Tsrf", "fsnow", "Tveg", "snowdepthmin",
+    "snowdepthmax", "snowdepthhist", "swemin", "swemax", "swehist", "fsky_terr"]
+
+  states = Dict()
+  for variable in variables
+    state = Dict()
+    state["data"] = getfield(fsm, Symbol(variable))
+    state["desc"] = "state variable: " * variable
+    states[variable] = state
+  end
+
+  file = joinpath(folder, "states", Dates.format(t + Dates.Hour(1), "yyyymmddHHMM") * "_states.mat")
+
+  matwrite(file, states, ; compress=true)
+
+end
+
+
+function read_states!(fsm, folder, t)
+
+  file = joinpath(folder, "states", Dates.format(t, "yyyymmddHHMM") * "_states.mat")
+
+  states = matread(file)
+
+  for variable in keys(states)
+    state = states[variable]["data"]
+    setfield!(fsm, Symbol(variable), state)
+  end
+
+end
+
