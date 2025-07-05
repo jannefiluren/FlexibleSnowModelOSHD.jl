@@ -100,10 +100,10 @@ function radiation(fsm::FSM, meteo::MET, t)
             end
           end
           
-          if (ALPERT)
-            adm_loc = adm_loc * alP[i,j]
-            adc_loc = adc_loc * alP[i,j]
-          end
+          # if (ALPERT)
+          #   adm_loc = adm_loc * alP[i,j]
+          #   adc_loc = adc_loc * alP[i,j]
+          # end
           if (Tsrf[i, j] >= Tm)
             albs[i, j] = (albs[i, j] - asmn) * exp(-(dt / 3600) / adm_loc) + asmn
           else

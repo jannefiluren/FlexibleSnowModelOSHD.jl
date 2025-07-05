@@ -7,7 +7,7 @@ using Tables
 
 # Settings
 
-SNFRAC = 3
+SNFRAC = 0
 
 base_folder = "D:/julia"
 subfolder = "SNFRAC_" * string(SNFRAC)
@@ -61,7 +61,7 @@ for (i, t) in enumerate(times)
 
     matwrite(joinpath(base_folder, "FSM_HS_julia", subfolder, Dates.format(t + Dates.Hour(1), "yyyymmddHHMM") * "_output.mat"),
           Dict(
-          "hs" => dropdims(sum(fsm.Ds, dims=1), dims=1),
+          "hs" => dropdims(sum(fsm.Ds, dims=1), dims=1).*fsm.fsnow,
           "fsnow" => fsm.fsnow
         ); compress = true)
 
