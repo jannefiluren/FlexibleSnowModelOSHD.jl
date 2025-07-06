@@ -9,6 +9,7 @@ str2 = datestr(time,"yyyymmddHHMM");
 
 subfolder = "SNFRAC_0";
 
+% mat = load("D:\julia\FSM_HS_all\LATEST_00h_RUN\OUTPUT_OSHD_0250\RESULTS_24h_opn\MODELDATA_" + str1 + "-" + str2 + "_FSM22.mat");
 mat = load("D:\julia\FSM_HS_all\LATEST_00h_RUN\"+ subfolder + "\OUTPUT_OSHD_0250\RESULTS_24h_opn\MODELDATA_" + str1 + "-" + str2 + "_FSM22.mat");
 jul = load("D:\julia\FSM_HS_julia\"+ subfolder + "\" + str2 + "_output.mat");
 
@@ -29,30 +30,35 @@ hs_jul(inan) = NaN;
 fsnow_mat(inan) = NaN;
 fsnow_jul(inan) = NaN;
 
+if true
+  hs_mat = flipud(hs_mat);
+  hs_jul = flipud(hs_jul);
+  fsnow_mat = flipud(fsnow_mat);
+  fsnow_jul = flipud(fsnow_jul);
+end
+
 
 %% Plot snow depth results
 
 fig = figure("Position",[294 151 1330 886]);
 
 t = tiledlayout(2,2);
-title(t, "Snow depth")
-
-title(t,str2);
+title(t, "Snow depth for " + str2)
 
 ax(1) = nexttile();
-imagesc(flipud(hs_mat))
+imagesc(hs_mat)
 colorbar()
 title("FSM Fortran/Matlab")
 colormap('turbo');
 
 ax(2) = nexttile();
-imagesc(flipud(hs_jul))
+imagesc(hs_jul)
 colorbar()
 title("FSM Julia")
 colormap('turbo');
 
 ax(3) = nexttile();
-imagesc(flipud(hs_jul-hs_mat))
+imagesc(hs_jul-hs_mat)
 colorbar()
 title("FSM Julia minus FSM Fortran/Matlab")
 colormap('turbo');
@@ -70,24 +76,22 @@ linkaxes(ax)
 fig = figure("Position",[294 151 1330 886]);
 
 t = tiledlayout(2,2);
-title(t, "Snow cover fraction")
-
-title(t,str2);
+title(t, "Snow cover fraction for " + str2)
 
 ax(1) = nexttile();
-imagesc(flipud(fsnow_mat))
+imagesc(fsnow_mat)
 colorbar()
 title("FSM Fortran/Matlab")
 colormap('turbo');
 
 ax(2) = nexttile();
-imagesc(flipud(fsnow_jul))
+imagesc(fsnow_jul)
 colorbar()
 title("FSM Julia")
 colormap('turbo');
 
 ax(3) = nexttile();
-imagesc(flipud(fsnow_jul-fsnow_mat))
+imagesc(fsnow_jul-fsnow_mat)
 colorbar()
 title("FSM Julia minus FSM Fortran/Matlab")
 colormap('turbo');
