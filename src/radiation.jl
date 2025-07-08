@@ -8,7 +8,7 @@
 # LWt = similar(albs)   ### hack
 # SWtopo_out = similar(albs)   ### hack
 
-function radiation(fsm::FSM, meteo::MET, t)
+function radiation(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Integer}
 
   @unpack Nx, Ny, dt = fsm
   
@@ -56,18 +56,18 @@ function radiation(fsm::FSM, meteo::MET, t)
           end
           # Forest adjustments -> not yet properly tested for OSHD but option currently unused
           if (Dates.value(Month(t)) > 4 && Dates.value(Month(t)) < 10)
-            tau = 70.0 * 3600.0
+            tau = Tf(70.0) * Tf(3600.0)
           end
 
-          if fveg[i, j] > 0 && Sdir[i, j] > eps(Float64)
-            tau = tau / ((1 - trcn[i, j] * fsky[i, j]) * (1 + adfl * Tv[i, j]) + adfs * Tv[i, j])
-          elseif fveg[i, j] > 0 && Sdif[i, j] > eps(Float64)
-            tau = tau / ((1 - trcn[i, j] * fsky[i, j]) + adfs * trcn[i, j] * fsky[i, j])
-          elseif (fveg[i, j] > 0 && (Sdir[i, j] + Sdif[i, j] <= eps(Float64)))
-            tau = tau / (2.0 - trcn[i, j] * fsky[i, j])
+          if fveg[i, j] > Tf(0) && Sdir[i, j] > eps(Tf)
+            tau = tau / ((Tf(1) - trcn[i, j] * fsky[i, j]) * (Tf(1) + adfl * Tv[i, j]) + adfs * Tv[i, j])
+          elseif fveg[i, j] > Tf(0) && Sdif[i, j] > eps(Tf)
+            tau = tau / ((Tf(1) - trcn[i, j] * fsky[i, j]) + adfs * trcn[i, j] * fsky[i, j])
+          elseif (fveg[i, j] > Tf(0) && (Sdir[i, j] + Sdif[i, j] <= eps(Tf)))
+            tau = tau / (Tf(2.0) - trcn[i, j] * fsky[i, j])
           end
 
-          rt = 1 / tau + Sf[i, j] / Sfmin
+          rt = Tf(1) / tau + Sf[i, j] / Sfmin
           alim = (asmn / tau + Sf[i, j] * afs_loc / Sfmin) / rt
           albs[i, j] = alim + (albs[i, j] - alim) * exp(-rt * dt)
           if (albs[i, j] < min(afs_loc, asmn))
@@ -79,7 +79,7 @@ function radiation(fsm::FSM, meteo::MET, t)
 
         else # ALBEDO == 2
           # Prognostic, tuned, copied from JIM
-          SWEtmp = 0.0
+          SWEtmp = Tf(0.0)
           for si in 1:size(Sice, 1)
             SWEtmp += Sice[si, i, j] + Sliq[si, i, j]
           end
@@ -88,14 +88,14 @@ function radiation(fsm::FSM, meteo::MET, t)
           # or optionally.
           if ((ALRADT == 1) || (OSHDTN == 1))
             # BC Oct 23: Jan's suggestion: modify only when the decay rate should be increased (ad* DECREASE), not decreased
-            if ((Sdir[i,j] > eps(Float64)) && (Sdird[i,j] < Sdir[i,j]))
+            if ((Sdir[i,j] > eps(Tf)) && (Sdird[i,j] < Sdir[i,j]))
               adm_loc = adm_loc * (Sdird[i,j])/(Sdir[i,j])
               adc_loc = adc_loc * (Sdird[i,j])/(Sdir[i,j])
-              if (adm_loc < eps(Float64))
-                adm_loc = eps(Float64)
+              if (adm_loc < eps(Tf))
+                adm_loc = eps(Tf)
               end
-              if (adc_loc < eps(Float64))
-                adc_loc = eps(Float64)
+              if (adc_loc < eps(Tf))
+                adc_loc = eps(Tf)
               end
             end
           end
@@ -105,15 +105,15 @@ function radiation(fsm::FSM, meteo::MET, t)
           #   adc_loc = adc_loc * alP[i,j]
           # end
           if (Tsrf[i, j] >= Tm)
-            albs[i, j] = (albs[i, j] - asmn) * exp(-(dt / 3600) / adm_loc) + asmn
+            albs[i, j] = (albs[i, j] - asmn) * exp(-(dt / Tf(3600)) / adm_loc) + asmn
           else
-            albs[i, j] = albs[i, j] - (dt / 3600) / adc_loc
+            albs[i, j] = albs[i, j] - (dt / Tf(3600)) / adc_loc
           end
-          if (SWEtmp < 75.0) # more stuff showing on and up through snow
-            afs_loc *= 0.80
+          if (SWEtmp < Tf(75.0)) # more stuff showing on and up through snow
+            afs_loc *= Tf(0.80)
           end
           # Reset to fresh snow albedo (wasn't originally available; only else term)
-          if ((Sf[i, j] * dt) > 0.0 && Sf24h[i, j] > Sfmin)
+          if ((Sf[i, j] * dt) > Tf(0.0) && Sf24h[i, j] > Sfmin)
             albs[i, j] = afs_loc
           else
             albs[i, j] = albs[i, j] + (afs_loc - albs[i, j]) * Sf[i, j] * dt / Sfmin
@@ -137,21 +137,21 @@ function radiation(fsm::FSM, meteo::MET, t)
       if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
 
         # Surface albedo
-        asrf = albs[i, j] * (1 - fveg[i, j] * fsar)
-        if (fsnow[i, j] <= eps(Float64))
+        asrf = albs[i, j] * (Tf(1) - fveg[i, j] * fsar)
+        if (fsnow[i, j] <= eps(Tf))
           asrf = alb0[i, j]
           albs[i,j] = alb0[i,j]
         end
 
         # Partial snowcover on canopy
-        fcans = 0.0
-        if (scap[i, j] > eps(Float64))
+        fcans = Tf(0.0)
+        if (scap[i, j] > eps(Tf))
           fcans = Sveg[i, j] / scap[i, j]
         end
-        aveg = (1 - fcans) * avg0 + fcans * avgs
+        aveg = (Tf(1) - fcans) * avg0 + fcans * avgs
         acan = fveg[i, j] * aveg
         # Canopy surface albedo for computing terrain radiation over canopy
-        alb[i, j] = fveg[i, j] * aveg + (1 - fveg[i, j]) * asrf
+        alb[i, j] = fveg[i, j] * aveg + (Tf(1) - fveg[i, j]) * asrf
 
         # Surface albedo is stored in asurf_out to write in results
         asrf_out[i, j] = alb[i, j]
@@ -171,8 +171,8 @@ function radiation(fsm::FSM, meteo::MET, t)
 
         # Solar radiation trasmission 
         if (CANMOD == 0)
-          SWveg[i, j] = 0
-          SWsrf[i, j] = (1 - alb[i, j]) * (Sdir[i, j] + Sdif[i, j])
+          SWveg[i, j] = Tf(0)
+          SWsrf[i, j] = (Tf(1) - alb[i, j]) * (Sdir[i, j] + Sdif[i, j])
           SWsci[i, j] = Sdift[i, j] + Sdir[i, j]
         end
 
@@ -182,18 +182,18 @@ function radiation(fsm::FSM, meteo::MET, t)
           tdir = Tv[i, j]
 
           # Effective albedo and net radiation
-          alb[i, j] = acan + (1 - acan) * asrf * tdif^2
-          if (Sdif_aux + Sdirt[i, j] > eps(Float64))
+          alb[i, j] = acan + (Tf(1) - acan) * asrf * tdif^Tf(2)
+          if (Sdif_aux + Sdirt[i, j] > eps(Tf))
             alb[i, j] = (acan * (Sdif_aux + tdir * Sdirt[i, j]) + asrf * tdif * (tdif * Sdif_aux + tdir * Sdirt[i, j])) / (Sdif_aux + Sdirt[i, j])
           end
-          SWsrf[i, j] = (1 - asrf) * (tdif * Sdif_aux + tdir * Sdirt[i, j])
-          SWveg[i, j] = ((1 - tdif) * (1 - aveg) + tdif * asrf * (1 - tdif)) * Sdif_aux + (tdir * fveg[i, j] * (1 - aveg) + tdir * asrf * (1 - tdif)) * Sdirt[i, j]   # local SWR absorption by vegetation correlates with local tdir  
+          SWsrf[i, j] = (Tf(1) - asrf) * (tdif * Sdif_aux + tdir * Sdirt[i, j])
+          SWveg[i, j] = ((Tf(1) - tdif) * (Tf(1) - aveg) + tdif * asrf * (Tf(1) - tdif)) * Sdif_aux + (tdir * fveg[i, j] * (Tf(1) - aveg) + tdir * asrf * (Tf(1) - tdif)) * Sdirt[i, j]   # local SWR absorption by vegetation correlates with local tdir  
           SWsci[i, j] = tdif * Sdif_aux + tdir * Sdirt[i, j]
         end
 
         # Thermal emissions from surroundings 
         # Terrain LWR if not calculated later; 
-        LWt[i, j] = fsky_terr[i, j] * LW[i, j] + (1 - fsky_terr[i, j]) * sb * Ta[i, j]^4
+        LWt[i, j] = fsky_terr[i, j] * LW[i, j] + (Tf(1) - fsky_terr[i, j]) * sb * Ta[i, j]^Tf(4)
 
         # LW overwritten by LWt only if EBALFOR is used, where terrain impacts are accounted for already 
         if (CANMOD == 0 || fveg[i, j] == 0)

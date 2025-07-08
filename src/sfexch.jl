@@ -50,12 +50,12 @@ function sfexch(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Integ
         # BC, stabilize the tuning point runs by using a Ds threshold instead of fsnow.
         # TODO: test the impact for the grid points.
         if (SNFRAC == 3)
-          # sumtmp = 0.0
+          # sumtmp = Tf(0.0)
           # for si in 1:size(Ds, 1)
           #   sumtmp += Ds[si, i, j]
           # end
           sumtmp = sum(@view Ds[:, i, j])
-          if (sumtmp <= 0.05)
+          if (sumtmp <= Tf(0.05))
             z0g = z0sf[i, j]
           end
         else
@@ -67,50 +67,50 @@ function sfexch(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Integ
         # Additional roughness lengths and friction velocity
         if (EXCHNG == 2) # Forest - specific adjustment *GM
           # Open
-          z0h = 0.1 * z0g
+          z0h = Tf(0.1) * z0g
           ustar = vkman * Ua[i, j] / log(zU / z0g)
           rgo = log(zT / z0h) / (vkman * ustar)
 
           # Forest
           if (fveg[i, j] > eps(Tf))
             z0g = (zgf + zgr * fveg[i, j]) * z0g
-            z0h = 0.1 * z0g
+            z0h = Tf(0.1) * z0g
             dh = rchd * hcan[i, j]
             z0v = rchz * hcan[i, j]
             ustar = vkman * Ua[i, j] / log((zU1 - dh) / z0v)
             Uh = (ustar / vkman) * log((hcan[i, j] - dh) / z0v)
             KHh = vkman * ustar * (hcan[i, j] - dh)
-            Usf = exp(wcan * (zsub / hcan[i, j] - 1)) * Uh
+            Usf = exp(wcan * (zsub / hcan[i, j] - Tf(1))) * Uh
           end
         else
           z0v = rchz * hcan[i, j]
-          z0 = (z0v^fveg[i, j]) * (z0g^(1 - fveg[i, j]))
-          z0h = 0.1 * z0
+          z0 = (z0v^fveg[i, j]) * (z0g^(Tf(1) - fveg[i, j]))
+          z0h = Tf(0.1) * z0
           dh = fveg[i, j] * rchd * hcan[i, j]
-          CD = (vkman / log((zU1 - dh) / z0))^2
+          CD = (vkman / log((zU1 - dh) / z0))^Tf(2)
           ustar = sqrt(CD) * Ua[i, j]
         end
         Uso = Ua[i, j] * log(zsub / z0g) / log(zU / z0g)
 
         if (EXCHNG == 0)
           # No stability adjustment
-          fh = 1.0
-          Ric = 0.0
+          fh = Tf(1.0)
+          Ric = Tf(0.0)
         end
         if (EXCHNG == 1)
           # Stability adjustment (Louis et al. 1982, quoted by Beljaars 1992)
-          Tint = fveg[i, j] * Tveg[i, j] + (1 - fveg[i, j]) * Tsrf[i, j]
-          RiB = grav * (Ta[i, j] - Tint) * (zU1 - dh)^2 / ((zT1 - dh) * Ta[i, j] * Ua[i, j]^2)
-          if (RiB > 0.2)
-            RiB = 0.2 # New maximum threshold for RiB
+          Tint = fveg[i, j] * Tveg[i, j] + (Tf(1) - fveg[i, j]) * Tsrf[i, j]
+          RiB = grav * (Ta[i, j] - Tint) * (zU1 - dh)^Tf(2) / ((zT1 - dh) * Ta[i, j] * Ua[i, j]^Tf(2))
+          if (RiB > Tf(0.2))
+            RiB = Tf(0.2) # New maximum threshold for RiB
           end
-          if (RiB > 0)
-            fh = 1 / (1 + 3 * bstb * RiB * sqrt(1 + bstb * RiB))
+          if (RiB > Tf(0))
+            fh = Tf(1) / (Tf(1) + Tf(3) * bstb * RiB * sqrt(Tf(1) + bstb * RiB))
           else
-            fh = 1 - 3 * bstb * RiB / (1 + 3 * bstb^2 * CD * sqrt(-RiB * zU1 / z0))
+            fh = Tf(1) - Tf(3) * bstb * RiB / (Tf(1) + Tf(3) * bstb^Tf(2) * CD * sqrt(-RiB * zU1 / z0))
           end
-          Ric = grav * (Tcan[i, j] - Tsrf[i, j]) * hcan[i, j] / (Tcan[i, j] * ustar^2)
-          Ric = max(min(Ric, 10.0), 0.0)
+          Ric = grav * (Tcan[i, j] - Tsrf[i, j]) * hcan[i, j] / (Tcan[i, j] * ustar^Tf(2))
+          Ric = max(min(Ric, Tf(10.0)), Tf(0.0))
         end
         # Note that currently, fh and Ric are not used in EXCHNG == 2, i.e. no stability correction
 
@@ -126,18 +126,18 @@ function sfexch(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Integ
           Usc[i, j] = Uso
         else
           if (EXCHNG == 2)
-            rad = (log((zT1 - dh) / (hcan[i, j] - dh)) / (vkman * ustar) + hcan[i, j] * (exp(wcan * (1 - (z0v + dh) / hcan[i, j])) - 1) / (wcan * KHh)) / khcf
+            rad = (log((zT1 - dh) / (hcan[i, j] - dh)) / (vkman * ustar) + hcan[i, j] * (exp(wcan * (Tf(1) - (z0v + dh) / hcan[i, j])) - Tf(1)) / (wcan * KHh)) / khcf
             KHa[i, j] = sqrt(fves[i, j]) / rad
-            Usub = sqrt(fves[i, j]) * Usf + (1 - sqrt(fves[i, j])) * Uso
-            Usub = max(Usub, 0.1)
-            rgd = 1 / (vkman^2 * Usub) * log(zsub / z0h) * log(zsub / z0g)
-            KHg[i, j] = 1 / rgd
-            Uc = exp(wcan * ((z0v + dh) / hcan[i, j] - 1)) * Uh
+            Usub = sqrt(fves[i, j]) * Usf + (Tf(1) - sqrt(fves[i, j])) * Uso
+            Usub = max(Usub, Tf(0.1))
+            rgd = Tf(1) / (vkman^Tf(2) * Usub) * log(zsub / z0h) * log(zsub / z0g)
+            KHg[i, j] = Tf(1) / rgd
+            Uc = exp(wcan * ((z0v + dh) / hcan[i, j] - Tf(1))) * Uh
             KHv[i, j] = VAI[i, j] * sqrt(Uc) / cveg
             Usc[i, j] = Usub
           else
             KHa[i, j] = fh * vkman * ustar / log((zT1 - dh) / z0)
-            KHg[i, j] = vkman * ustar * ((1 - fveg[i, j]) * fh / log(z0 / z0h) + fveg[i, j] * cden / (1 + 0.5 * Ric))
+            KHg[i, j] = vkman * ustar * ((Tf(1) - fveg[i, j]) * fh / log(z0 / z0h) + fveg[i, j] * cden / (Tf(1) + Tf(0.5) * Ric))
             KHv[i, j] = sqrt(ustar) * VAI[i, j] / cveg
           end
           Qs = qsat(Ps[i, j], Tsrf[i, j])  #call QSAT(Ps[i,j],Tsrf[i,j],Qs)

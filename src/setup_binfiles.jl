@@ -2,7 +2,7 @@ function setup_binfiles(Tf, Ti, folder::String)
 
   # Constants
 
-  undefined = 1.e+6
+  undefined = Tf(1.e+6)
 
   # Read namelist file
 
@@ -18,8 +18,8 @@ function setup_binfiles(Tf, Ti, folder::String)
   Nsoil      = haskey(nam_grid, lowercase("NNsoil")) ? nam_grid[lowercase("NNsoil")] : 4
   Nx         = haskey(nam_grid, lowercase("NNx")) ? nam_grid[lowercase("NNx")] : 1
   Ny         = haskey(nam_grid, lowercase("NNy")) ? nam_grid[lowercase("NNy")] : 1
-  Ds_min     = haskey(nam_grid, lowercase("DDs_min")) ? nam_grid[lowercase("DDs_min")] : 0.01
-  Ds_surflay = haskey(nam_grid, lowercase("DDs_surflay")) ? nam_grid[lowercase("DDs_surflay")] : 0.5
+  Ds_min     = haskey(nam_grid, lowercase("DDs_min")) ? nam_grid[lowercase("DDs_min")] : Tf(0.01)
+  Ds_surflay = haskey(nam_grid, lowercase("DDs_surflay")) ? nam_grid[lowercase("DDs_surflay")] : Tf(0.5)
 
   # Create fsm object
 
@@ -29,9 +29,9 @@ function setup_binfiles(Tf, Ti, folder::String)
 
   nam_driving = pyconvert(Dict,nml["nam_driving"])
 
-  fsm.zT     = haskey(nam_driving, lowercase("zzT")) ? nam_driving[lowercase("zzT")] : 10
-  fsm.zU     = haskey(nam_driving, lowercase("zzU")) ? nam_driving[lowercase("zzU")] : 10
-  fsm.zRH    = haskey(nam_driving, lowercase("zzRH")) ? nam_driving[lowercase("zzRH")] : 10
+  fsm.zT     = haskey(nam_driving, lowercase("zzT")) ? nam_driving[lowercase("zzT")] : Tf(10)
+  fsm.zU     = haskey(nam_driving, lowercase("zzU")) ? nam_driving[lowercase("zzU")] : Tf(10)
+  fsm.zRH    = haskey(nam_driving, lowercase("zzRH")) ? nam_driving[lowercase("zzRH")] : Tf(10)
 
   # Model configuration
 
@@ -70,79 +70,79 @@ function setup_binfiles(Tf, Ti, folder::String)
   nam_modtile = pyconvert(Dict,nml["nam_modtile"])
 
   fsm.TILE = haskey(nam_modtile, lowercase("CTILE")) ? nam_modtile[lowercase("CTILE")] : "open"
-  fsm.tthresh = haskey(nam_modtile, lowercase("rtthresh")) ? nam_modtile[lowercase("rtthresh")] : 0.1
+  fsm.tthresh = haskey(nam_modtile, lowercase("rtthresh")) ? nam_modtile[lowercase("rtthresh")] : Tf(0.1)
 
   # Defaults for numerical solution parameters
   fsm.Nitr = 4
 
   # Defaults for canopy parameters
-  fsm.avg0 = 0.1
-  fsm.avgs = 0.4
-  fsm.cden = 0.004
-  fsm.cvai = 4.4
-  fsm.cveg = 20
-  fsm.Gcn1 = 0.5
-  fsm.Gcn2 = 0
-  fsm.gsnf = 0
-  fsm.kdif = 0.5
-  fsm.kveg = 1
-  fsm.rchd = 0.67
-  fsm.rchz = 0.2 
-  fsm.tcnc = 240
-  fsm.tcnm = 48
+  fsm.avg0 = Tf(0.1)
+  fsm.avgs = Tf(0.4)
+  fsm.cden = Tf(0.004)
+  fsm.cvai = Tf(4.4)
+  fsm.cveg = Tf(20)
+  fsm.Gcn1 = Tf(0.5)
+  fsm.Gcn2 = Tf(0)
+  fsm.gsnf = Tf(0)
+  fsm.kdif = Tf(0.5)
+  fsm.kveg = Tf(1)
+  fsm.rchd = Tf(0.67)
+  fsm.rchz = Tf(0.2) 
+  fsm.tcnc = Tf(240)
+  fsm.tcnm = Tf(48)
 
   # Defaults for snow parameters
-  fsm.a_eta = 0.1
-  fsm.asmx = 0.86       # unused if OSHDTN = 1
-  fsm.asmn = 0.6
-  fsm.b_eta = 0.023
-  fsm.bstb = 5
-  fsm.bthr = 2
-  fsm.c_eta = 250
-  fsm.eta0 = 3.7e7
-  fsm.eta1 = 7.62237e6
-  fsm.hfsn = 0.1
-  fsm.kfix = 0.24
-  fsm.rho0 = 300
-  fsm.rhob = 6
-  fsm.rhoc = 26
-  fsm.rhof = 109
-  fsm.rhos_min = 50.0
-  fsm.rhos_max = 750.0
-  fsm.rcld = 300
-  fsm.rgr0 = 5e-5
-  fsm.rmlt = 500
-  fsm.snda = 2.8e-6
-  fsm.Talb = -2
-  fsm.tcld = 1000
-  fsm.tmlt = 100
-  fsm.trho = 200
-  fsm.Wirr = 0.03
-  fsm.z0sn = 0.002
-  fsm.Sfmin = 10
+  fsm.a_eta = Tf(0.1)
+  fsm.asmx = Tf(0.86)       # unused if OSHDTN = 1
+  fsm.asmn = Tf(0.6)
+  fsm.b_eta = Tf(0.023)
+  fsm.bstb = Tf(5)
+  fsm.bthr = Tf(2)
+  fsm.c_eta = Tf(250)
+  fsm.eta0 = Tf(3.7e7)
+  fsm.eta1 = Tf(7.62237e6)
+  fsm.hfsn = Tf(0.1)
+  fsm.kfix = Tf(0.24)
+  fsm.rho0 = Tf(300)
+  fsm.rhob = Tf(6)
+  fsm.rhoc = Tf(26)
+  fsm.rhof = Tf(109)
+  fsm.rhos_min = Tf(50.0)
+  fsm.rhos_max = Tf(750.0)
+  fsm.rcld = Tf(300)
+  fsm.rgr0 = Tf(5e-5)
+  fsm.rmlt = Tf(500)
+  fsm.snda = Tf(2.8e-6)
+  fsm.Talb = Tf(-2)
+  fsm.tcld = Tf(1000)
+  fsm.tmlt = Tf(100)
+  fsm.trho = Tf(200)
+  fsm.Wirr = Tf(0.03)
+  fsm.z0sn = Tf(0.002)
+  fsm.Sfmin = Tf(10)
 
   # some defaults different for forest tile - commented-out values based on FS-EBP runs, revisit during tuning
   if (fsm.TILE == "forest")
-    # asmx = 0.88
-    fsm.hfsn = 0.3    
-    fsm.z0sn = 0.01   
+    # asmx = Tf(0.88)
+    fsm.hfsn = Tf(0.3)    
+    fsm.z0sn = Tf(0.01)   
   end
 
   # Defaults for ground surface parameters
-  fsm.bstb = 5
-  fsm.gsat = 0.01
+  fsm.bstb = Tf(5)
+  fsm.gsat = Tf(0.01)
 
   # Defaults for additional parameters required for forest snow process parametrization
-  fsm.adfs = 3
-  fsm.adfl = 2
-  fsm.fsar = 0.1
-  fsm.psf  = 1
-  fsm.psr  = 0.1
-  fsm.wcan = 2.5
-  fsm.zsub = 2
-  fsm.zgf = 1
-  fsm.zgr = 0
-  fsm.khcf = 3
+  fsm.adfs = Tf(3)
+  fsm.adfl = Tf(2)
+  fsm.fsar = Tf(0.1)
+  fsm.psf  = Tf(1)
+  fsm.psr  = Tf(0.1)
+  fsm.wcan = Tf(2.5)
+  fsm.zsub = Tf(2)
+  fsm.zgf = Tf(1)
+  fsm.zgr = Tf(0)
+  fsm.khcf = Tf(3)
 
   if (fsm.DENSTY == 0)
     fsm.rhof = fsm.rho0
@@ -152,19 +152,19 @@ function setup_binfiles(Tf, Ti, folder::String)
   # Surface properties 
   # if (SNTRAN == 1) allocate(vegsnowd_xy(Nx,Ny))    TODO: translate later
   if (fsm.TILE == "glacier")
-    fsm.alb0[:,:] .= 0.3
-    fsm.z0sf[:,:] .= 0.04
+    fsm.alb0[:,:] .= Tf(0.3)
+    fsm.z0sf[:,:] .= Tf(0.04)
   else
-    fsm.alb0[:,:] .= 0.2
-    fsm.z0sf[:,:] .= 0.2
+    fsm.alb0[:,:] .= Tf(0.2)
+    fsm.z0sf[:,:] .= Tf(0.2)
   end
-  fsm.fcly[:,:] .= 0.3
-  fsm.fsnd[:,:] .= 0.6
+  fsm.fcly[:,:] .= Tf(0.3)
+  fsm.fsnd[:,:] .= Tf(0.6)
   if (fsm.TILE == "forest")
-    fsm.z0sf[:,:] .= 0.2
+    fsm.z0sf[:,:] .= Tf(0.2)
   end
   if (fsm.SNTRAN == 1)
-    fsm.vegsnowd_xy[:,:] .= 0.1
+    fsm.vegsnowd_xy[:,:] .= Tf(0.1)
   end
 
   # Canopy parameters
@@ -217,11 +217,11 @@ function setup_binfiles(Tf, Ti, folder::String)
 
   # Convert time scales from hours to seconds
   ### fsm.dt = 3600*fsm.dt    # TODO this is already done in types.jl - check where to to this transformation in future
-  fsm.tcnc = 3600*fsm.tcnc
-  fsm.tcnm = 3600*fsm.tcnm
-  fsm.tcld = 3600*fsm.tcld
-  fsm.tmlt = 3600*fsm.tmlt
-  fsm.trho = 3600*fsm.trho
+  fsm.tcnc = Tf(3600)*fsm.tcnc
+  fsm.tcnm = Tf(3600)*fsm.tcnm
+  fsm.tcld = Tf(3600)*fsm.tcld
+  fsm.tmlt = Tf(3600)*fsm.tmlt
+  fsm.trho = Tf(3600)*fsm.trho
 
   # Default initialization of state variables 
   fsm.albs[:,:]               .= undefined
@@ -264,8 +264,8 @@ function setup_binfiles(Tf, Ti, folder::String)
   end
 
   # Initial soil profiles from namelist
-  fsat  = 0.5
-  Tprof = 285
+  fsat  = Tf(0.5)
+  Tprof = Tf(285)
   for k = 1:fsm.Nsoil
     fsm.theta[k,:,:] .= fsat*fsm.Vsat[:,:]
     fsm.Tsoil[k,:,:] .= Tprof
@@ -333,8 +333,8 @@ function setup_binfiles(Tf, Ti, folder::String)
     for i = 1:Nx
       if (fsm.glacierfrac[i,j] > eps(Tf))
         fsm.Tsrf[i,j] = min(fsm.Tsrf[i,j],Tm)
-        fsm.alb0[i,j] = 0.3 
-        fsm.z0sf[i,j] = 0.04
+        fsm.alb0[i,j] = Tf(0.3) 
+        fsm.z0sf[i,j] = Tf(0.04)
         for k = 1:fsm.Nsoil
           fsm.Tsoil[k,i,j] = min(fsm.Tsoil[k,i,j],Tm)
         end
@@ -364,12 +364,12 @@ function setup_binfiles(Tf, Ti, folder::String)
 
   if (fsm.TILE != "forest")
     # canopy properties (no canopy)
-    fsm.VAI[:,:]  .= 0
-    fsm.hcan[:,:] .= 0
-    fsm.fsky[:,:] .= 1
+    fsm.VAI[:,:]  .= Tf(0)
+    fsm.hcan[:,:] .= Tf(0)
+    fsm.fsky[:,:] .= Tf(1)
     fsm.trcn[:,:] .= exp.(-fsm.kdif.*fsm.VAI[:,:])
-    fsm.fveg[:,:] .= 1 .- exp.(-fsm.kveg.*fsm.VAI[:,:])
-    fsm.fves[:,:] .= 1 .- exp.(-fsm.kveg.*fsm.VAI[:,:])
+    fsm.fveg[:,:] .= Tf(1) .- exp.(-fsm.kveg.*fsm.VAI[:,:])
+    fsm.fves[:,:] .= Tf(1) .- exp.(-fsm.kveg.*fsm.VAI[:,:])
   else # TILE == 'forest'
     # lus fields specific to forest runs
     read!(joinpath(folder, "states_in_qcan.bin"), fsm.Qcan)
@@ -385,22 +385,22 @@ function setup_binfiles(Tf, Ti, folder::String)
     
     # derived canopy properties 
     fsm.VAI[:,:] = fsm.lai[:,:]
-    trcn[:,:] = 1 .- 0.9.*fsm.fveg[:,:]  
+    trcn[:,:] = Tf(1) .- Tf(0.9).*fsm.fveg[:,:]  
     for j = 1:fsm.Ny
       for i = 1:fsm.Nx
         fsm.fsky[i,j] = fsm.vfhp[i,j]./fsm.trcn[i,j]
-        if ( fsm.fsky[i,j] > 1 )
+        if ( fsm.fsky[i,j] > Tf(1) )
           fsm.trcn[i,j] = fsm.vfhp[i,j]
         end
-        if ( fsm.fsky[i,j] > 1 )
-          fsm.fsky[i,j] = 1
+        if ( fsm.fsky[i,j] > Tf(1) )
+          fsm.fsky[i,j] = Tf(1)
         end
       end
     end 
   end
 
   # derived canopy parameters
-  fsm.canh[:,:] = 12500*fsm.VAI[:,:]
+  fsm.canh[:,:] = Tf(12500)*fsm.VAI[:,:]
   fsm.scap[:,:] = fsm.cvai*fsm.VAI[:,:]
 
   if (fsm.SNTRAN == 1)
@@ -423,29 +423,29 @@ function setup_binfiles(Tf, Ti, folder::String)
 
   if fsm.OSHDTN == 0
 
-    fsm.adm = 100
-    fsm.adc[:,:] = 1000
+    fsm.adm = Tf(100)
+    fsm.adc[:,:] = Tf(1000)
     fsm.afs[:,:] = fsm.asmx
     if (fsm.TILE == "glacier" || ((fsm.SNTRAN == 1 || fsm.SNSLID == 1) && fsm.glacierfrac(i,j) > eps(Tf)))
-      fsm.z0_snow[:,:] = 0.0009
+      fsm.z0_snow[:,:] = Tf(0.0009)
     else
       fsm.z0_snow[:,:] = fsm.z0sn
     end
 
   else
 
-    fsm.adm = 130
+    fsm.adm = Tf(130)
 
     for j = 1:fsm.Ny
       for i = 1:fsm.Nx
       
         # Elevation-dependent tuning of cold snow albedo decay time
-        if (fsm.dem[i,j] >= 2300)
-          fsm.adc[i,j]  = 6000
-        elseif (fsm.dem[i,j] <= 1500)
-          fsm.adc[i,j] = 3000
+        if (fsm.dem[i,j] >= Tf(2300))
+          fsm.adc[i,j]  = Tf(6000)
+        elseif (fsm.dem[i,j] <= Tf(1500))
+          fsm.adc[i,j] = Tf(3000)
         else
-          fsm.adc[i,j] = 6000 + (2300 - fsm.dem[i,j]) / (2300 - 1500) * (3000 - 6000)
+          fsm.adc[i,j] = Tf(6000) + (Tf(2300) - fsm.dem[i,j]) / (Tf(2300) - Tf(1500)) * (Tf(3000) - Tf(6000))
         end
         
         # Fresh snow albedo is now constant (previously elevation-dependent)
@@ -453,16 +453,16 @@ function setup_binfiles(Tf, Ti, folder::String)
         
         # Elevation-dependent tuning of snow roughness length
         if (fsm.TILE == "glacier" || ((fsm.SNTRAN == 1 || fsm.SNSLID == 1) && fsm.glacierfrac[i,j] > eps(Tf)))
-          fsm.z0_snow[i,j] = 0.0009
+          fsm.z0_snow[i,j] = Tf(0.0009)
         elseif (fsm.TILE == "forest")
           fsm.z0_snow[i,j] = fsm.z0sn
         else
-          if (fsm.dem[i,j] >= 2300)
-            fsm.z0_snow[i,j] = 0.01
-          elseif (fsm.dem[i,j] >= 1500)
-            fsm.z0_snow[i,j] = 0.2 + (fsm.dem[i,j] - 1500) / (2300 - 1500) * (0.01 - 0.2)
+          if (fsm.dem[i,j] >= Tf(2300))
+            fsm.z0_snow[i,j] = Tf(0.01)
+          elseif (fsm.dem[i,j] >= Tf(1500))
+            fsm.z0_snow[i,j] = Tf(0.2) + (fsm.dem[i,j] - Tf(1500)) / (Tf(2300) - Tf(1500)) * (Tf(0.01) - Tf(0.2))
           else
-            fsm.z0_snow[i,j] = 0.2
+            fsm.z0_snow[i,j] = Tf(0.2)
           end
         end
         
