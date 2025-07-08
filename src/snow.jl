@@ -353,7 +353,7 @@ function snow(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Inte
         # place NaN in Tsnow and snow would never again melt through the season
         # Do we still need this Catch in FSM??
         if (Nsnow[i, j] <= Tf(1) && dSice < Tf(0.001) && Sice[1, i, j] < Tf(0.001))
-          dSice = round(dSice * Tf(1000) + Tf(0.5)) / Tf(1000)  ### hack see original code
+          dSice = Tf(trunc(Ti,dSice * Tf(1000) + Tf(0.5))) / Tf(1000)    # TODO verify against original code
         end
 
         if (DENSTY == 0)

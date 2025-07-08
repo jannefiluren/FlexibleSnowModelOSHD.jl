@@ -55,16 +55,16 @@ for (i, t) in enumerate(times)
   
     soil(fsm)
 
-  end
-
-  if hour(t) == 5
-
-    matwrite(joinpath(base_folder, "FSM_HS_julia", subfolder, Dates.format(t + Dates.Hour(1), "yyyymmddHHMM") * "_output.mat"),
-          Dict(
-          "hs" => dropdims(sum(fsm.Ds, dims=1), dims=1).*fsm.fsnow,
-          "fsnow" => fsm.fsnow
+    if hour(t) == 5
+    
+      matwrite(joinpath(base_folder, "FSM_HS_julia", subfolder, Dates.format(t + Dates.Hour(1), "yyyymmddHHMM") * "_output.mat"),
+      Dict(
+        "hs" => dropdims(sum(fsm.Ds, dims=1), dims=1).*fsm.fsnow,
+        "fsnow" => fsm.fsnow
         ); compress = true)
-
+        
+    end
+    
   end
-
+  
 end

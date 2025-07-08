@@ -2,7 +2,7 @@
 
 clear; clc
 
-time = datenum(2025,6,3,6,00,00);
+time = datenum(2025,1,21,6,00,00);
 
 str1 = datestr(time-1,"yyyymmddHHMM");
 str2 = datestr(time,"yyyymmddHHMM");
