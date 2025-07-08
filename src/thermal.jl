@@ -79,8 +79,8 @@ function thermal(fsm::FSM{Tf, Ti}) where {Tf<:Real, Ti<:Integer}
               Tc = Tsoil[k, i, j] - Tm
               Tmax = Tm + (sathh[i, j] / dPsidT) * (Vsat[i, j] / theta[k, i, j])^b[i, j]
               if (Tsoil[k, i, j] < Tmax)
-                dthudT = (-dPsidT * Vsat[i, j] / (b[i, j] * sathh[i, j])) * (dPsidT * Tc / sathh[i, j])^(Tf(1) / b[i, j] - Tf(1))
-                sthu = Vsat[i, j] * (dPsidT * Tc / sathh[i, j])^(Tf(1) / b[i, j])
+                dthudT = (-dPsidT * Vsat[i, j] / (b[i, j] * sathh[i, j])) * (dPsidT * Tc / sathh[i, j])^(Tf(-1) / b[i, j] - Tf(1))
+                sthu = Vsat[i, j] * (dPsidT * Tc / sathh[i, j])^(Tf(-1) / b[i, j])
                 sthu = min(sthu, theta[k, i, j])
                 sthf = (theta[k, i, j] - sthu) * rho_wat / rho_ice
               end
