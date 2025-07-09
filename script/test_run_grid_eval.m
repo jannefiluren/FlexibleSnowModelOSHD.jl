@@ -2,15 +2,18 @@
 
 clear; clc
 
-time = datenum(2025,1,21,6,00,00);
+time = datenum(2024,10,1,6,00,00);
 
 str1 = datestr(time-1,"yyyymmddHHMM");
 str2 = datestr(time,"yyyymmddHHMM");
 
-subfolder = "SNFRAC_0";
+subfolder = "SNFRAC_3";
 
-% mat = load("D:\julia\FSM_HS_all\LATEST_00h_RUN\OUTPUT_OSHD_0250\RESULTS_24h_opn\MODELDATA_" + str1 + "-" + str2 + "_FSM22.mat");
 mat = load("D:\julia\FSM_HS_all\LATEST_00h_RUN\"+ subfolder + "\OUTPUT_OSHD_0250\RESULTS_24h_opn\MODELDATA_" + str1 + "-" + str2 + "_FSM22.mat");
+
+
+subfolder = "SNFRAC_3";
+
 jul = load("D:\julia\FSM_HS_julia\"+ subfolder + "\" + str2 + "_output.mat");
 
 

@@ -42,13 +42,13 @@ function drive!(fsm::FSM, meteo::MET{Tf,Ti}) where {Tf<:Real,Ti<:Integer}
 
   @unpack Tc, es, Qa, Ua, Sf, Rf, Ta, RH, Ps = meteo
 
-  Ua .= max.(Ua, 0.1)
-  Ua .= 0.7 .* Ua
+  Ua .= Tf(0.7) .* Ua
+  Ua .= max.(Ua, Tf(0.1))
 
   Sf .= Sf ./ dt
   Rf .= Rf ./ dt
   Tc .= Ta .- Tm
-  es .= e0 .* exp.(Tf(17.504) .* Tc ./ (Tf(241.3) .+ Tc))
+  es .= e0 .* exp.(Tf(17.5043) .* Tc ./ (Tf(241.3) .+ Tc))
   Qa .= (RH ./ 100) .* eps_fsm .* es ./ Ps
 
 end
@@ -91,12 +91,12 @@ function drive_grid!(meteo::MET{Tf, Ti}, fsm::FSM{Tf, Ti}, t::DateTime) where {T
   Ua .= met_single["wnss"]["data"]       # "wind speed"
   Ps .= met_single["pail"]["data"]       # "local air pressure"
 
-  Ua .= max.(Ua, 0.1)
-  Ua .= 0.7 .* Ua
+  Ua .= Tf(0.7) .* Ua
+  Ua .= max.(Ua, Tf(0.1))
   Sf .= Sf ./ dt
   Rf .= Rf ./ dt
   Tc .= Ta .- Tm
-  es .= e0 .* exp.(Tf(17.504) .* Tc ./ (Tf(241.3) .+ Tc))
+  es .= e0 .* exp.(Tf(17.5043) .* Tc ./ (Tf(241.3) .+ Tc))
   Qa .= (RH ./ 100) .* eps_fsm .* es ./ Ps
 
   curr_hour = Dates.value(Hour(t)) + 1 #0h -> 1; 23h -> 24
