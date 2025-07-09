@@ -11,7 +11,7 @@ function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::Date
     if SNFRAC == 0
 
         # Calculate topographic terms for snow depth standard deviation
-        sd_snowdepth1 = exp(Tf(1) / (Ld[i,j]/xi[i,j])^Tf(2))
+        sd_snowdepth1 = exp(Tf(-1) / (Ld[i,j]/xi[i,j])^Tf(2))
         sd_snowdepth3 = slopemu[i,j]^Tf(0.309)
 
         # Merge current values with history
