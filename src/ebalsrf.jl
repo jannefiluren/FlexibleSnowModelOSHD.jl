@@ -72,7 +72,7 @@ function ebalsrf(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Inte
           dE = rho * KWg[i, j] * D * dTs[i, j]
           dG = Tf(2) * ks1[i, j] * dTs[i, j] / Ds1[i, j]
           dH = cp * rho * KH[i, j] * dTs[i, j]
-          dR = Tf(4) * sb * Tsrf[i, j]^Tf(3) * dTs[i, j]
+          dR = Tf(-4) * sb * Tsrf[i, j]^Tf(3) * dTs[i, j]
 
           # Surface melting
           if (Tsrf[i, j] + dTs[i, j] > Tm && Sice[1, i, j] > eps(Tf))
@@ -86,7 +86,7 @@ function ebalsrf(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Inte
             dE = rho * KWg[i, j] * D * dTs[i, j]
             dG = Tf(2) * ks1[i, j] * dTs[i, j] / Ds1[i, j]
             dH = cp * rho * KH[i, j] * dTs[i, j]
-            dR = Tf(4) * sb * Tsrf[i, j]^Tf(3) * dTs[i, j]
+            dR = Tf(-4) * sb * Tsrf[i, j]^Tf(3) * dTs[i, j]
             if (Tsrf[i, j] + dTs[i, j] < Tm)
               Qs = qsat(Ps[i, j], Tm)  #call QSAT(Ps[i,j],Tm,Qs)
               Esrf[i, j] = rho * KWg[i, j] * (Qs - Qa[i, j])

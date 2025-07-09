@@ -147,7 +147,7 @@ function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::Date
     elseif SNFRAC == 1
         # HelbigHS
         sd_snowdepth2 = snowdepth^Tf(0.549)
-        sd_snowdepth1 = exp(Tf(1) / (Ld[i,j]/xi[i,j])^Tf(2))
+        sd_snowdepth1 = exp(Tf(-1) / (Ld[i,j]/xi[i,j])^Tf(2))
         sd_snowdepth3 = slopemu[i,j]^Tf(0.309)
         sd_snowdepth0 = sd_snowdepth1 * sd_snowdepth2 * sd_snowdepth3
 
@@ -168,7 +168,7 @@ function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::Date
         end
 
         sd_snowdepth2 = snowdepthmax[i,j]^Tf(0.549)
-        sd_snowdepth1 = exp(Tf(1) / (Ld[i,j]/xi[i,j])^Tf(2))
+        sd_snowdepth1 = exp(Tf(-1) / (Ld[i,j]/xi[i,j])^Tf(2))
         sd_snowdepth3 = slopemu[i,j]^Tf(0.309)
         sd_snowdepth0 = sd_snowdepth1 * sd_snowdepth2 * sd_snowdepth3
 
