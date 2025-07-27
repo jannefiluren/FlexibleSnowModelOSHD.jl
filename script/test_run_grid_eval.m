@@ -2,7 +2,7 @@
 
 clear; clc
 
-time = datenum(2024,10,1,6,00,00);
+time = datenum(2024,11,1,6,00,00);
 
 str1 = datestr(time-1,"yyyymmddHHMM");
 str2 = datestr(time,"yyyymmddHHMM");
@@ -43,7 +43,7 @@ end
 
 %% Plot snow depth results
 
-fig = figure("Position",[294 151 1330 886]);
+fig = figure("Position",[100 100 1000 700]);
 
 t = tiledlayout(2,2);
 title(t, "Snow depth for " + str2)
@@ -76,7 +76,7 @@ linkaxes(ax)
 
 %% Plot fsnow results
 
-fig = figure("Position",[294 151 1330 886]);
+fig = figure("Position",[100 100 1000 700]);
 
 t = tiledlayout(2,2);
 title(t, "Snow cover fraction for " + str2)
@@ -107,15 +107,20 @@ ylabel("Julia")
 linkaxes(ax)
 
 
-% %% Location with largest error
+%% Location with largest error
 
-% diff_abs = abs(hs_jul(~inan)-hs_mat(~inan));
+diff_abs = abs(hs_jul-hs_mat);
 
-% [diff_max, ind_max] = max(diff_abs,[],"all");
+[diff_max, ~] = max(diff_abs,[],"all");
 
-% disp(diff_max)
+[row_max, col_max] = find(diff_abs == diff_max);
 
-% disp(ind_max)
+disp("Max diff = " + diff_max)
+
+disp("Row max = " + row_max)
+
+disp("Col max = " + col_max)
+
 
 
 % %% Plot fsnow against hs

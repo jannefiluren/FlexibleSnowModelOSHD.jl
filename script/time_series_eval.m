@@ -3,10 +3,10 @@
 clear; clc
 
 tstart = datenum(2024,9,2,6,0,0);
-tend = datenum(2025,6,12,6,0,0);
+tend = datenum(2025,1,12,6,0,0);
 
-subfolder_matlab = "SNFRAC_0";
-subfolder_julia = "SNFRAC_0_20250709";
+subfolder_matlab = "SNFRAC_3";
+subfolder_julia = "SNFRAC_3";
 
 folder_matlab = "D:\julia\FSM_HS_all\LATEST_00h_RUN\"+ subfolder_matlab + "\OUTPUT_OSHD_0250\RESULTS_24h_opn";
 folder_julia = "D:\julia\FSM_HS_julia\"+ subfolder_julia;
@@ -46,13 +46,11 @@ fsnow_jul(inan) = NaN;
 
 %% Plot dummy grid ensuring correct selection of pixel
 
-% irow = 915;
-% icol = 648;
+irow = 729;
+icol = 683;
 
-irow = 561;
-icol = 1251;
+figure("Position",[100 100 800 500]);
 
-figure
 check_grid = zeros(size(hs_mat,1), size(hs_mat,2));
 check_grid(any(isnan(hs_mat),3)) = NaN;
 check_grid(irow, icol) = 10;
@@ -63,7 +61,7 @@ set(h, 'AlphaData', ~isnan(check_grid))
 
 %% Plot time series
 
-figure
+figure("Position",[100 100 800 500]);
 
 t = tiledlayout(2,1);
 
