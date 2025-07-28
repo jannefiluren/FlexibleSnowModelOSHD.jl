@@ -245,11 +245,11 @@ function setup_binfiles(Tf, Ti, folder::String)
   end
 
   if (fsm.SNFRAC == 0)
-    snowdepthmin[:,:]     .= undefined
-    snowdepthhist[:,:,:]  .= undefined
-    swemin[:,:]           .= undefined
-    swemax[:,:]           .= undefined
-    swehist[:,:,:]        .= undefined
+    fsm.snowdepthmin[:,:]     .= undefined
+    fsm.snowdepthhist[:,:,:]  .= undefined
+    fsm.swemin[:,:]           .= undefined
+    fsm.swemax[:,:]           .= undefined
+    fsm.swehist[:,:,:]        .= undefined
   end
 
   if (fsm.SNTRAN == 1)
@@ -259,8 +259,8 @@ function setup_binfiles(Tf, Ti, folder::String)
   end
 
   if (fsm.SNSLID == 1)
-    dSWE_tot_slide[:,:]   .= undefined
-    index_sorted_dem[:,:] .= undefined
+    fsm.dSWE_tot_slide[:,:]   .= undefined
+    fsm.index_sorted_dem[:,:] .= undefined
   end
 
   # Initial soil profiles from namelist
@@ -278,7 +278,7 @@ function setup_binfiles(Tf, Ti, folder::String)
   # L220-224
   if (fsm.TILE == "forest")
     landuse_tile             = "landuse_forest.bin"
-  else (fsm.TILE == "glacier")
+  elseif (fsm.TILE == "glacier")
     landuse_tile             = "landuse_glacier.bin"
   end
 
@@ -385,7 +385,7 @@ function setup_binfiles(Tf, Ti, folder::String)
     
     # derived canopy properties 
     fsm.VAI[:,:] = fsm.lai[:,:]
-    trcn[:,:] = Tf(1) .- Tf(0.9).*fsm.fveg[:,:]  
+    fsm.trcn[:,:] = Tf(1) .- Tf(0.9).*fsm.fveg[:,:]  
     for j = 1:fsm.Ny
       for i = 1:fsm.Nx
         fsm.fsky[i,j] = fsm.vfhp[i,j]./fsm.trcn[i,j]
@@ -426,7 +426,7 @@ function setup_binfiles(Tf, Ti, folder::String)
     fsm.adm = Tf(100)
     fsm.adc[:,:] = Tf(1000)
     fsm.afs[:,:] = fsm.asmx
-    if (fsm.TILE == "glacier" || ((fsm.SNTRAN == 1 || fsm.SNSLID == 1) && fsm.glacierfrac(i,j) > eps(Tf)))
+    if (fsm.TILE == "glacier" || ((fsm.SNTRAN == 1 || fsm.SNSLID == 1) && fsm.glacierfrac[i,j] > eps(Tf)))
       fsm.z0_snow[:,:] = Tf(0.0009)
     else
       fsm.z0_snow[:,:] = fsm.z0sn
