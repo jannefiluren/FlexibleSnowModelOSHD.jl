@@ -89,7 +89,7 @@ function test_run_against_jim_binfiles(config, fsm, meteo, ctime, station, matfi
     soil(fsm)
 
     if config["test_soil"]
-      fields = ["Tsoil"]
+      fields = ["Tsoil", "Gsoil"]
       verify_results(config["base_folder"], "soil", fsm, fields, t) && return (true, meteo)
     end
 
