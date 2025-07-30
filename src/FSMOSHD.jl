@@ -9,7 +9,8 @@ using PythonCall
 include("parameters.jl")
 include("types.jl")
 include("setup_binfiles.jl")
-include("setup_matfiles.jl")
+include("setup_matfiles_point.jl")
+include("setup_matfiles_grid.jl")
 include("qsat.jl")
 include("tridiag.jl")
 include("drive.jl")
@@ -23,7 +24,7 @@ include("soil.jl")
 include("snowcoverfraction.jl")
 include("prepare_landuse.jl")
 
-export FSM, MET, setup_binfiles, setup_matfiles
+export FSM, MET, setup_binfiles, setup_matfiles_point, setup_matfiles_grid
 export qsat, tridiag!
 export radiation, thermal, sfexch, ebalsrf, snow, soil
 export drive, drive!, drive_grid!

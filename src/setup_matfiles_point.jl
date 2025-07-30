@@ -1,4 +1,4 @@
-function setup_matfiles(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int; SNFRAC = nothing)
+function setup_matfiles_point(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int; SNFRAC = nothing)
 
   # Constants
 

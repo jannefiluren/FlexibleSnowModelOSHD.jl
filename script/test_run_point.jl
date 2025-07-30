@@ -63,9 +63,11 @@ landuse = prepare_landuse_stations()
 
 # Setup model
 
-fsm = setup_matfiles(Float32, Int32, landuse, sum(landuse["is_domain"]), 1)
+fsm = setup_matfiles_point(Float32, Int32, landuse, sum(landuse["is_domain"]), 1)
 met_curr = MET{Float32, Int32}(Nx=nstat)
 
+Sf24h = zeros(size(met_curr.Sf24h))
+Sf_history = zeros(size(met_curr.Sf_history))
 
 # Run model
 
@@ -86,7 +88,11 @@ snowdepth = zeros(length(times), nstat)
   met_curr.Ua[:, :] .= Ua[i, :]
   met_curr.Ps[:, :] .= Ps[i, :]
 
-  met_curr.Sf24h[:, :] .= sum(Sf[max(i-23,1):i,:], dims=1)'
+  curr_hour = Dates.value(Hour(t)) + 1
+  Sf24h .+= Sf[i, :]
+  Sf24h .-= Sf_history[:,:,curr_hour]
+  Sf_history[:,:,curr_hour] = Sf[i, :]
+  met_curr.Sf24h[:, :] .= Sf24h
   
   # Run model
 
