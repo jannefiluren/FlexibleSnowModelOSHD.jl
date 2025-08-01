@@ -3,10 +3,10 @@
 clear; clc
 
 tstart = datenum(2024,9,2,6,0,0);
-tend = datenum(2025,1,12,6,0,0);
+tend = datenum(2025,6,4,6,0,0);
 
-subfolder_matlab = "SNFRAC_3";
-subfolder_julia = "SNFRAC_3";
+subfolder_matlab = "SNFRAC_0";
+subfolder_julia = "SNFRAC_0";
 
 folder_matlab = "D:\julia\FSM_HS_all\LATEST_00h_RUN\"+ subfolder_matlab + "\OUTPUT_OSHD_0250\RESULTS_24h_opn";
 folder_julia = "D:\julia\FSM_HS_julia\"+ subfolder_julia;
@@ -43,11 +43,10 @@ fsnow_mat(inan) = NaN;
 fsnow_jul(inan) = NaN;
 
 
-
 %% Plot dummy grid ensuring correct selection of pixel
 
-irow = 729;
-icol = 683;
+irow = 968;
+icol = 446;
 
 figure("Position",[100 100 800 500]);
 
@@ -64,26 +63,21 @@ set(h, 'AlphaData', ~isnan(check_grid))
 figure("Position",[100 100 800 500]);
 
 t = tiledlayout(2,1);
+title(t, "Row = " + irow + " Col = " + icol)
 
 ax(1) = nexttile();
-plot(times, squeeze(hs_mat(irow,icol,:)), "b")
+plot(times, squeeze(hs_mat(irow,icol,:)), "b", "LineWidth", 2)
 hold on
-plot(times, squeeze(hs_jul(irow,icol,:)), "--r")
-legend("Matlab", "Julia")
+plot(times, squeeze(hs_jul(irow,icol,:)), "--r", "LineWidth", 2)
+legend("Matlab/Fortran", "Julia")
 datetick("x")
+ylabel("HS (m)")
 
 ax(2) = nexttile();
-plot(times, squeeze(fsnow_mat(irow,icol,:)), "b")
+plot(times, squeeze(fsnow_mat(irow,icol,:)), "b", "LineWidth", 2)
 hold on
-plot(times, squeeze(fsnow_jul(irow,icol,:)), "--r")
+plot(times, squeeze(fsnow_jul(irow,icol,:)), "--r", "LineWidth", 2)
 datetick("x")
+ylabel("SCF (-)")
 
-linkaxes(ax)
-
-
-
-
-
-
-
-
+linkaxes(ax, "x")

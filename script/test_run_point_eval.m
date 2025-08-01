@@ -31,3 +31,11 @@ landuse = load("K:/OSHD_AUX/DATA_LUS/OSHD_LUS_STAT.mat");
 
 disp("Maximum error: " + max_err)
 disp("Station with largest error: " + landuse.acro{imax})
+
+% Plot station with largest error
+
+figure()
+plot(hs_matlab(:,imax), "b")
+hold on
+plot(hs_julia(:,imax), "--r")
+legend("Matlab", "Julia")

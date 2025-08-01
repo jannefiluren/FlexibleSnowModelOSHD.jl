@@ -2,17 +2,17 @@
 
 clear; clc
 
-time = datenum(2024,11,1,6,00,00);
+time = datenum(2025,1,11,6,00,00);
 
 str1 = datestr(time-1,"yyyymmddHHMM");
 str2 = datestr(time,"yyyymmddHHMM");
 
-subfolder = "SNFRAC_3";
+subfolder = "SNFRAC_0";
 
 mat = load("D:\julia\FSM_HS_all\LATEST_00h_RUN\"+ subfolder + "\OUTPUT_OSHD_0250\RESULTS_24h_opn\MODELDATA_" + str1 + "-" + str2 + "_FSM22.mat");
 
 
-subfolder = "SNFRAC_3";
+subfolder = "SNFRAC_0";
 
 jul = load("D:\julia\FSM_HS_julia\"+ subfolder + "\" + str2 + "_output.mat");
 
@@ -109,7 +109,13 @@ linkaxes(ax)
 
 %% Location with largest error
 
-diff_abs = abs(hs_jul-hs_mat);
+variable = "fsnow";
+
+if variable == "hs"
+  diff_abs = abs(hs_jul-hs_mat);
+else
+  diff_abs = abs(fsnow_jul-fsnow_mat);
+end
 
 [diff_max, ~] = max(diff_abs,[],"all");
 
@@ -119,11 +125,16 @@ disp("Max diff = " + diff_max)
 
 disp("Row max = " + row_max)
 
+disp("Row max unflipped = " + (size(hs_mat,1) - row_max + 1))
+
 disp("Col max = " + col_max)
 
+% Find linear index of cell with largest error
 
+domain = load("K:\OSHD_AUX\MODEL_SETTINGS\FSM\OSHD_DOMAIN_FSM_0250.mat");
 
-% %% Plot fsnow against hs
+linear_index = zeros(domain.grid.nrows,domain.grid.ncols);
+linear_index(domain.grid.data) = 1:sum(domain.grid.data(:));
+linear_index = flipud(linear_index);
 
-% figure; plot(hs_jul(:), fsnow_jul(:), '.'); title("julia")
-% figure; plot(hs_mat(:), fsnow_mat(:), '.'); title("matlab")
+disp("Linear index = " + linear_index(row_max,col_max))
