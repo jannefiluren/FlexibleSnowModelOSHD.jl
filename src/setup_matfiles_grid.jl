@@ -1,4 +1,4 @@
-function setup_matfiles_grid(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int; SNFRAC = nothing)
+function setup_matfiles_grid(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int; SNFRAC = nothing, TILE = "open")
 
   # Constants
 
@@ -55,6 +55,15 @@ function setup_matfiles_grid(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int; SNFRAC = n
   fsm.HN_ON  = false
   fsm.FOR_HN = true
 
+
+  if TILE == "forest"
+    fsm.CANMOD = 1
+    fsm.EXCHNG = 2
+    fsm.SNFRAC = 4
+    fsm.ZOFFST = 1
+  end
+
+
   # Model perturbations
 
   # nam_modpert = pyconvert(Dict,nml["nam_modpert"])
@@ -69,7 +78,7 @@ function setup_matfiles_grid(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int; SNFRAC = n
 
   # nam_modtile = pyconvert(Dict,nml["nam_modtile"])
 
-  fsm.TILE = "open"
+  fsm.TILE = TILE
   fsm.tthresh = Tf(0.1)
 
   # Defaults for numerical solution parameters
@@ -325,6 +334,7 @@ function setup_matfiles_grid(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int; SNFRAC = n
       # read!(joinpath(folder, landuse_glac), fsm.glacierfrac)    TODO add this later
     end
   else
+    fsm.tilefrac .= Tf.(landuse[lowercase(TILE)]["data"])
     # read!(joinpath(folder, landuse_tile), fsm.tilefrac)   TODO add this later
   end 
 
@@ -372,20 +382,20 @@ function setup_matfiles_grid(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int; SNFRAC = n
     fsm.fves[:,:] .= Tf(1) .- exp.(-fsm.kveg.*fsm.VAI[:,:])
   else # TILE == 'forest'
     # lus fields specific to forest runs
-    # read!(joinpath(folder, "states_in_qcan.bin"), fsm.Qcan)  TODO add later
-    # read!(joinpath(folder, "states_in_sveg.bin"), fsm.Sveg)
-    # read!(joinpath(folder, "states_in_tcan.bin"), fsm.Tcan)
-    # read!(joinpath(folder, "states_in_tveg.bin"), fsm.Tveg)
-    # read!(joinpath(folder, "landuse_fveg.bin"), fsm.fveg)
-    # read!(joinpath(folder, "landuse_hcan.bin"), fsm.hcan)
-    # read!(joinpath(folder, "landuse_lai.bin"), fsm.lai)
-    # read!(joinpath(folder, "landuse_vfhp.bin"), fsm.vfhp)
-    # read!(joinpath(folder, "landuse_fves.bin"), fsm.fves)
-    # read!(joinpath(folder, "landuse_pmultf.bin"), fsm.pmultf)
+    fsm.Qcan .= Tf(0)     # read!(joinpath(folder, "states_in_qcan.bin"), fsm.Qcan)  TODO add later
+    fsm.Sveg .= Tf(0)     # read!(joinpath(folder, "states_in_sveg.bin"), fsm.Sveg)
+    fsm.Tcan .= Tf(285)    # read!(joinpath(folder, "states_in_tcan.bin"), fsm.Tcan)
+    fsm.Tveg .= Tf(285)    # read!(joinpath(folder, "states_in_tveg.bin"), fsm.Tveg)
+    fsm.fveg .= Tf.(landuse["fveg"]["data"])                   # read!(joinpath(folder, "landuse_fveg.bin"), fsm.fveg)
+    fsm.hcan .= Tf.(landuse["hcan"]["data"])                   # read!(joinpath(folder, "landuse_hcan.bin"), fsm.hcan)
+    fsm.lai .= Tf.(landuse["lai"]["data"])                   # read!(joinpath(folder, "landuse_lai.bin"), fsm.lai)
+    fsm.vfhp .= Tf.(landuse["vfhp"]["data"])                   # read!(joinpath(folder, "landuse_vfhp.bin"), fsm.vfhp)
+    fsm.fves .= Tf.(landuse["fves"]["data"])                   # read!(joinpath(folder, "landuse_fves.bin"), fsm.fves)
+    fsm.pmultf .= Tf.(landuse["prec_multi"]["data"])                   # read!(joinpath(folder, "landuse_pmultf.bin"), fsm.pmultf)
     
     # derived canopy properties 
     fsm.VAI[:,:] = fsm.lai[:,:]
-    trcn[:,:] = Tf(1) .- Tf(0.9).*fsm.fveg[:,:]  
+    fsm.trcn[:,:] = Tf(1) .- Tf(0.9).*fsm.fveg[:,:]  
     for j = 1:fsm.Ny
       for i = 1:fsm.Nx
         fsm.fsky[i,j] = fsm.vfhp[i,j]./fsm.trcn[i,j]

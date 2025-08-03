@@ -33,7 +33,7 @@ function ebalsrf(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Inte
 
   @unpack dTs, Esrf, Eveg, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Rnet, Rsrf = fsm
 
-  @unpack KH, KWg = fsm
+  @unpack KH, KWg, KHa, KHv, KWv, SWveg = fsm
 
   @unpack LW, Ps, Qa, Ta = meteo
 
