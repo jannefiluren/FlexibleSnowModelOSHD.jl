@@ -58,12 +58,12 @@ end
 
 # Prepare landuse
 
-landuse = prepare_landuse_stations()
+landuse = prepare_landuse("K:/OSHD_AUX/DATA_LUS/OSHD_LUS_STAT.mat")
 
 
 # Setup model
 
-fsm = setup_matfiles_point(Float32, Int32, landuse, sum(landuse["is_domain"]), 1)
+fsm = setup_matfiles_point(Float32, Int32, landuse, sum(landuse["is_domain"]["data"]), 1)
 met_curr = MET{Float32, Int32}(Nx=nstat)
 
 Sf24h = zeros(size(met_curr.Sf24h))

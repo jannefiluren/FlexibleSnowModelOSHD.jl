@@ -52,10 +52,7 @@ function run_snow_model(test_data_path::String;
     end
     
     println("Loading landuse data...")
-    landuse = matread(landuse_path)
-    
-    # Process landuse data
-    landuse = process_landuse_for_fsm(landuse)
+    landuse = prepare_landuse(landuse_path)
     
     # Get domain dimensions
     Nx = size(landuse["dem"]["data"], 1)
@@ -208,25 +205,6 @@ function run_snow_model(test_data_path::String;
 end
 
 
-function process_landuse_for_fsm(landuse::Dict)
-    
-    processed_landuse = copy(landuse)
-    
-    # Add required fields that are computed in prepare_landuse_grid
-    dem_size = size(processed_landuse["dem"]["data"])
-    
-    # processed_landuse["is_domain"] = ones(Bool, dem_size)
-    processed_landuse["dhdxdy"] = processed_landuse["dhdxdy"]["data"]   # TODO change in subsequent code
-    processed_landuse["sddem"] = processed_landuse["sd"]["data"]   # TODO change in subsequent code
-    processed_landuse["Ld"] = 250 * ones(dem_size)
-    processed_landuse["slopemu"] = sqrt.((processed_landuse["dhdxdy"] ./ 2))
-    processed_landuse["xi"] = (sqrt(2) * processed_landuse["sddem"]) ./ processed_landuse["slopemu"]
-    processed_landuse["x"] = ones(dem_size)
-    processed_landuse["y"] = ones(dem_size)
-    processed_landuse["prec_multi"]["data"] .= 1
-    
-    return processed_landuse
-end
 
 
 function save_reference_results(reference_results::Dict, output_path::String, tile::String, snfrac::Int)

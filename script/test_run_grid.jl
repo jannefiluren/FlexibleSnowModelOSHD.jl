@@ -18,7 +18,7 @@ searchdir(path, key) = filter(x -> occursin(key, x), readdir(path))
 
 # Read landuse data
 
-landuse = prepare_landuse_grid()
+landuse = prepare_landuse("K:/OSHD_AUX/DATA_LUS/OSHD_LUS_0250.mat")
 
 
 # Setup model

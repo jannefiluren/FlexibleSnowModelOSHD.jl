@@ -298,13 +298,13 @@ function setup_matfiles_point(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int; SNFRAC = 
   fsm.Nsnow .= Tf(0)                                                                 # read!(joinpath(folder, "states_in_nsne.bin"), fsm.Nsnow)
   fsm.Sice .= Tf(0)                                                                  # read!(joinpath(folder, "states_in_sicl.bin"), fsm.Sice)
   fsm.Sliq .= Tf(0)                                                                  # read!(joinpath(folder, "states_in_slql.bin"), fsm.Sliq)
-  fsm.Tsrf .= 285                                                                     # read!(joinpath(folder, "states_in_tsfe.bin"), fsm.Tsrf)
+  fsm.Tsrf .= 285                                                                    # read!(joinpath(folder, "states_in_tsfe.bin"), fsm.Tsrf)
   fsm.Tsnow .= Tm                                                                    # read!(joinpath(folder, "states_in_tsnl.bin"), fsm.Tsnow)
   fsm.Tsoil .= Tf(285)                                                               # read!(joinpath(folder, "states_in_tsll.bin"), fsm.Tsoil)
-  fsm.fsky_terr .= Tf.(landuse["skyvf"]["data"][landuse["is_domain"]])               # read!(joinpath(folder, "landuse_skyvf.bin"), fsm.fsky_terr)
-  fsm.lat .= Tf.(landuse["y"][landuse["is_domain"]])                                 # read!(joinpath(folder, "landuse_lat.bin"), fsm.lat)   # TODO this wrong - currently swiss coords
-  fsm.lon .= Tf.(landuse["x"][landuse["is_domain"]])                                 # read!(joinpath(folder, "landuse_lon.bin"), fsm.lon)   # TODO this wrong - currently swiss coords
-  fsm.dem .= Tf.(landuse["dem"]["data"][landuse["is_domain"]])                       # read!(joinpath(folder, "landuse_dem.bin"), fsm.dem)
+  fsm.fsky_terr .= Tf.(landuse["skyvf"]["data"][landuse["is_domain"]["data"]])       # read!(joinpath(folder, "landuse_skyvf.bin"), fsm.fsky_terr)
+  fsm.lat .= Tf.(landuse["y"]["data"][landuse["is_domain"]["data"]])                 # read!(joinpath(folder, "landuse_lat.bin"), fsm.lat)   # TODO this wrong - currently swiss coords
+  fsm.lon .= Tf.(landuse["x"]["data"][landuse["is_domain"]["data"]])                 # read!(joinpath(folder, "landuse_lon.bin"), fsm.lon)   # TODO this wrong - currently swiss coords
+  fsm.dem .= Tf.(landuse["dem"]["data"][landuse["is_domain"]["data"]])               # read!(joinpath(folder, "landuse_dem.bin"), fsm.dem)
 
   # Cap glacier temperatures to 0°C 
   if (fsm.TILE == "glacier")
@@ -354,12 +354,12 @@ function setup_matfiles_point(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int; SNFRAC = 
     fsm.swemin .= Tf(0)   # read!(joinpath(folder, "states_in_swmn.bin"), fsm.swemin)
     fsm.swemax .= Tf(0)   # read!(joinpath(folder, "states_in_swmx.bin"), fsm.swemax)
     fsm.swehist .= Tf(0)   # read!(joinpath(folder, "states_in_swhs.bin"), fsm.swehist)
-    fsm.slopemu .= Tf.(landuse["slopemu"][landuse["is_domain"]])   # read!(joinpath(folder, "landuse_slopemu.bin"), fsm.slopemu)
-    fsm.xi .= Tf.(landuse["xi"][landuse["is_domain"]])      # read!(joinpath(folder, "landuse_xi.bin"), fsm.xi)
+    fsm.slopemu .= Tf.(landuse["slopemu"]["data"][landuse["is_domain"]["data"]])   # read!(joinpath(folder, "landuse_slopemu.bin"), fsm.slopemu)
+    fsm.xi .= Tf.(landuse["xi"]["data"][landuse["is_domain"]["data"]])      # read!(joinpath(folder, "landuse_xi.bin"), fsm.xi)
   end
 
   if (fsm.SNFRAC == 0 || fsm.SNTRAN == 1)
-    fsm.Ld .= Tf.(landuse["Ld"][landuse["is_domain"]])    # read!(joinpath(folder, "landuse_Ld.bin"), fsm.Ld)
+    fsm.Ld .= Tf.(landuse["Ld"]["data"][landuse["is_domain"]["data"]])    # read!(joinpath(folder, "landuse_Ld.bin"), fsm.Ld)
   end
 
   if (fsm.TILE != "forest")

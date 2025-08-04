@@ -33,7 +33,8 @@ compile_fortran_code(config["base_folder"])
 
 # Prepare landuse
 
-landuse = prepare_landuse_stations(station)
+landuse = prepare_landuse("K:/OSHD_AUX/DATA_LUS/OSHD_LUS_STAT.mat")
+landuse["is_domain"]["data"] = landuse["acro"] .== station
 
 # Loop over time
 
