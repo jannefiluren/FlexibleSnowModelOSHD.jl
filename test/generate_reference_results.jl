@@ -60,7 +60,7 @@ function run_snow_model(test_data_path::String;
     println("Domain size: $(Nx)x$(Ny)")
     
     # Setup model
-    fsm = setup_matfiles_grid(Tf, Int32, landuse, Nx, Ny, TILE=tile, SNFRAC=snfrac)
+    fsm = setup(Tf, Int32, landuse, Nx, Ny, TILE=tile, SNFRAC=snfrac)
     met_curr = MET{Tf, Int32}(Nx=Nx, Ny=Ny)
     
     # Initialize 24h snowfall tracking

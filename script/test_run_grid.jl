@@ -26,7 +26,7 @@ landuse = prepare_landuse("K:/OSHD_AUX/DATA_LUS/OSHD_LUS_0250.mat")
 Nx = size(landuse["dem"]["data"], 1)
 Ny = size(landuse["dem"]["data"], 2)
 
-fsm = setup_matfiles_grid(Float32, Int32, landuse, Nx, Ny, SNFRAC = SNFRAC)
+fsm = setup(Float32, Int32, landuse, Nx, Ny, SNFRAC = SNFRAC)
 met_curr = MET{Float32, Int32}(Nx=Nx, Ny=Ny)
 
 Sf24h = zeros(size(met_curr.Sf24h))

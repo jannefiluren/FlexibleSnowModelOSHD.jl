@@ -26,7 +26,7 @@ function run_operational(tstart::DateTime, tend::DateTime, restart::Bool=false)
   Nx = size(landuse["dem"]["data"], 1)
   Ny = size(landuse["dem"]["data"], 2)
 
-  fsm = setup_matfiles(Float32, Int32, landuse, Nx, Ny, SNFRAC=0)
+  fsm = setup(Float32, Int32, landuse, Nx, Ny, SNFRAC=0)
   met_curr = MET{Float32,Int32}(Nx=Nx, Ny=Ny)
 
   if restart

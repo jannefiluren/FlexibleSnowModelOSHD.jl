@@ -121,27 +121,27 @@
   fsnd::Array{Tfloat, 2} = 0.6*ones(Nx,Ny)
 
   # Canopy parameters
-  canh::Array{Tfloat, 2} = zeros(Nx,Ny)   # todo may need to change
-  fsky::Array{Tfloat, 2} = zeros(Nx,Ny)   # todo may need to change
-  fveg::Array{Tfloat, 2} = zeros(Nx,Ny)   # todo may need to change
-  fves::Array{Tfloat, 2} = zeros(Nx,Ny)   # todo may need to change
-  hcan::Array{Tfloat, 2} = zeros(Nx,Ny)   # todo may need to change
-  lai::Array{Tfloat, 2} = zeros(Nx,Ny)   # todo may need to change
-  pmultf::Array{Tfloat, 2} = zeros(Nx,Ny)   # todo may need to change
-  scap::Array{Tfloat, 2} = zeros(Nx,Ny)   # todo may need to change
-  trcn::Array{Tfloat, 2} = zeros(Nx,Ny)   # todo may need to change
-  VAI::Array{Tfloat, 2} = zeros(Nx,Ny)   # todo may need to change
-  vfhp::Array{Tfloat, 2} = zeros(Nx,Ny)   # todo may need to change
+  canh::Array{Tfloat, 2} = Tfloat(1.e+6)*ones(Nx,Ny)
+  fsky::Array{Tfloat, 2} = Tfloat(1.e+6)*ones(Nx,Ny)
+  fveg::Array{Tfloat, 2} = Tfloat(1.e+6)*ones(Nx,Ny)
+  fves::Array{Tfloat, 2} = Tfloat(1.e+6)*ones(Nx,Ny)
+  hcan::Array{Tfloat, 2} = Tfloat(1.e+6)*ones(Nx,Ny)
+  lai::Array{Tfloat, 2} = Tfloat(1.e+6)*ones(Nx,Ny)
+  pmultf::Array{Tfloat, 2} = Tfloat(1.e+6)*ones(Nx,Ny)
+  scap::Array{Tfloat, 2} = Tfloat(1.e+6)*ones(Nx,Ny)
+  trcn::Array{Tfloat, 2} = Tfloat(1.e+6)*ones(Nx,Ny)
+  VAI::Array{Tfloat, 2} = Tfloat(1.e+6)*ones(Nx,Ny)
+  vfhp::Array{Tfloat, 2} = Tfloat(1.e+6)*ones(Nx,Ny)
 
   # Terrain properties
-  slopemu::Array{Tfloat, 2} = zeros(Nx,Ny)
-  xi::Array{Tfloat, 2} = zeros(Nx,Ny)
-  Ld::Array{Tfloat, 2} = zeros(Nx,Ny)
-  lat::Array{Tfloat, 2} = zeros(Nx,Ny)
-  lon::Array{Tfloat, 2} = zeros(Nx,Ny)
-  dem::Array{Tfloat, 2} = zeros(Nx,Ny)
-  tilefrac::Array{Tfloat,2} = zeros(Nx,Ny)
-  glacierfrac::Array{Tfloat,2} = zeros(Nx,Ny)
+  slopemu::Array{Tfloat, 2} = Tfloat(1.e+6)*ones(Nx,Ny)
+  xi::Array{Tfloat, 2} = Tfloat(1.e+6)*ones(Nx,Ny)
+  Ld::Array{Tfloat, 2} = Tfloat(1.e+6)*ones(Nx,Ny)
+  lat::Array{Tfloat, 2} = Tfloat(1.e+6)*ones(Nx,Ny)
+  lon::Array{Tfloat, 2} = Tfloat(1.e+6)*ones(Nx,Ny)
+  dem::Array{Tfloat, 2} = Tfloat(1.e+6)*ones(Nx,Ny)
+  tilefrac::Array{Tfloat,2} = Tfloat(1.e+6)*ones(Nx,Ny)
+  glacierfrac::Array{Tfloat,2} = Tfloat(1.e+6)*ones(Nx,Ny)
 
   # Derived soil parameters
   b::Array{Tfloat, 2} = zeros(Nx,Ny)
@@ -152,29 +152,29 @@
   Vcrit::Array{Tfloat, 2} = zeros(Nx,Ny)
 
   # State variables
-  albs::Array{Tfloat, 2} = 0.85.*ones(Nx,Ny)
-  Ds::Array{Tfloat,3} = zeros(Nsmax,Nx,Ny)
-  Nsnow::Array{Tint,2} = zeros(Nx,Ny)
-  Qcan::Array{Tfloat, 2} = zeros(Nx,Ny)
-  rgrn::Array{Tfloat,3} = zeros(Nsmax,Nx,Ny)
-  histowet::Array{Tfloat,3} = zeros(Nsmax,Nx,Ny)
-  Sice::Array{Tfloat,3} = zeros(Nsmax,Nx,Ny)
-  Sliq::Array{Tfloat,3} = zeros(Nsmax,Nx,Ny)
-  Sveg::Array{Tfloat, 2} = zeros(Nx,Ny)
-  Tcan::Array{Tfloat, 2} = 273.15.*ones(Nx,Ny)
+  albs::Array{Tfloat, 2} = Tfloat(1.e+6)*ones(Nx,Ny)
+  Ds::Array{Tfloat,3} = Tfloat(1.e+6)*ones(Nsmax,Nx,Ny)
+  Nsnow::Array{Tint,2} = Tint(1.e+6)*ones(Nx,Ny)
+  Qcan::Array{Tfloat, 2} = Tfloat(1.e+6)*ones(Nx,Ny)
+  rgrn::Array{Tfloat,3} = Tfloat(1.e+6)*ones(Nsmax,Nx,Ny)
+  histowet::Array{Tfloat,3} = Tfloat(1.e+6)*ones(Nsmax,Nx,Ny)
+  Sice::Array{Tfloat,3} = Tfloat(1.e+6)*ones(Nsmax,Nx,Ny)
+  Sliq::Array{Tfloat,3} = Tfloat(1.e+6)*ones(Nsmax,Nx,Ny)
+  Sveg::Array{Tfloat, 2} = Tfloat(1.e+6)*ones(Nx,Ny)
+  Tcan::Array{Tfloat, 2} = Tfloat(1.e+6)*ones(Nx,Ny)
   theta::Array{Tfloat,3} = zeros(Nsoil,Nx,Ny)
-  Tsnow::Array{Tfloat,3} = 273.15.*ones(Nsmax,Nx,Ny)
-  Tsoil::Array{Tfloat,3} = 273.15.*ones(Nsoil,Nx,Ny)
+  Tsnow::Array{Tfloat,3} = Tfloat(1.e+6)*ones(Nsmax,Nx,Ny)
+  Tsoil::Array{Tfloat,3} = Tfloat(1.e+6)*ones(Nsoil,Nx,Ny)
   Tsrf::Array{Tfloat, 2} = zeros(Nx,Ny)
   fsnow::Array{Tfloat, 2} = zeros(Nx,Ny)
-  Tveg::Array{Tfloat, 2} = 273.15.*ones(Nx,Ny)
-  snowdepthmin::Array{Tfloat, 2} = zeros(Nx,Ny)
-  snowdepthmax::Array{Tfloat, 2} = zeros(Nx,Ny)
-  snowdepthhist::Array{Tfloat,3} = zeros(14,Nx,Ny)
-  swemin::Array{Tfloat, 2} = zeros(Nx,Ny)
-  swemax::Array{Tfloat, 2} = zeros(Nx,Ny)
-  swehist::Array{Tfloat,3} = zeros(14,Nx,Ny)
-  fsky_terr::Array{Tfloat, 2} = zeros(Nx,Ny)
+  Tveg::Array{Tfloat, 2} = Tfloat(1.e+6)*ones(Nx,Ny)
+  snowdepthmin::Array{Tfloat, 2} = Tfloat(1.e+6)*ones(Nx,Ny)
+  snowdepthmax::Array{Tfloat, 2} = Tfloat(1.e+6)*ones(Nx,Ny)
+  snowdepthhist::Array{Tfloat,3} = Tfloat(1.e+6)*ones(14,Nx,Ny)
+  swemin::Array{Tfloat, 2} = Tfloat(1.e+6)*ones(Nx,Ny)
+  swemax::Array{Tfloat, 2} = Tfloat(1.e+6)*ones(Nx,Ny)
+  swehist::Array{Tfloat,3} = Tfloat(1.e+6)*ones(14,Nx,Ny)
+  fsky_terr::Array{Tfloat, 2} = Tfloat(1.e+6)*ones(Nx,Ny)
 
   # Radiation - temporary arrays
 

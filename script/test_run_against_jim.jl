@@ -58,7 +58,7 @@ for currtime in times
 
   if currtime == times[1]
     if matfiles
-      fsm = setup_matfiles(Float32, Int32, landuse, sum(landuse["is_domain"]), 1)
+      fsm = setup(Float32, Int32, landuse, sum(landuse["is_domain"]), 1)
     else
       fsm = setup_binfiles(Float32, Int32, joinpath(config["base_folder"], "FSM_HS_single/bin_files"))
     end

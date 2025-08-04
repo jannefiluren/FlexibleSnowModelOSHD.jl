@@ -46,6 +46,47 @@ function prepare_landuse(filename::String)
 end
 
 """
+    crop_landuse_to_domain(landuse::Dict)
+
+Crop landuse data to only include points where is_domain is true.
+This converts 2D arrays to 1D vectors containing only the selected points.
+
+# Arguments
+- `landuse::Dict`: Landuse dictionary with ["variable"]["data"] format
+
+# Returns
+- `Dict`: Cropped landuse dictionary where 2D arrays become 1D vectors
+"""
+function crop_landuse_to_domain(landuse::Dict)
+    
+    # Get the domain mask
+    is_domain = landuse["is_domain"]["data"]
+    
+    # Create cropped landuse dictionary
+    cropped_landuse = deepcopy(landuse)
+    
+    # List of variables that should be cropped (2D spatial arrays)
+    spatial_vars = [
+        "dem", "skyvf", "x", "y", "dhdxdy", "sd", "Ld", "slopemu", "xi",
+        "fveg", "hcan", "lai", "vfhp", "fves", "prec_multi", "forest"
+    ]
+    
+    # Crop each spatial variable
+    for var in spatial_vars
+        if haskey(cropped_landuse, var) && haskey(cropped_landuse[var], "data")
+            # Extract only the domain points and reshape to column vector
+            cropped_data = cropped_landuse[var]["data"][is_domain]
+            cropped_landuse[var]["data"] = reshape(cropped_data, :, 1)
+        end
+    end
+    
+    # Update is_domain to be a 2D array of all trues
+    cropped_landuse["is_domain"]["data"] = ones(Bool, sum(is_domain), 1)
+    
+    return cropped_landuse
+end
+
+"""
 Helper function to ensure a landuse field has the ["data"] format
 """
 function _ensure_data_field!(landuse::Dict, field::String, default_value)

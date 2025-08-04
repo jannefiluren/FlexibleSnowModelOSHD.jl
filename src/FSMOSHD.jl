@@ -9,8 +9,7 @@ using PythonCall
 include("parameters.jl")
 include("types.jl")
 include("setup_binfiles.jl")
-include("setup_matfiles_point.jl")
-include("setup_matfiles_grid.jl")
+include("setup.jl")
 include("qsat.jl")
 include("tridiag.jl")
 include("ludcmp.jl")
@@ -27,12 +26,12 @@ include("soil.jl")
 include("snowcoverfraction.jl")
 include("prepare_landuse.jl")
 
-export FSM, MET, setup_binfiles, setup_matfiles_point, setup_matfiles_grid
+export FSM, MET, setup, setup_binfiles
 export qsat, tridiag!, ludcmp!
 export canopy, radiation, thermal, sfexch, ebalsrf, ebalfor, snow, soil
 export drive, drive!, drive_grid!
 export open_files, close_files, drive_binfiles!, drive_matfiles!
 export snowcoverfraction!
-export prepare_landuse
+export prepare_landuse, crop_landuse_to_domain
 
 end # module FSMOSHD
