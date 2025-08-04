@@ -7,16 +7,31 @@ using ProgressMeter
 function create_full_reference_dataset()
     
     base_path = joinpath(dirname(@__FILE__), "test_data")
-    
-    # Generate reference results
-    println("Running reference simulation...")
-    reference_results = run_snow_model(base_path)
-    
-    # Save reference results
     reference_path = joinpath(base_path, "reference")
-    save_reference_results(reference_results, reference_path)
     
-    println("Test dataset creation complete!")
+    # Configuration matrix: (tile, snfrac)
+    configurations = [
+        ("open", 0),
+        ("open", 3), 
+        ("open", 4),
+        ("forest", 4)
+    ]
+    
+    println("Generating reference results for $(length(configurations)) configurations...")
+    
+    for (tile, snfrac) in configurations
+        println("\n" * "="^60)
+        println("Generating reference for: tile=$tile, SNFRAC=$snfrac")
+        println("="^60)
+        
+        # Run simulation for this configuration
+        reference_results = run_snow_model(base_path, Tf=Float32, tile=tile, snfrac=snfrac)
+        
+        # Save results with configuration-specific filename
+        save_reference_results(reference_results, reference_path, tile, snfrac)
+    end
+    
+    println("\n" * "✅ All reference datasets created successfully!")
     println("Input data: $base_path")
     println("Reference results: $reference_path")
     
@@ -72,25 +87,24 @@ function run_snow_model(test_data_path::String;
     n_timesteps = length(meteo_files)
     println("Found $n_timesteps timesteps")
     
-    # Initialize arrays to store simulation results
+    # Preallocate arrays to store simulation results
     simulation_results = Dict{String, Any}()
-    simulation_results["timestamps"] = String[]
-    simulation_results["filenames"] = String[]
+    simulation_results["timestamps"] = Vector{String}(undef, n_timesteps)
+    simulation_results["filenames"] = Vector{String}(undef, n_timesteps)
     
-    # Variables to track
     state_vars = ["Tsrf", "Tsnow", "Sice", "Sliq", "fsnow", "albs", "Sveg", "Tveg", "Tcan"]
     flux_vars = ["SWsrf", "H", "LE", "G", "Melt", "Esrf", "Eveg", "Rnet"]
     diag_vars = ["Ds"]
     
     for var in [state_vars; flux_vars; diag_vars]
-        simulation_results[var] = []
+        simulation_results[var] = Array{Tf, 3}(undef, Nx, Ny, n_timesteps)
     end
     
     # Progress meter
     progress = Progress(n_timesteps, desc="Running reference simulation...")
     
     # Main simulation loop
-    for (meteo_file, tvt_file) in zip(meteo_files, tvt_files)
+    for (timestep, (meteo_file, tvt_file)) in enumerate(zip(meteo_files, tvt_files))
         
         # Load meteorological data
         met_data = matread(joinpath(meteo_path, meteo_file))
@@ -134,44 +148,56 @@ function run_snow_model(test_data_path::String;
         Sf_history[:,:,curr_hour] = Sf
         met_curr.Sf24h[:, :] .= Sf24h
         
-        # Run model for this timestep
+        # Run model for this timestep - different workflow for forest vs open tile
         drive!(fsm, met_curr)
         radiation(fsm, met_curr, t)
         thermal(fsm)
-        for _ in 1:fsm.Nitr
-            sfexch(fsm, met_curr)
-            ebalsrf(fsm, met_curr)
+        
+        if tile == "forest"
+            # Forest workflow: use ebalfor + canopy
+            for _ in 1:fsm.Nitr
+                sfexch(fsm, met_curr)
+                ebalfor(fsm, met_curr)
+            end
+            canopy(fsm, met_curr)
+        else
+            # Open workflow: use ebalsrf
+            for _ in 1:fsm.Nitr
+                sfexch(fsm, met_curr)
+                ebalsrf(fsm, met_curr)
+            end
         end
+        
         snow(fsm, met_curr, t)
         soil(fsm)
         
         # Store results
-        push!(simulation_results["timestamps"], string(t))
-        push!(simulation_results["filenames"], meteo_file)
+        simulation_results["timestamps"][timestep] = string(t)
+        simulation_results["filenames"][timestep] = meteo_file
         
-        # Store state variables (flattened for easy comparison)
-        push!(simulation_results["Tsrf"], vec(fsm.Tsrf))
-        push!(simulation_results["Tsnow"], vec(fsm.Tsnow[1,:,:]))  # First snow layer
-        push!(simulation_results["Sice"], vec(sum(fsm.Sice, dims=1)))  # Total snow ice
-        push!(simulation_results["Sliq"], vec(sum(fsm.Sliq, dims=1)))  # Total snow liquid  
-        push!(simulation_results["fsnow"], vec(fsm.fsnow))
-        push!(simulation_results["albs"], vec(fsm.albs))
-        push!(simulation_results["Sveg"], vec(fsm.Sveg))
-        push!(simulation_results["Tveg"], vec(fsm.Tveg))
-        push!(simulation_results["Tcan"], vec(fsm.Tcan))
+        # Store state variables
+        simulation_results["Tsrf"][:, :, timestep] .= fsm.Tsrf
+        simulation_results["Tsnow"][:, :, timestep] .= fsm.Tsnow[1,:,:]  # First snow layer
+        simulation_results["Sice"][:, :, timestep] .= dropdims(sum(fsm.Sice, dims=1), dims=1)  # Total snow ice
+        simulation_results["Sliq"][:, :, timestep] .= dropdims(sum(fsm.Sliq, dims=1), dims=1)  # Total snow liquid  
+        simulation_results["fsnow"][:, :, timestep] .= fsm.fsnow
+        simulation_results["albs"][:, :, timestep] .= fsm.albs
+        simulation_results["Sveg"][:, :, timestep] .= fsm.Sveg
+        simulation_results["Tveg"][:, :, timestep] .= fsm.Tveg
+        simulation_results["Tcan"][:, :, timestep] .= fsm.Tcan
         
         # Store flux variables
-        push!(simulation_results["SWsrf"], vec(fsm.SWsrf))
-        push!(simulation_results["H"], vec(fsm.H))
-        push!(simulation_results["LE"], vec(fsm.LE))
-        push!(simulation_results["G"], vec(fsm.G))
-        push!(simulation_results["Melt"], vec(fsm.Melt))
-        push!(simulation_results["Esrf"], vec(fsm.Esrf))
-        push!(simulation_results["Eveg"], vec(fsm.Eveg))
-        push!(simulation_results["Rnet"], vec(fsm.Rnet))
+        simulation_results["SWsrf"][:, :, timestep] .= fsm.SWsrf
+        simulation_results["H"][:, :, timestep] .= fsm.H
+        simulation_results["LE"][:, :, timestep] .= fsm.LE
+        simulation_results["G"][:, :, timestep] .= fsm.G
+        simulation_results["Melt"][:, :, timestep] .= fsm.Melt
+        simulation_results["Esrf"][:, :, timestep] .= fsm.Esrf
+        simulation_results["Eveg"][:, :, timestep] .= fsm.Eveg
+        simulation_results["Rnet"][:, :, timestep] .= fsm.Rnet
 
         # Store diagnostic variables
-        push!(simulation_results["Ds"], vec(sum(fsm.Ds, dims=1)))  # Total snow depth  
+        simulation_results["Ds"][:, :, timestep] .= dropdims(sum(fsm.Ds, dims=1), dims=1)  # Total snow depth  
         
         next!(progress)
     end
@@ -203,14 +229,28 @@ function process_landuse_for_fsm(landuse::Dict)
 end
 
 
-function save_reference_results(reference_results::Dict, output_path::String)
+function save_reference_results(reference_results::Dict, output_path::String, tile::String, snfrac::Int)
     
     mkpath(output_path)
     
-    # Save reference results
-    reference_file = joinpath(output_path, "reference_results.mat")
+    # Save reference results with tile and SNFRAC in filename
+    reference_file = joinpath(output_path, "reference_results_$(tile)_SNFRAC_$(snfrac).mat")
     matwrite(reference_file, reference_results)
     
+    # Save configuration for debugging
+    config = Dict(
+        "tile" => tile,
+        "snfrac" => snfrac,
+        "n_timesteps" => length(reference_results["timestamps"]),
+        "n_gridpoints" => length(reference_results["Tsrf"][1]),
+        "variables_tracked" => collect(keys(reference_results)),
+        "simulation_date" => string(now())
+    )
+    
+    config_file = joinpath(output_path, "reference_config_$(tile)_SNFRAC_$(snfrac).mat")
+    matwrite(config_file, config)
+    
     println("Reference results saved to: $reference_file")
+    println("Configuration saved to: $config_file")
     
 end

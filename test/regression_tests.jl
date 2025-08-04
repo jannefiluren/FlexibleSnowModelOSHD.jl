@@ -4,8 +4,8 @@ using MAT
 using Dates
 
 
-function load_reference_results(reference_path::String)
-    reference_file = joinpath(reference_path, "reference_results.mat")
+function load_reference_results(reference_path::String, tile::String, snfrac::Int)
+    reference_file = joinpath(reference_path, "reference_results_$(tile)_SNFRAC_$(snfrac).mat")
     
     if !isfile(reference_file)
         error("Reference results file not found: $reference_file")
@@ -16,20 +16,20 @@ function load_reference_results(reference_path::String)
 end
 
 
-function run_regression_test(test_data_path::String; tolerance::Float64=1e-10)
+function run_regression_test(test_data_path::String, tile::String, snfrac::Int; tolerance::Float64=1e-10)
     
-    println("Running regression test...")
+    println("Running regression test for tile=$tile, SNFRAC=$snfrac...")
     println("Test data: $test_data_path")
     println("Tolerance: $tolerance")
     
     # Run current model to get simulation results
     println("Running current model...")
-    current_results = run_snow_model(test_data_path)
+    current_results = run_snow_model(test_data_path, Tf=Float32, tile=tile, snfrac=snfrac)
     
     # Load reference results
     println("Loading reference results...")
     reference_path = joinpath(test_data_path, "reference")
-    reference_results = load_reference_results(reference_path)
+    reference_results = load_reference_results(reference_path, tile, snfrac)
     
     # Compare results
     println("Comparing results...")
@@ -45,18 +45,19 @@ function run_regression_test(test_data_path::String; tolerance::Float64=1e-10)
             continue
         end
         
-        # Check that we have the same number of timesteps
-        if length(current_results[variable]) != length(reference_results[variable])
-            println("ERROR: Timestep mismatch for $variable: current=$(length(current_results[variable])), reference=$(length(reference_results[variable]))")
+        # Check that we have the same dimensions
+        if size(current_results[variable]) != size(reference_results[variable])
+            println("ERROR: Dimension mismatch for $variable: current=$(size(current_results[variable])), reference=$(size(reference_results[variable]))")
             test_passed = false
             continue
         end
         
         # Compare each timestep
         max_diff_var = 0.0
-        for timestep in 1:length(current_results[variable])
-            current_val = current_results[variable][timestep]
-            reference_val = reference_results[variable][timestep]
+        n_timesteps = size(current_results[variable], 3)
+        for timestep in 1:n_timesteps
+            current_val = current_results[variable][:, :, timestep]
+            reference_val = reference_results[variable][:, :, timestep]
             
             # Calculate maximum absolute difference for this timestep
             max_diff_timestep = maximum(abs.(current_val .- reference_val))
@@ -73,19 +74,19 @@ function run_regression_test(test_data_path::String; tolerance::Float64=1e-10)
     end
     
     # Print summary
-    println("\nRegression test summary:")
-    println("=" ^ 50)
+    println("\nRegression test summary for tile=$tile, SNFRAC=$snfrac:")
+    println("=" ^ 60)
     for variable in sort(collect(keys(max_differences)))
         max_diff = max_differences[variable]
         status = max_diff <= tolerance ? "PASS" : "FAIL"
         println("$variable: max_diff = $(round(max_diff, sigdigits=3)) [$status]")
     end
-    println("=" ^ 50)
+    println("=" ^ 60)
     
     if test_passed
-        println("✅ All regression tests PASSED")
+        println("✅ Regression test PASSED for tile=$tile, SNFRAC=$snfrac")
     else
-        println("❌ Some regression tests FAILED")
+        println("❌ Regression test FAILED for tile=$tile, SNFRAC=$snfrac")
     end
     
     return test_passed, max_differences

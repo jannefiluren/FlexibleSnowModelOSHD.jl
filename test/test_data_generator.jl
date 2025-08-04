@@ -5,7 +5,7 @@ using FSMOSHD
 
 function create_test_dataset(;
     start_date::Date=Date(2024, 10, 1),
-    end_date::Date=Date(2024, 11, 1),
+    end_date::Date=Date(2025, 6, 1),
     domain_size::Int=20)
 
     base_path = joinpath(dirname(@__FILE__), "test_data")
@@ -44,7 +44,7 @@ function extract_test_domain_from_landuse(landuse_data::Dict, center_x::Int, cen
 
     # Extract all relevant landuse fields
     data_fields = ["dem", "skyvf", "fveg", "hcan", "lai", "vfhp", "fves", "prec_multi",
-        "glacierfrac", "slope", "dhdxdy", "sd"]
+        "forest", "slope", "dhdxdy", "sd"]
 
     test_landuse = Dict()
     for field in data_fields
