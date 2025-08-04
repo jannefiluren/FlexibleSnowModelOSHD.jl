@@ -33,7 +33,7 @@ function ebalsrf(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Inte
 
   @unpack dTs, Esrf, Eveg, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Rnet, Rsrf = fsm
 
-  @unpack KH, KWg = fsm
+  @unpack KH, KWg, KHa, KHv, KWv, SWveg = fsm
 
   @unpack LW, Ps, Qa, Ta = meteo
 
@@ -56,50 +56,50 @@ function ebalsrf(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Inte
           if (Tsrf[i, j] < Tm || Sice[1, i, j] > eps(Tf))
             Lh = Ls
           end
-          D = Lh * Qs / (Rwat * Tsrf[i, j]^2)
+          D = Lh * Qs / (Rwat * Tsrf[i, j]^Tf(2))
           rho = Ps[i, j] / (Rair * Ta[i, j])
 
           # Explicit fluxes
           Esrf[i, j] = rho * KWg[i, j] * (Qs - Qa[i, j])
-          G[i, j] = 2 * ks1[i, j] * (Tsrf[i, j] - Ts1[i, j]) / Ds1[i, j]
+          G[i, j] = Tf(2) * ks1[i, j] * (Tsrf[i, j] - Ts1[i, j]) / Ds1[i, j]
           H[i, j] = cp * rho * KH[i, j] * (Tsrf[i, j] - Ta[i, j])
           LE[i, j] = Lh * Esrf[i, j]
-          Melt[i, j] = 0
-          Rnet[i, j] = SWsrf[i, j] + trcn[i, j] * LW[i, j] - sb * Tsrf[i, j]^4 + (1 - trcn[i, j]) * sb * Tveg[i, j]^4
+          Melt[i, j] = Tf(0)
+          Rnet[i, j] = SWsrf[i, j] + trcn[i, j] * LW[i, j] - sb * Tsrf[i, j]^Tf(4) + (Tf(1) - trcn[i, j]) * sb * Tveg[i, j]^Tf(4)
 
           # Surface energy balance increments without melt
-          dTs[i, j] = (Rnet[i, j] - G[i, j] - H[i, j] - LE[i, j]) / (4 * sb * Tsrf[i, j]^3 + 2 * ks1[i, j] / Ds1[i, j] + rho * (cp * KH[i, j] + Lh * D * KWg[i, j]))
+          dTs[i, j] = (Rnet[i, j] - G[i, j] - H[i, j] - LE[i, j]) / (Tf(4) * sb * Tsrf[i, j]^Tf(3) + Tf(2) * ks1[i, j] / Ds1[i, j] + rho * (cp * KH[i, j] + Lh * D * KWg[i, j]))
           dE = rho * KWg[i, j] * D * dTs[i, j]
-          dG = 2 * ks1[i, j] * dTs[i, j] / Ds1[i, j]
+          dG = Tf(2) * ks1[i, j] * dTs[i, j] / Ds1[i, j]
           dH = cp * rho * KH[i, j] * dTs[i, j]
-          dR = -4 * sb * Tsrf[i, j]^3 * dTs[i, j]
+          dR = Tf(-4) * sb * Tsrf[i, j]^Tf(3) * dTs[i, j]
 
           # Surface melting
           if (Tsrf[i, j] + dTs[i, j] > Tm && Sice[1, i, j] > eps(Tf))
-            # Melt[i, j] = 0.0
+            # Melt[i, j] = Tf(0.0)
             # for si in 1:size(Sice, 1)
             #   Melt[i, j] += Sice[si, i, j]
             # end
             # Melt[i, j] /= dt
             Melt[i, j] = sum(@view Sice[:, i, j]) / dt
-            dTs[i, j] = (Rnet[i, j] - G[i, j] - H[i, j] - LE[i, j] - Lf * Melt[i, j]) / (4 * sb * Tsrf[i, j]^3 + 2 * ks1[i, j] / Ds1[i, j] + rho * (cp * KH[i, j] + Ls * D * KWg[i, j]))
+            dTs[i, j] = (Rnet[i, j] - G[i, j] - H[i, j] - LE[i, j] - Lf * Melt[i, j]) / (Tf(4) * sb * Tsrf[i, j]^Tf(3) + Tf(2) * ks1[i, j] / Ds1[i, j] + rho * (cp * KH[i, j] + Ls * D * KWg[i, j]))
             dE = rho * KWg[i, j] * D * dTs[i, j]
-            dG = 2 * ks1[i, j] * dTs[i, j] / Ds1[i, j]
+            dG = Tf(2) * ks1[i, j] * dTs[i, j] / Ds1[i, j]
             dH = cp * rho * KH[i, j] * dTs[i, j]
-            dR = -4 * sb * Tsrf[i, j]^3 * dTs[i, j]
+            dR = Tf(-4) * sb * Tsrf[i, j]^Tf(3) * dTs[i, j]
             if (Tsrf[i, j] + dTs[i, j] < Tm)
               Qs = qsat(Ps[i, j], Tm)  #call QSAT(Ps[i,j],Tm,Qs)
               Esrf[i, j] = rho * KWg[i, j] * (Qs - Qa[i, j])
-              G[i, j] = 2 * ks1[i, j] * (Tm - Ts1[i, j]) / Ds1[i, j]
+              G[i, j] = Tf(2) * ks1[i, j] * (Tm - Ts1[i, j]) / Ds1[i, j]
               H[i, j] = cp * rho * KH[i, j] * (Tm - Ta[i, j])
               LE[i, j] = Ls * Esrf[i, j]
-              Rnet[i, j] = SWsrf[i, j] + trcn[i, j] * LW[i, j] - sb * Tm^4 + (1 - trcn[i, j]) * sb * Tveg[i, j]^4
+              Rnet[i, j] = SWsrf[i, j] + trcn[i, j] * LW[i, j] - sb * Tm^Tf(4) + (Tf(1) - trcn[i, j]) * sb * Tveg[i, j]^Tf(4)
               Melt[i, j] = (Rnet[i, j] - H[i, j] - LE[i, j] - G[i, j]) / Lf
-              Melt[i, j] = max(Melt[i, j], 0.0)
-              dE = 0.0
-              dG = 0.0
-              dH = 0.0
-              dR = 0.0
+              Melt[i, j] = max(Melt[i, j], Tf(0.0))
+              dE = Tf(0.0)
+              dG = Tf(0.0)
+              dH = Tf(0.0)
+              dR = Tf(0.0)
               dTs[i, j] = Tm - Tsrf[i, j]
             end
           end
@@ -113,14 +113,14 @@ function ebalsrf(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Inte
             if (Tsrf[i, j] + dTs[i, j] > Tm && Sice[1, i, j] <= eps(Tf))
               Qs = qsat(Ps[i, j], Tm)  #call QSAT(Ps[i,j],Tm,Qs)
               Esrf[i, j] = rho * KWg[i, j] * (Qs - Qa[i, j])
-              G[i, j] = 2 * ks1[i, j] * (Tm - Ts1[i, j]) / Ds1[i, j]
+              G[i, j] = Tf(2) * ks1[i, j] * (Tm - Ts1[i, j]) / Ds1[i, j]
               H[i, j] = cp * rho * KH[i, j] * (Tm - Ta[i, j])
               LE[i, j] = Ls * Esrf[i, j]
-              Rnet[i, j] = SWsrf[i, j] + trcn[i, j] * LW[i, j] - sb * Tm^4 + (1 - trcn[i, j]) * sb * Tveg[i, j]^4
-              dE = 0.0
-              dG = 0.0
-              dH = 0.0
-              dR = 0.0
+              Rnet[i, j] = SWsrf[i, j] + trcn[i, j] * LW[i, j] - sb * Tm^Tf(4) + (Tf(1) - trcn[i, j]) * sb * Tveg[i, j]^Tf(4)
+              dE = Tf(0.0)
+              dG = Tf(0.0)
+              dH = Tf(0.0)
+              dR = Tf(0.0)
               dTs[i, j] = Tm - Tsrf[i, j]
             end
           end
@@ -134,7 +134,7 @@ function ebalsrf(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Inte
           Tsrf[i, j] = Tsrf[i, j] + dTs[i, j]
 
           # Sublimation limited by amount of snow after melt
-          # Ssub = 0.0
+          # Ssub = Tf(0.0)
           # for si in 1:size(Sice, 1)
           #   Ssub += Sice[si, i, j]
           # end
@@ -151,11 +151,11 @@ function ebalsrf(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Inte
 
           # Ensure LWsci and LWveg exist as variable even in open runs
           LWsci[i, j] = LW[i, j]
-          LWveg[i, j] = 0.0
+          LWveg[i, j] = Tf(0.0)
 
           if (CANMOD == 0)
             # Add fluxes from canopy in zero-layer model
-            Eveg[i, j] = 0.0
+            Eveg[i, j] = Tf(0.0)
             if (fveg[i, j] > eps(Tf))
               Eveg[i, j] = -KWv[i, j] * Esrf[i, j] / (KHa[i, j] + KWv[i, j])
               H[i, j] = KHa[i, j] * H[i, j] / (KHa[i, j] + KHv[i, j])
@@ -164,7 +164,7 @@ function ebalsrf(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Inte
                 Lh = Lv
               end
               LE[i, j] = LE[i, j] + Lh * Eveg[i, j]
-              Rnet[i, j] = Rnet[i, j] + SWveg[i, j] + (1 - trcn[i, j]) * (LW[i, j] + sb * Tsrf[i, j]^4 - 2 * sb * Tveg[i, j]^4)
+              Rnet[i, j] = Rnet[i, j] + SWveg[i, j] + (Tf(1) - trcn[i, j]) * (LW[i, j] + sb * Tsrf[i, j]^Tf(4) - Tf(2) * sb * Tveg[i, j]^Tf(4))
             end
           end
         end

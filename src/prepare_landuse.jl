@@ -36,6 +36,8 @@ function prepare_landuse_grid()
   landuse["x"] = ones(size(landuse["dem"]["data"]))   # TODO hack for adding x
   landuse["y"] = ones(size(landuse["dem"]["data"]))   # TODO hack for adding y
 
+  landuse["prec_multi"]["data"] .= 1
+
   return landuse
 
 end

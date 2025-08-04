@@ -7,10 +7,8 @@ using Tables
 
 # Settings
 
-SNFRAC = 0
-
 base_folder = "D:/julia"
-subfolder = "SNFRAC_" * string(SNFRAC)
+subfolder = "FOREST"
 
 # Helper functions
 
@@ -26,7 +24,7 @@ landuse = prepare_landuse_grid()
 Nx = size(landuse["dem"]["data"], 1)
 Ny = size(landuse["dem"]["data"], 2)
 
-fsm = setup_matfiles_grid(Float32, Int32, landuse, Nx, Ny, SNFRAC = SNFRAC)
+fsm = setup_matfiles_grid(Float32, Int32, landuse, Nx, Ny; TILE = "forest")
 met_curr = MET{Float32, Int32}(Nx=Nx, Ny=Ny)
 
 Sf24h = zeros(size(met_curr.Sf24h))
@@ -44,10 +42,10 @@ for (i, t) in enumerate(times)
 
     # Prepare forcing data
 
-    folder = joinpath("K:/DATA_ICON/OUTPUT_OSHD_0250/PROCESSED_ANALYSIS/ICON_1EFA", Dates.format(t, "yyyy.mm"))
-    filename = searchdir(folder, "ICONDATA_" * Dates.format(t, "yyyymmddHHMM") * "_C1EFA_")
+    folder_icon = joinpath("K:/DATA_ICON/OUTPUT_OSHD_0250/PROCESSED_ANALYSIS/ICON_1EFA", Dates.format(t, "yyyy.mm"))
+    filename_icon = searchdir(folder_icon, "ICONDATA_" * Dates.format(t, "yyyymmddHHMM") * "_C1EFA_")
 
-    met_single = matread(joinpath(folder, filename[1]))
+    met_single = matread(joinpath(folder_icon, filename_icon[1]))
 
     Sdir = met_single["sdri"]["data"]     # "direct shortwave radiation, per inclined surface area, within topography, above canopy"
     Sdif = met_single["sdfd"]["data"]     # "diffuse shortwave radiation, per horizontal surface area, within topography, above canopy"
@@ -77,6 +75,13 @@ for (i, t) in enumerate(times)
     Sf_history[:,:,curr_hour] = Sf
     met_curr.Sf24h[:, :] .= Sf24h
 
+    folder_tvt = "K:/OSHD_AUX/DATA_CANRAD/OUTPUT_OSHD_0250/CR_2410_static/YYYY." * Dates.format(t, "mm")
+    filename_tvt = searchdir(folder_tvt, "CANRAD_" * Dates.format(t, "mmddHHMM"))
+
+    tvt_single = matread(joinpath(folder_tvt, filename_tvt[1]))
+
+    met_curr.Tv[:, :] .= tvt_single["stdx"]["data"]
+
     # Run model
     
     drive!(fsm, met_curr)
@@ -87,9 +92,11 @@ for (i, t) in enumerate(times)
   
     for i in 1:fsm.Nitr
       sfexch(fsm, met_curr)
-      ebalsrf(fsm, met_curr)
+      ebalfor(fsm, met_curr)
     end
   
+    canopy(fsm, met_curr)
+
     snow(fsm, met_curr, t)
   
     soil(fsm)

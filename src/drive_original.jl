@@ -115,7 +115,7 @@ function drive_matfiles!(time, meteo::MET{Tf,Ti}, fsm::FSM, is_domain::BitMatrix
   end
 
   meteo.Ua .= max.(meteo.Ua, Tf(0.1))
-  meteo.Ua .= 0.7 .* meteo.Ua
+  meteo.Ua .= Tf(0.7) .* meteo.Ua
 
   for j = 1:fsm.Ny
     for i = 1:fsm.Nx

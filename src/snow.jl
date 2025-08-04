@@ -38,24 +38,24 @@ function snow(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Inte
   @unpack Rf, Sf, Ta, Ua = meteo
 
   Gsoil .= G
-  Roff .= 0.0
-  meltflux_out .= 0.0
-  Roff_bare .= Rf .* dt .* (1 .- fsnow)
+  Roff .= Tf(0)
+  meltflux_out .= Tf(0)
+  Roff_bare .= Rf .* dt .* (Tf(1) .- fsnow)
   Roff_snow .= Rf .* dt .* fsnow
 
-  a .= 0
-  bsnow .= 0
-  c .= 0
-  csnow .= 0
-  dTssnow .= 0
-  D .= 0
-  E .= 0
-  Gs .= 0
-  rhs .= 0
-  R .= 0
-  S .= 0
-  U .= 0
-  W .= 0
+  a .= Tf(0)
+  bsnow .= Tf(0)
+  c .= Tf(0)
+  csnow .= Tf(0)
+  dTssnow .= Tf(0)
+  D .= Tf(0)
+  E .= Tf(0)
+  Gs .= Tf(0)
+  rhs .= Tf(0)
+  R .= Tf(0)
+  S .= Tf(0)
+  U .= Tf(0)
+  W .= Tf(0)
 
   # Points with existing snowpack
   for j = 1:Ny
@@ -63,7 +63,7 @@ function snow(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Inte
 
       if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
 
-        Sbsrf[i, j] = 0
+        Sbsrf[i, j] = Tf(0)
 
         if (fsnow[i, j] > eps(Tf)) # This condition should be equivalent to Nsnow[i,j] > 0
 
@@ -72,7 +72,7 @@ function snow(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Inte
           if (SNFRAC == 3)
             fsnow_thres[i, j] = fsnow[i, j]
           else
-            fsnow_thres[i,j] = min(fsnow[i,j]+ 0.25,1.0)
+            fsnow_thres[i,j] = min(fsnow[i,j]+ Tf(0.25), Tf(1.0))
           end
 
           # Heat conduction
@@ -80,13 +80,13 @@ function snow(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Inte
             csnow[k] = (Sice[k, i, j] * hcap_ice + Sliq[k, i, j] * hcap_wat) / fsnow[i, j]
           end
           if (Nsnow[i, j] == 1)
-            Gs[1] = 2 / (Ds[1, i, j] / ksnow[1, i, j] + Dzsoil[1] / ksoil[1, i, j])
+            Gs[1] = Tf(2) / (Ds[1, i, j] / ksnow[1, i, j] + Dzsoil[1] / ksoil[1, i, j])
             dTssnow[1] = (G[i, j] + Gs[1] * (Tsoil[1, i, j] - Tsnow[1, i, j])) * dt / (csnow[1] + Gs[1] * dt)
           else
             for k = 1:Nsnow[i, j]-1
-              Gs[k] = 2 / (Ds[k, i, j] / ksnow[k, i, j] + Ds[k+1, i, j] / ksnow[k+1, i, j])
+              Gs[k] = Tf(2) / (Ds[k, i, j] / ksnow[k, i, j] + Ds[k+1, i, j] / ksnow[k+1, i, j])
             end
-            a[1] = 0.0
+            a[1] = Tf(0.0)
             bsnow[1] = csnow[1] + Gs[1] * dt
             c[1] = -Gs[1] * dt
             rhs[1] = (G[i, j] - Gs[1] * (Tsnow[1, i, j] - Tsnow[2, i, j])) * dt
@@ -97,10 +97,10 @@ function snow(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Inte
               rhs[k] = Gs[k-1] * (Tsnow[k-1, i, j] - Tsnow[k, i, j]) * dt + Gs[k] * (Tsnow[k+1, i, j] - Tsnow[k, i, j]) * dt
             end
             k = Nsnow[i, j]
-            Gs[k] = 2 / (Ds[k, i, j] / ksnow[k, i, j] + Dzsoil[1] / ksoil[1, i, j])
+            Gs[k] = Tf(2) / (Ds[k, i, j] / ksnow[k, i, j] + Dzsoil[1] / ksoil[1, i, j])
             a[k] = c[k-1]
             bsnow[k] = csnow[k] + (Gs[k-1] + Gs[k]) * dt
-            c[k] = 0
+            c[k] = Tf(0)
             rhs[k] = Gs[k-1] * (Tsnow[k-1, i, j] - Tsnow[k, i, j]) * dt + Gs[k] * (Tsoil[1, i, j] - Tsnow[k, i, j]) * dt
             ### call TRIDIAG(Nsnow(i,j),Nsmax,a,bsnow,c,rhs,dTssnow)
             tridiag!(dTssnow, Nsnow[i, j], gammasnow, Nsmax, a, bsnow, c, rhs)
@@ -108,7 +108,7 @@ function snow(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Inte
           for k = 1:Nsnow[i, j]
             Tsnow[k, i, j] = Tsnow[k, i, j] + dTssnow[k]
             if (HN_ON)
-              Tsnow[k, i, j] = max(Tsnow[k, i, j], (Tm - 40))
+              Tsnow[k, i, j] = max(Tsnow[k, i, j], (Tm - Tf(40)))
             end
           end
           k = Nsnow[i, j]
@@ -121,39 +121,39 @@ function snow(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Inte
 
           for k = 1:Nsnow[i, j]
             coldcont = csnow[k] * (Tm - Tsnow[k, i, j])
-            if (coldcont < 0)
+            if (coldcont < Tf(0))
               dSice = dSice - fsnow[i, j] * coldcont / Lf
               Tsnow[k, i, j] = Tm
             end
             if (dSice > eps(Tf))
               if (dSice > Sice[k, i, j])  # Layer melts completely
                 dSice = dSice - Sice[k, i, j]
-                Ds[k, i, j] = 0
+                Ds[k, i, j] = Tf(0)
                 Sliq[k, i, j] = Sliq[k, i, j] + Sice[k, i, j]
-                Sice[k, i, j] = 0
+                Sice[k, i, j] = Tf(0)
               else                       # Layer melts partially
-                Ds[k, i, j] = (1 - dSice / Sice[k, i, j]) * Ds[k, i, j]
+                Ds[k, i, j] = (Tf(1) - dSice / Sice[k, i, j]) * Ds[k, i, j]
                 Sice[k, i, j] = Sice[k, i, j] - dSice
                 Sliq[k, i, j] = Sliq[k, i, j] + dSice
-                dSice = 0.0                # Melt exhausted
+                dSice = Tf(0.0)                # Melt exhausted
               end
             end
           end
 
           # Remove snow by sublimation 
-          dSice = max(Esrf[i, j] * fsnow_thres[i, j], 0.0) * dt
+          dSice = max(Esrf[i, j] * fsnow_thres[i, j], Tf(0.0)) * dt
           if (dSice > eps(Tf))
             for k = 1:Nsnow[i, j]
               if (dSice > Sice[k, i, j])  # Layer sublimates completely
                 dSice = dSice - Sice[k, i, j]
-                Ds[k, i, j] = 0
+                Ds[k, i, j] = Tf(0)
                 Sbsrf[i, j] = Sbsrf[i, j] + Sice[k, i, j]
-                Sice[k, i, j] = 0
+                Sice[k, i, j] = Tf(0)
               else                       # Layer sublimates partially
-                Ds[k, i, j] = (1 - dSice / Sice[k, i, j]) * Ds[k, i, j]
+                Ds[k, i, j] = (Tf(1) - dSice / Sice[k, i, j]) * Ds[k, i, j]
                 Sice[k, i, j] = Sice[k, i, j] - dSice
                 Sbsrf[i, j] = Sbsrf[i, j] + dSice
-                dSice = 0.0                # Sublimation exhausted
+                dSice = Tf(0.0)                # Sublimation exhausted
               end
             end
           end
@@ -161,27 +161,27 @@ function snow(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Inte
           # Snow hydraulics
           # First, unloading snow is added to liquid water if Ta above freezing point
           if (Ta[i, j] >= Tm)
-            Roff_bare[i, j] = Roff_bare[i, j] + unload[i, j] * (1 - fsnow[i, j]) # Bare soil fraction
+            Roff_bare[i, j] = Roff_bare[i, j] + unload[i, j] * (Tf(1) - fsnow[i, j]) # Bare soil fraction
             Roff_snow[i, j] = Roff_snow[i, j] + unload[i, j] * fsnow[i, j] # Snow covered ground fraction
           end
           if (HYDROL == 0)
             # Free-draining snow 
-            meltflux_out[i, j] = 0
+            meltflux_out[i, j] = Tf(0)
             for k = 1:Nsnow[i, j]
               Roff_snow[i, j] = Roff_snow[i, j] + Sliq[k, i, j]
               meltflux_out[i, j] = meltflux_out[i, j] + Sliq[k, i, j]
-              Sliq[k, i, j] = 0
+              Sliq[k, i, j] = Tf(0)
             end
           elseif (HYDROL == 1)
             # Bucket storage 
             for k = 1:Nsnow[i, j]
-              phi = 0.0
+              phi = Tf(0.0)
               if (Ds[k, i, j] > eps(Tf))
-                phi = 1 - Sice[k, i, j] / (rho_ice * Ds[k, i, j] * fsnow[i, j])
+                phi = Tf(1) - Sice[k, i, j] / (rho_ice * Ds[k, i, j] * fsnow[i, j])
               end
               SliqMax = fsnow[i, j] * rho_wat * Ds[k, i, j] * phi * Wirr
               Sliq[k, i, j] = Sliq[k, i, j] + Roff_snow[i, j]
-              Roff_snow[i, j] = 0
+              Roff_snow[i, j] = Tf(0)
               if (Sliq[k, i, j] > SliqMax)       # Liquid capacity exceeded
                 Roff_snow[i, j] = Sliq[k, i, j] - SliqMax   # so drainage to next layer
                 Sliq[k, i, j] = SliqMax
@@ -189,7 +189,7 @@ function snow(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Inte
               # csnow needs to be updated after changing Sliq and Sice
               csnow[k] = (Sice[k,i,j]*hcap_ice + Sliq[k,i,j]*hcap_wat) / fsnow[i,j]
               coldcont = csnow[k] * (Tm - Tsnow[k, i, j])
-              if (coldcont > 0)       # Liquid can freeze
+              if (coldcont > Tf(0))       # Liquid can freeze
                 dSice = min(Sliq[k, i, j], fsnow[i, j] * coldcont / Lf)
                 Sliq[k, i, j] = Sliq[k, i, j] - dSice
                 Sice[k, i, j] = Sice[k, i, j] + dSice
@@ -198,24 +198,24 @@ function snow(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Inte
               end
             end
 
-            if (meltflux_out[i, j] < 0)
-              meltflux_out[i, j] = 0
+            if (meltflux_out[i, j] < Tf(0))
+              meltflux_out[i, j] = Tf(0)
             end
 
           else  # HYDROL == 2
             # Density-dependent bucket storage
             for k = 1:Nsnow[i, j]
 
-              SliqCap = 0.0   ###hackhack
+              SliqCap = Tf(0.0)   ###hackhack
 
               if (Ds[k, i, j] > eps(Tf))
                 rhos = Sice[k, i, j] / Ds[k, i, j] / fsnow[i, j]
-                SliqCap = 0.03 + 0.07 * (1 - rhos / 200)
-                SliqCap = max(SliqCap, 0.03)
+                SliqCap = Tf(0.03) + Tf(0.07) * (Tf(1) - rhos / Tf(200))
+                SliqCap = max(SliqCap, Tf(0.03))
               end
               SliqMax = SliqCap * Sice[k, i, j]
               Sliq[k, i, j] = Sliq[k, i, j] + Roff_snow[i, j]
-              Roff_snow[i, j] = 0
+              Roff_snow[i, j] = Tf(0)
               if (Sliq[k, i, j] > SliqMax)       # Liquid capacity exceeded
                 Roff_snow[i, j] = Sliq[k, i, j] - SliqMax   # so drainage to next layer
                 Sliq[k, i, j] = SliqMax
@@ -233,8 +233,8 @@ function snow(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Inte
               end
             end
 
-            if (meltflux_out[i, j] < 0)
-              meltflux_out[i, j] = 0
+            if (meltflux_out[i, j] < Tf(0))
+              meltflux_out[i, j] = Tf(0)
             end
 
           end
@@ -264,43 +264,43 @@ function snow(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Inte
             end
           elseif (DENSTY == 2)
             # Snow compaction by overburden
-            mass = 0.0
+            mass = Tf(0.0)
             for k = 1:Nsnow[i, j]
-              mass = mass + 0.5 * (Sice[k, i, j] + Sliq[k, i, j]) / fsnow[i, j]
+              mass = mass + Tf(0.5) * (Sice[k, i, j] + Sliq[k, i, j]) / fsnow[i, j]
               if (Ds[k, i, j] > eps(Tf))
                 rhos = (Sice[k, i, j] + Sliq[k, i, j]) / Ds[k, i, j] / fsnow[i, j]
-                rhos = rhos + (rhos * grav * mass * dt / (eta0 * exp(-(Tsnow[k, i, j] - Tm) / 12.4 + rhos / 55.6)) + dt * rhos * snda * exp((Tsnow[k, i, j] - Tm) / 23.8 - max(rhos - 150, 0.0) / 21.7))
+                rhos = rhos + (rhos * grav * mass * dt / (eta0 * exp(-(Tsnow[k, i, j] - Tm) / Tf(12.4) + rhos / Tf(55.6))) + dt * rhos * snda * exp((Tsnow[k, i, j] - Tm) / Tf(23.8) - max(rhos - Tf(150), Tf(0.0)) / Tf(21.7)))
                 rhos = min(rhos, rhos_max)
                 Ds[k, i, j] = (Sice[k, i, j] + Sliq[k, i, j]) / rhos / fsnow[i, j]
               end
-              mass = mass + 0.5 * (Sice[k, i, j] + Sliq[k, i, j]) / fsnow[i, j]
+              mass = mass + Tf(0.5) * (Sice[k, i, j] + Sliq[k, i, j]) / fsnow[i, j]
             end
           else # DENSTY == 3
             # Snow compaction by overburden, dependent on liquid water content (Crocus B92)
-            mass = 0.0
+            mass = Tf(0.0)
             for k = 1:Nsnow[i, j]
-              mass = mass + 0.5 * (Sice[k, i, j] + Sliq[k, i, j]) / fsnow[i, j]
+              mass = mass + Tf(0.5) * (Sice[k, i, j] + Sliq[k, i, j]) / fsnow[i, j]
               if (Ds[k, i, j] > eps(Tf))
                 rhos = (Sice[k, i, j] + Sliq[k, i, j]) / Ds[k, i, j] / fsnow[i, j]
-                f1 = 1 / (1 + 600 * Sliq[k, i, j] / (rho_wat * Ds[k, i, j] * fsnow[i, j]))
-                f2 = 1.0
+                f1 = Tf(1) / (Tf(1) + Tf(600) * Sliq[k, i, j] / (rho_wat * Ds[k, i, j] * fsnow[i, j]))
+                f2 = Tf(1.0)
                 eta = f1 * f2 * eta1 * (rhos / c_eta) * exp(a_eta * (Tm - Tsnow[k, i, j]) + b_eta * rhos)
                 rhos = rhos + rhos * grav * mass * dt / eta
                 rhos = min(rhos, rhos_max)
                 Ds[k, i, j] = (Sice[k, i, j] + Sliq[k, i, j]) / rhos / fsnow[i, j]
               end
-              mass = mass + 0.5 * (Sice[k, i, j] + Sliq[k, i, j]) / fsnow[i, j]
+              mass = mass + Tf(0.5) * (Sice[k, i, j] + Sliq[k, i, j]) / fsnow[i, j]
             end
           end
 
           # Snow grain growth --> *GM for now, this code feature is not functional because the state variable rgrn is not tracked (no bin output)
           for k = 1:Nsnow[i, j]
-            ggr = 2e-13
+            ggr = Tf(2e-13)
             if (Tsnow[k, i, j] < Tm)
-              if (rgrn[k, i, j] < 1.50e-4)
-                ggr = 2e-14
+              if (rgrn[k, i, j] < Tf(1.50e-4))
+                ggr = Tf(2e-14)
               else
-                ggr = 7.3e-8 * exp(-4600 / Tsnow[k, i, j])
+                ggr = Tf(7.3e-8) * exp(Tf(-4600) / Tsnow[k, i, j])
               end
             end
             rgrn[k, i, j] = rgrn[k, i, j] + dt * ggr / rgrn[k, i, j]
@@ -332,13 +332,13 @@ function snow(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Inte
         # Falling snow temperature
         Tsnow0 = min(Ta[i, j], Tm)
         if (HN_ON)
-          Tsnow0 = max(Tsnow0, (Tm - 40))
+          Tsnow0 = max(Tsnow0, (Tm - Tf(40)))
         end
 
 
         # Add snowfall and frost to layer 1 with fresh snow density and grain size
-        Esnow = 0.0
-        if (Esrf[i, j] < 0 && Tsrf[i, j] < Tm)
+        Esnow = Tf(0.0)
+        if (Esrf[i, j] < Tf(0) && Tsrf[i, j] < Tm)
           Esnow = fsnow[i, j] * Esrf[i, j]
           Sbsrf[i, j] = Esnow * dt
         end
@@ -352,8 +352,8 @@ function snow(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Inte
         # quite small.  When this occurred on bare ground, Tsnow calculation would blow up,
         # place NaN in Tsnow and snow would never again melt through the season
         # Do we still need this Catch in FSM??
-        if (Nsnow[i, j] <= 1 && dSice < 0.001 && Sice[1, i, j] < 0.001)
-          dSice = round(dSice * 1000 + 0.5) / 1000  ### hack see original code
+        if (Nsnow[i, j] <= Tf(1) && dSice < Tf(0.001) && Sice[1, i, j] < Tf(0.001))
+          dSice = Tf(trunc(Ti,dSice * Tf(1000) + Tf(0.5))) / Tf(1000)    # TODO verify against original code
         end
 
         if (DENSTY == 0)
@@ -361,26 +361,26 @@ function snow(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Inte
         else
           if (OSHDTN == 0)
             # Initial formulation
-            rhonew = max(rhof + rhob * (Ta[i, j] - Tm) + rhoc * Ua[i, j]^0.5, 50.0)
+            rhonew = max(rhof + rhob * (Ta[i, j] - Tm) + rhoc * Ua[i, j]^Tf(0.5), Tf(50.0))
           else # OSHDTN == 1
             # New formulation with decompaction
-            rhonew = rhof + rhob * (Ta[i, j] - Tm) + rhoc * Ua[i, j]^0.5
-            if (dem[i, j] <= 1000)
-              t_decompaction = 24.0
-            elseif (dem[i, j] > 4000)
-              t_decompaction = 0.0
+            rhonew = rhof + rhob * (Ta[i, j] - Tm) + rhoc * Ua[i, j]^Tf(0.5)
+            if (dem[i, j] <= Tf(1000))
+              t_decompaction = Tf(24.0)
+            elseif (dem[i, j] > Tf(4000))
+              t_decompaction = Tf(0.0)
             else
-              t_decompaction = 24 + (dem[i, j] - 1000) / (4000 - 1000) * (0 - 24)
+              t_decompaction = Tf(24) + (dem[i, j] - Tf(1000)) / (Tf(4000) - Tf(1000)) * (Tf(0) - Tf(24))
             end
-            rhonew = 300 + (rhonew - 300) * exp(t_decompaction / 100)
-            rhonew = max(rhonew, 50.0)
+            rhonew = Tf(300) + (rhonew - Tf(300)) * exp(t_decompaction / Tf(100))
+            rhonew = max(rhonew, Tf(50.0))
           end
         end
         if (Sice[1, i, j] + dSice > eps(Tf))
           rgrn[1, i, j] = (Sice[1, i, j] * rgrn[1, i, j] + dSice * rgr0) / (Sice[1, i, j] + dSice)
         end
         Sice[1, i, j] = Sice[1, i, j] + dSice
-        sumDs = 0.0
+        sumDs = Tf(0.0)
         for si in 1:size(Ds, 1)
           sumDs += Ds[si, i, j]
         end
@@ -389,7 +389,7 @@ function snow(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Inte
         # Add canopy unloading to layer 1 with bulk snow density and grain size
         rhos = rhof
         if (Ta[i, j] < Tm)  # only if it's cold enough
-          mass = 0.0
+          mass = Tf(0.0)
           for si in 1:size(Sice, 1)
             mass += Sice[si, i, j] + Sliq[si, i, j]
           end
@@ -403,7 +403,7 @@ function snow(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Inte
         # Store previous snow cover fraction
         fold = fsnow[i, j]
         # Updated Fractional Snow-Covered Area
-        SWEtmp = 0.0
+        SWEtmp = Tf(0.0)
         for si in 1:size(Sice, 1)
           SWEtmp += Sice[si, i, j] + Sliq[si, i, j]
         end
@@ -458,7 +458,7 @@ function snow(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Inte
           csnow[1] = (Sice[1, i, j] * hcap_ice + Sliq[1, i, j] * hcap_wat) / fsnow[i, j]
           E[1] = csnow[1] * (Tsnow[1, i, j] - Tm) + ((dSice + unload[i, j]) * hcap_ice / fsnow[i, j]) * (Tsnow0 - Tsnow[1, i, j]) # Adjustment given that csnow[1] already includes the new snow
         else
-          E[:] .= 0
+          E[:] .= Tf(0)
         end
         if (Nsnow[i, j] > 1)
           for k = 2:Nsnow[i, j]
@@ -469,13 +469,13 @@ function snow(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Inte
         Nold = Nsnow[i, j]
 
         # Initialise new layers
-        Ds[:, i, j] .= 0
-        rgrn[:, i, j] .= 0
-        Sice[:, i, j] .= 0
-        Sliq[:, i, j] .= 0
+        Ds[:, i, j] .= Tf(0)
+        rgrn[:, i, j] .= Tf(0)
+        Sice[:, i, j] .= Tf(0)
+        Sliq[:, i, j] .= Tf(0)
         Tsnow[:, i, j] .= Tm
-        U[:] .= 0
-        Nsnow[i, j] = 0
+        U[:] .= Tf(0)
+        Nsnow[i, j] = Tf(0)
 
         if (fsnow[i, j] > eps(Tf))  # Existing or new snowpack
 
@@ -497,7 +497,7 @@ function snow(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Inte
           #sum(Ds[:, i, j] .> 0)   ### hackhack
           Nsnow[i, j] = 0
           for si in 1:size(Ds, 1)
-            if Ds[si, i, j] > 0
+            if Ds[si, i, j] > Tf(0)
               Nsnow[i,j] += 1
             end
           end
@@ -540,7 +540,7 @@ function snow(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Inte
             csnow[k] = (Sice[k, i, j] * hcap_ice + Sliq[k, i, j] * hcap_wat) / fsnow[i, j]
             Tsnow[k, i, j] = Tm + U[k] / csnow[k]
             if (HN_ON)
-              Tsnow[k, i, j] = max(Tsnow[k, i, j], (Tm - 40))
+              Tsnow[k, i, j] = max(Tsnow[k, i, j], (Tm - Tf(40)))
             end
             rgrn[k, i, j] = rgrn[k, i, j] / Sice[k, i, j]
           end

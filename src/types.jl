@@ -226,6 +226,11 @@
   Rsrf::Array{Tfloat,2} = zeros(Nx,Ny)
   Ssub::Tfloat = zero(Tfloat)
 
+  # Canpopy - temporary arrays
+  intcpt::Array{Tfloat,2} = zeros(Nx, Ny)
+  Sbveg::Array{Tfloat,2} = zeros(Nx, Ny)
+  unload::Array{Tfloat, 2} = zeros(Nx, Ny)
+
   # Snow - temporary arrays
 
   Gsoil::Array{Tfloat,2} = zeros(Nx, Ny)
@@ -235,7 +240,6 @@
   Roff_bare::Array{Tfloat, 2} = zeros(Nx, Ny)
   Roff_snow::Array{Tfloat, 2} = zeros(Nx, Ny)
   fsnow_thres::Array{Tfloat, 2} = zeros(Nx, Ny)
-  unload::Array{Tfloat, 2} = zeros(Nx, Ny)
 
   a::Vector{Tfloat} = zeros(Nsmax)
   bsnow::Vector{Tfloat} = zeros(Nsmax)

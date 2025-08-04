@@ -1,4 +1,4 @@
-function soil(fsm::FSM)
+function soil(fsm::FSM{Tf,Ti}) where {Tf <: Real, Ti <: Integer}
 
   @unpack SNTRAN, SNSLID = fsm
 
@@ -20,12 +20,12 @@ function soil(fsm::FSM)
 
   @unpack gammasoil = fsm
 
-  asoil .= 0.0
-  bsoil .= 0.0
-  cssoil .= 0.0
-  dTssoil .= 0.0
-  Gssoil .= 0.0
-  rhssoil .= 0.0
+  asoil .= Tf(0)
+  bsoil .= Tf(0)
+  cssoil .= Tf(0)
+  dTssoil .= Tf(0)
+  Gssoil .= Tf(0)
+  rhssoil .= Tf(0)
 
   for j = 1:Ny
     for i = 1:Nx
@@ -33,9 +33,9 @@ function soil(fsm::FSM)
       if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
 
         for k = 1:Nsoil-1
-          Gssoil[k] = 2 / (Dzsoil[k] / ksoil[k, i, j] + Dzsoil[k+1] / ksoil[k+1, i, j])
+          Gssoil[k] = Tf(2) / (Dzsoil[k] / ksoil[k, i, j] + Dzsoil[k+1] / ksoil[k+1, i, j])
         end
-        asoil[1] = 0
+        asoil[1] = Tf(0)
         bsoil[1] = csoil[1, i, j] + Gssoil[1] * dt
         cssoil[1] = -Gssoil[1] * dt
         rhssoil[1] = (Gsoil[i, j] - Gssoil[1] * (Tsoil[1, i, j] - Tsoil[2, i, j])) * dt
@@ -49,7 +49,7 @@ function soil(fsm::FSM)
         Gssoil[k] = ksoil[k, i, j] / Dzsoil[k]
         asoil[k] = cssoil[k-1]
         bsoil[k] = csoil[k, i, j] + (Gssoil[k-1] + Gssoil[k]) * dt
-        cssoil[k] = 0
+        cssoil[k] = Tf(0)
         rhssoil[k] = Gssoil[k-1] * (Tsoil[k-1, i, j] - Tsoil[k, i, j]) * dt
         tridiag!(dTssoil, Nsoil, gammasoil, Nsoil, asoil, bsoil, cssoil, rhssoil)
         ###call TRIDIAG(Nsoil,Nsoil,asoil,bsoil,cssoil,rhssoil,dTssoil)
@@ -60,7 +60,7 @@ function soil(fsm::FSM)
         # Cap glacier temperatures to 0°C
         # This does not conserve energy.
         # The excess energy would correspond to glacier melting, which we don't track.
-        if (TILE == "glacier" || ((SNTRAN == 1 || SNSLID == 1) && glacierfrac(i,j) > eps(Float64)))
+        if (TILE == "glacier" || ((SNTRAN == 1 || SNSLID == 1) && glacierfrac[i,j] > eps(Tf)))
           for k = 1:Nsoil
             Tsoil[k, i, j] = min(Tsoil[k, i, j], Tm)
           end

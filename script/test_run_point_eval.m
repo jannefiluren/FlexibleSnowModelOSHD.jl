@@ -27,6 +27,15 @@ disp("Fraction of data with error less than 0.01m: " + sum(abs(hs_julia(:)-hs_ma
 
 landuse = load("K:/OSHD_AUX/DATA_LUS/OSHD_LUS_STAT.mat");
 
-[~, imax] = max(max(abs((hs_julia - hs_matlab)),[],1));
+[max_err, imax] = max(max(abs((hs_julia - hs_matlab)),[],1));
 
+disp("Maximum error: " + max_err)
 disp("Station with largest error: " + landuse.acro{imax})
+
+% Plot station with largest error
+
+figure()
+plot(hs_matlab(:,imax), "b")
+hold on
+plot(hs_julia(:,imax), "--r")
+legend("Matlab", "Julia")

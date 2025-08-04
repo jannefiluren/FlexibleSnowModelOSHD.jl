@@ -13,19 +13,18 @@ config = Dict()
 config["base_folder"] = "D:/julia"
 config["test_setup"] = false
 config["test_drive"] = false
-config["test_radiation"] = false
+config["test_radiation"] = false 
 config["test_thermal"] = false
 config["test_sfexch"] = false
 config["test_ebalsrf"] = false
-config["test_snow"] = false
+config["test_snow"] = true
 config["test_soil"] = false
-config["test_snow_final"] = true
 
 time_initialize = DateTime(2024,9,1,6,0,0)
-time_start = DateTime(2024,9,1,6,0,0)
+time_start = DateTime(2024,9,24,6,0,0)
 time_end = DateTime(2025,6,1,6,0,0)
 
-station = "MCH.JUN2"
+station = "SLF.1MN"
 matfiles = false
 
 # Compile model
@@ -75,33 +74,3 @@ for currtime in times
   end
 
 end
-
-
-
-
-
-
-# using FSMOSHD
-# using Dates
-
-# # Helper functions
-
-# include("test_run_against_jim_functions.jl")
-
-# # Settings
-
-# config = Dict()
-# config["base_folder"] = "D:/julia"
-# config["test_setup"] = false
-# config["test_drive"] = false
-# config["test_radiation"] = false
-# config["test_thermal"] = false
-# config["test_sfexch"] = true
-# config["test_ebalsrf"] = false
-# config["test_snow"] = false
-# config["test_soil"] = false
-# config["test_snow_final"] = false
-
-# # Run tests
-
-# test_run_against_jim(config)

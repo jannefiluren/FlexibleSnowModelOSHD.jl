@@ -1,4 +1,4 @@
-%% Initialize a new run (single station)
+%% Initialize a new run
 
 run_id = 0;
 run_id_hn = -1;

@@ -2,15 +2,18 @@
 
 clear; clc
 
-time = datenum(2025,6,3,6,00,00);
+time = datenum(2025,1,11,6,00,00);
 
 str1 = datestr(time-1,"yyyymmddHHMM");
 str2 = datestr(time,"yyyymmddHHMM");
 
 subfolder = "SNFRAC_0";
 
-% mat = load("D:\julia\FSM_HS_all\LATEST_00h_RUN\OUTPUT_OSHD_0250\RESULTS_24h_opn\MODELDATA_" + str1 + "-" + str2 + "_FSM22.mat");
 mat = load("D:\julia\FSM_HS_all\LATEST_00h_RUN\"+ subfolder + "\OUTPUT_OSHD_0250\RESULTS_24h_opn\MODELDATA_" + str1 + "-" + str2 + "_FSM22.mat");
+
+
+subfolder = "SNFRAC_0";
+
 jul = load("D:\julia\FSM_HS_julia\"+ subfolder + "\" + str2 + "_output.mat");
 
 
@@ -40,7 +43,7 @@ end
 
 %% Plot snow depth results
 
-fig = figure("Position",[294 151 1330 886]);
+fig = figure("Position",[100 100 1000 700]);
 
 t = tiledlayout(2,2);
 title(t, "Snow depth for " + str2)
@@ -73,7 +76,7 @@ linkaxes(ax)
 
 %% Plot fsnow results
 
-fig = figure("Position",[294 151 1330 886]);
+fig = figure("Position",[100 100 1000 700]);
 
 t = tiledlayout(2,2);
 title(t, "Snow cover fraction for " + str2)
@@ -104,18 +107,34 @@ ylabel("Julia")
 linkaxes(ax)
 
 
-% %% Location with largest error
+%% Location with largest error
 
-% diff_abs = abs(hs_jul(~inan)-hs_mat(~inan));
+variable = "fsnow";
 
-% [diff_max, ind_max] = max(diff_abs,[],"all");
+if variable == "hs"
+  diff_abs = abs(hs_jul-hs_mat);
+else
+  diff_abs = abs(fsnow_jul-fsnow_mat);
+end
 
-% disp(diff_max)
+[diff_max, ~] = max(diff_abs,[],"all");
 
-% disp(ind_max)
+[row_max, col_max] = find(diff_abs == diff_max);
 
+disp("Max diff = " + diff_max)
 
-% %% Plot fsnow against hs
+disp("Row max = " + row_max)
 
-% figure; plot(hs_jul(:), fsnow_jul(:), '.'); title("julia")
-% figure; plot(hs_mat(:), fsnow_mat(:), '.'); title("matlab")
+disp("Row max unflipped = " + (size(hs_mat,1) - row_max + 1))
+
+disp("Col max = " + col_max)
+
+% Find linear index of cell with largest error
+
+domain = load("K:\OSHD_AUX\MODEL_SETTINGS\FSM\OSHD_DOMAIN_FSM_0250.mat");
+
+linear_index = zeros(domain.grid.nrows,domain.grid.ncols);
+linear_index(domain.grid.data) = 1:sum(domain.grid.data(:));
+linear_index = flipud(linear_index);
+
+disp("Linear index = " + linear_index(row_max,col_max))
