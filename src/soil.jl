@@ -1,4 +1,4 @@
-function soil(fsm::FSM{Tf,Ti}) where {Tf <: Real, Ti <: Integer}
+function soil!(fsm::FSM{Tf,Ti}) where {Tf <: Real, Ti <: Integer}
 
   @unpack SNTRAN, SNSLID = fsm
 

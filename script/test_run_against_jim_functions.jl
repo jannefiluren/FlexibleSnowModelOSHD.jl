@@ -42,7 +42,7 @@ function test_run_against_jim_binfiles(config, fsm, meteo, ctime, station, matfi
 
     # Run radiation
 
-    radiation(fsm, meteo, t)
+    radiation!(fsm, meteo, t)
 
     if config["test_radiation"]
       fields = ["alb", "asrf_out", "Sdirt", "Sdift", "SWveg", "SWsrf", "SWsci", "LWt"]
@@ -51,7 +51,7 @@ function test_run_against_jim_binfiles(config, fsm, meteo, ctime, station, matfi
 
     # Run thermal
 
-    thermal(fsm)
+    thermal!(fsm)
 
     if config["test_thermal"]
       fields = ["Ds1", "gs1", "ks1", "Ts1", "Tveg0", "csoil", "ksnow", "ksoil"]
@@ -61,8 +61,8 @@ function test_run_against_jim_binfiles(config, fsm, meteo, ctime, station, matfi
     # Run sfexch and ebalsrf
 
     for i in 1:fsm.Nitr
-      sfexch(fsm, meteo)
-      ebalsrf(fsm, meteo)
+      sfexch!(fsm, meteo)
+      ebalsrf!(fsm, meteo)
     end
 
     if config["test_sfexch"]
@@ -77,7 +77,7 @@ function test_run_against_jim_binfiles(config, fsm, meteo, ctime, station, matfi
 
     # Run snow
 
-    snow(fsm, meteo, t)
+    snow!(fsm, meteo, t)
 
     if config["test_snow"]
       fields = ["Gsoil",  "Roff",  "meltflux_out",  "Sbsrf",  "Roff_bare",  "Roff_snow",  "fsnow",  "unload",  "Tsnow",  "Sice",  "Sliq",  "Ds"]
@@ -86,7 +86,7 @@ function test_run_against_jim_binfiles(config, fsm, meteo, ctime, station, matfi
 
     # Run soil
 
-    soil(fsm)
+    soil!(fsm)
 
     if config["test_soil"]
       fields = ["Tsoil", "Gsoil"]

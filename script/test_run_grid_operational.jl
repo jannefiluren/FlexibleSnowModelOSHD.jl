@@ -44,18 +44,18 @@ function run_operational(tstart::DateTime, tend::DateTime, restart::Bool=false)
 
     drive_grid!(met_curr, fsm, t)
 
-    radiation(fsm, met_curr, t)
+    radiation!(fsm, met_curr, t)
 
-    thermal(fsm)
+    thermal!(fsm)
 
     for i in 1:fsm.Nitr
-      sfexch(fsm, met_curr)
-      ebalsrf(fsm, met_curr)
+      sfexch!(fsm, met_curr)
+      ebalsrf!(fsm, met_curr)
     end
 
-    snow(fsm, met_curr, t)
+    snow!(fsm, met_curr, t)
 
-    soil(fsm)
+    soil!(fsm)
 
     if hour(t) == 5
       write_results(fsm, base_folder, t)

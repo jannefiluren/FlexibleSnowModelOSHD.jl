@@ -144,18 +144,18 @@ begin
 		  
 		  drive!(fsm, met_curr)
 		
-		  radiation(fsm, met_curr, t)
+		  radiation!(fsm, met_curr, t)
 		
-		  thermal(fsm)
+		  thermal!(fsm)
 		
 		  for i in 1:fsm.Nitr
-			sfexch(fsm, met_curr)
-			ebalsrf(fsm, met_curr)
+			sfexch!(fsm, met_curr)
+			ebalsrf!(fsm, met_curr)
 		  end
 		
-		  snow(fsm, met_curr, t)
+		  snow!(fsm, met_curr, t)
 		
-		  soil(fsm)
+		  soil!(fsm)
 		
 		  snowdepth[i,:] = dropdims(sum(fsm.Ds, dims=1), dims=3)
 

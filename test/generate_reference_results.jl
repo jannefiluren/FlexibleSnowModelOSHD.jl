@@ -147,26 +147,26 @@ function run_snow_model(test_data_path::String;
         
         # Run model for this timestep - different workflow for forest vs open tile
         drive!(fsm, met_curr)
-        radiation(fsm, met_curr, t)
-        thermal(fsm)
+        radiation!(fsm, met_curr, t)
+        thermal!(fsm)
         
         if tile == "forest"
             # Forest workflow: use ebalfor + canopy
             for _ in 1:fsm.Nitr
-                sfexch(fsm, met_curr)
-                ebalfor(fsm, met_curr)
+                sfexch!(fsm, met_curr)
+                ebalfor!(fsm, met_curr)
             end
-            canopy(fsm, met_curr)
+            canopy!(fsm, met_curr)
         else
             # Open workflow: use ebalsrf
             for _ in 1:fsm.Nitr
-                sfexch(fsm, met_curr)
-                ebalsrf(fsm, met_curr)
+                sfexch!(fsm, met_curr)
+                ebalsrf!(fsm, met_curr)
             end
         end
         
-        snow(fsm, met_curr, t)
-        soil(fsm)
+        snow!(fsm, met_curr, t)
+        soil!(fsm)
         
         # Store results
         simulation_results["timestamps"][timestep] = string(t)

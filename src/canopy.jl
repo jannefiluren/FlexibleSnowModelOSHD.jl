@@ -1,4 +1,4 @@
-function canopy(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}) where {Tf<:Real,Ti<:Integer}
+function canopy!(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}) where {Tf<:Real,Ti<:Integer}
 
   @unpack_constants(Tf)
 

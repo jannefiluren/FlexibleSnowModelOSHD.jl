@@ -1,4 +1,4 @@
-function thermal(fsm::FSM{Tf, Ti}) where {Tf<:Real, Ti<:Integer}
+function thermal!(fsm::FSM{Tf, Ti}) where {Tf<:Real, Ti<:Integer}
 
   @unpack_constants(Tf)
 
