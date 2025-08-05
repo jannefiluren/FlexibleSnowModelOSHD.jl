@@ -250,6 +250,15 @@
   Rsrf::Array{Tfloat,2} = zeros(Nx,Ny)
   Ssub::Tfloat = zero(Tfloat)
 
+  # Ebalfor - temporary arrays
+
+  A_ebal::Array{Tfloat,2} = zeros(4, 4)
+  Acp_ebal::Array{Tfloat,2} = zeros(4, 4)
+  b_ebal::Vector{Tfloat} = zeros(4)
+  x_ebal::Vector{Tfloat} = zeros(4)
+  vv_ebal::Vector{Tfloat} = zeros(4)
+  indx_ebal::Vector{Tint} = zeros(4)
+
   # Canpopy - temporary arrays
 
   intcpt::Array{Tfloat,2} = zeros(Nx, Ny)
