@@ -1,12 +1,3 @@
-# ksnow = zeros(Nsmax, Nx, Ny)
-# csoil = zeros(Nsoil, Nx, Ny)
-# ksoil = zeros(Nsoil, Nx, Ny)
-# gs1 = zeros(Nx, Ny)
-# Ds1 = zeros(Nx, Ny)
-# Ts1 = zeros(Nx, Ny)
-# ks1 = zeros(Nx, Ny)
-# Tveg0 = zeros(Nx, Ny)
-
 function thermal(fsm::FSM{Tf, Ti}) where {Tf<:Real, Ti<:Integer}
 
   @unpack Dzsoil, Nsmax, Nsoil, Nx, Ny = fsm
@@ -67,9 +58,6 @@ function thermal(fsm::FSM{Tf, Ti}) where {Tf<:Real, Ti<:Integer}
             gs1[i, j] = gsat
 
           else # Normal soil properties
-
-            local Tc #### hack
-
             csoil[k, i, j] = hcap_soil[i, j] * Dzsoil[k]
             ksoil[k, i, j] = hcon_soil[i, j]
             if (theta[k, i, j] > eps(Tf))

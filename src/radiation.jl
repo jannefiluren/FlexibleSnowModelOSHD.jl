@@ -1,13 +1,3 @@
-# alb = similar(albs)   ### hack
-# asrf_out = similar(albs)   ### hack
-# Sdirt = similar(albs)   ### hack
-# Sdift = similar(albs)   ### hack
-# SWveg = similar(albs)   ### hack
-# SWsrf = similar(albs)   ### hack
-# SWsci = similar(albs)   ### hack
-# LWt = similar(albs)   ### hack
-# SWtopo_out = similar(albs)   ### hack
-
 function radiation(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Integer}
 
   @unpack Nx, Ny, dt = fsm
@@ -100,10 +90,6 @@ function radiation(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<
             end
           end
           
-          # if (ALPERT)
-          #   adm_loc = adm_loc * alP[i,j]
-          #   adc_loc = adc_loc * alP[i,j]
-          # end
           if (Tsrf[i, j] >= Tm)
             albs[i, j] = (albs[i, j] - asmn) * exp(-(dt / Tf(3600)) / adm_loc) + asmn
           else
@@ -156,14 +142,7 @@ function radiation(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<
         # Surface albedo is stored in asurf_out to write in results
         asrf_out[i, j] = alb[i, j]
 
-        #   hack not used
-        #   if (RADSBG == 1)
-        #     # Call Subgrid parameterization for SW radiation to compute SWtopo,netto SWtn
-        #     call SWRADTOPO(alb[i,j],Sdir[i,j],Sdif[i,j],SWsrf[i,j],Sdirt[i,j],Sdift[i,j],SWtopo_out,Sun_elev,Dates.value(Year(t)),Dates.value(Month(t)),Dates.value(Day(t)),Dates.value(Hour(t)),i,j)
-        #   end
-
         if (RADSBG == 0)
-          #global SWtopo_out  ### hack
           SWtopo_out[i,j] = alb[i, j] * (Sdir[i, j] + Sdif[i, j])
           Sdirt[i, j] = Sdir[i, j]
           Sdift[i, j] = Sdif[i, j]

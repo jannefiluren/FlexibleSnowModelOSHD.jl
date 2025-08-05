@@ -52,7 +52,6 @@ function soil(fsm::FSM{Tf,Ti}) where {Tf <: Real, Ti <: Integer}
         cssoil[k] = Tf(0)
         rhssoil[k] = Gssoil[k-1] * (Tsoil[k-1, i, j] - Tsoil[k, i, j]) * dt
         tridiag!(dTssoil, Nsoil, gammasoil, Nsoil, asoil, bsoil, cssoil, rhssoil)
-        ###call TRIDIAG(Nsoil,Nsoil,asoil,bsoil,cssoil,rhssoil,dTssoil)
         for k = 1:Nsoil
           Tsoil[k, i, j] = Tsoil[k, i, j] + dTssoil[k]
         end

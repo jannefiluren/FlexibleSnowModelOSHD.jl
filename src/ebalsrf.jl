@@ -1,16 +1,3 @@
-# Esrf = zeros(Nx,Ny)
-# Eveg = zeros(Nx,Ny)
-# G = zeros(Nx,Ny)
-# H = zeros(Nx,Ny)
-# Hsrf = zeros(Nx,Ny)
-# LE = zeros(Nx,Ny)
-# LEsrf = zeros(Nx,Ny)
-# LWsci = zeros(Nx,Ny)
-# LWveg = zeros(Nx,Ny)
-# Melt = zeros(Nx,Ny)
-# Rnet = zeros(Nx,Ny)
-# Rsrf = zeros(Nx,Ny)
-
 function ebalsrf(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Integer}
 
   @unpack CANMOD, SNTRAN, SNSLID = fsm
@@ -44,14 +31,11 @@ function ebalsrf(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Inte
 
         if ((CANMOD == 1 && fveg[i, j] == 0) || CANMOD == 0)
 
-          local D #### hack
-          #global dTs #### hack
-
           Tveg[i, j] = Ta[i, j]
           Tcan[i, j] = Ta[i, j]
 
           # Saturation humidity and density of air
-          Qs = qsat(Ps[i, j], Tsrf[i, j])  #call QSAT(Ps[i,j],Tsrf[i,j],Qs)
+          Qs = qsat(Ps[i, j], Tsrf[i, j])
           Lh = Lv
           if (Tsrf[i, j] < Tm || Sice[1, i, j] > eps(Tf))
             Lh = Ls
@@ -76,11 +60,6 @@ function ebalsrf(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Inte
 
           # Surface melting
           if (Tsrf[i, j] + dTs[i, j] > Tm && Sice[1, i, j] > eps(Tf))
-            # Melt[i, j] = Tf(0.0)
-            # for si in 1:size(Sice, 1)
-            #   Melt[i, j] += Sice[si, i, j]
-            # end
-            # Melt[i, j] /= dt
             Melt[i, j] = sum(@view Sice[:, i, j]) / dt
             dTs[i, j] = (Rnet[i, j] - G[i, j] - H[i, j] - LE[i, j] - Lf * Melt[i, j]) / (Tf(4) * sb * Tsrf[i, j]^Tf(3) + Tf(2) * ks1[i, j] / Ds1[i, j] + rho * (cp * KH[i, j] + Ls * D * KWg[i, j]))
             dE = rho * KWg[i, j] * D * dTs[i, j]
@@ -88,7 +67,7 @@ function ebalsrf(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Inte
             dH = cp * rho * KH[i, j] * dTs[i, j]
             dR = Tf(-4) * sb * Tsrf[i, j]^Tf(3) * dTs[i, j]
             if (Tsrf[i, j] + dTs[i, j] < Tm)
-              Qs = qsat(Ps[i, j], Tm)  #call QSAT(Ps[i,j],Tm,Qs)
+              Qs = qsat(Ps[i, j], Tm)
               Esrf[i, j] = rho * KWg[i, j] * (Qs - Qa[i, j])
               G[i, j] = Tf(2) * ks1[i, j] * (Tm - Ts1[i, j]) / Ds1[i, j]
               H[i, j] = cp * rho * KH[i, j] * (Tm - Ta[i, j])
@@ -111,7 +90,7 @@ function ebalsrf(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Inte
           # The excess energy would correspond to glacier melting, which we don't track.
           if (TILE == "glacier" || ((SNTRAN == 1 || SNSLID == 1) && glacierfrac[i,j] > eps(Tf)))
             if (Tsrf[i, j] + dTs[i, j] > Tm && Sice[1, i, j] <= eps(Tf))
-              Qs = qsat(Ps[i, j], Tm)  #call QSAT(Ps[i,j],Tm,Qs)
+              Qs = qsat(Ps[i, j], Tm)
               Esrf[i, j] = rho * KWg[i, j] * (Qs - Qa[i, j])
               G[i, j] = Tf(2) * ks1[i, j] * (Tm - Ts1[i, j]) / Ds1[i, j]
               H[i, j] = cp * rho * KH[i, j] * (Tm - Ta[i, j])
@@ -134,10 +113,6 @@ function ebalsrf(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Inte
           Tsrf[i, j] = Tsrf[i, j] + dTs[i, j]
 
           # Sublimation limited by amount of snow after melt
-          # Ssub = Tf(0.0)
-          # for si in 1:size(Sice, 1)
-          #   Ssub += Sice[si, i, j]
-          # end
           Ssub = sum(@view Sice[:, i, j])
           Ssub -= Melt[i, j] * dt
           if (Ssub > eps(Tf) && Esrf[i, j] * dt > Ssub)

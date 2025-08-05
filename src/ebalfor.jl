@@ -1,10 +1,3 @@
-# !-----------------------------------------------------------------------
-# ! Surface and forest canopy energy balance
-# !-----------------------------------------------------------------------
-# subroutine EBALFOR(Ds1,KHa,KHg,KHv,KWg,KWv,ks1,SWsrf,SWveg,Ts1,Tveg0,  &
-#                    Esrf,Eveg,G,H,Hsrf,LE,LEsrf,Melt,Rnet,Rsrf,LWsci,LWveg)
-
-
 function ebalfor(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}) where {Tf<:Real,Ti<:Integer}
 
   @unpack tthresh = fsm
@@ -23,42 +16,9 @@ function ebalfor(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}) where {Tf<:Real,Ti<:Integer
 
   @unpack Esrf, Eveg, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Rnet, Rsrf = fsm
 
-
-  # integer :: & 
-  #   i,j                 ! Point counters
-
-  # real :: &
-  #   A(4,4),            &! Jacobian of energy and mass balance equations
-  #   b(4),              &! Residuals of energy and mass balance equations
-  #   x(4)                ! Temperature and humidity increments
-
-  # real :: &
-  #   Dsrf,              &! dQsat/dT at surface temperature (1/K)
-  #   Dveg,              &! dQsat/dT at vegetation temperature (1/K)
-  #   dEs,               &! Change in surface moisture flux (kg/m^2/s)
-  #   dEv,               &! Change in vegetation moisture flux (kg/m^2/s)
-  #   dGs,               &! Change in surface heat flux (kg/m^2/s)
-  #   dHs,               &! Change in surface sensible heat flux (kg/m^2/s)
-  #   dHv,               &! Change in vegetation sensible heat flux (kg/m^2/s)
-  #   dQc,               &! Change in canopy air humidity (kg/kg)
-  #   dTc,               &! Change in canopy air temperature (K)
-  #   dTs,               &! Change in surface temperature (K)
-  #   dTv,               &! Change in vegetation temperature (K)
-  #   E,                 &! Moisture flux to the atmosphere (kg/m^2/s)
-  #   Hveg,              &! Sensible heat flux from vegetation (W/m^2)
-  #   Lsrf,              &! Latent heat for phase change on the ground (J/kg)
-  #   Lveg,              &! Latent heat for phase change on vegetation (J/kg)
-  #   Qsrf,              &! Saturation humidity at surface temperature
-  #   Qveg,              &! Saturation humidity at vegetation temperature
-  #   rho,               &! Air density (kg/m^3)
-  #   Rveg,              &! Net radiation absorbed by vegetation (W/m^2)model
-  #   Ssub                ! Mass of snow available for sublimation (kg/m^2)
-
-
   A = zeros(Tf, 4, 4)    # TODO remove these for allocations
   b = zeros(Tf, 4)    # TODO remove these for allocations
   x = zeros(Tf, 4)    # TODO remove these for allocations
-
 
   # 1-layer canopy model
   for j = 1:Ny
@@ -68,13 +28,13 @@ function ebalfor(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}) where {Tf<:Real,Ti<:Integer
 
         if (fveg[i, j] > eps(Tf))
           # Saturation humidity and density of air
-          Qsrf = qsat(Ps[i, j], Tsrf[i, j])             #call QSAT(Ps(i,j),Tsrf(i,j),Qsrf)
+          Qsrf = qsat(Ps[i, j], Tsrf[i, j])
           Lsrf = Ls
           if (Tsrf[i, j] > Tm)
             Lsrf = Lv
           end
           Dsrf = Lsrf * Qsrf / (Rwat * Tsrf[i, j]^Tf(2))
-          Qveg = qsat(Ps[i, j], Tveg[i, j])             # call QSAT(Ps(i,j),Tveg(i,j),Qveg)
+          Qveg = qsat(Ps[i, j], Tveg[i, j])
           Lveg = Ls
           if (Tveg[i, j] > Tm)
             Lveg = Lv
@@ -117,7 +77,7 @@ function ebalfor(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}) where {Tf<:Real,Ti<:Integer
           A[4, 3] = -Tf(4) * (Tf(1) - trcn[i, j]) * sb * Tsrf[i, j]^Tf(3)
           A[4, 4] = canh[i, j] / dt + rho * (cp * KHv[i, j] + Lveg * Dveg * KWv[i, j]) + Tf(8) * (Tf(1) - trcn[i, j]) * sb * Tveg[i, j]^Tf(3)
           b[4] = Rveg - Hveg - Lveg * Eveg[i, j] - canh[i, j] * (Tveg[i, j] - Tveg0[i, j]) / dt
-          ludcmp!(4, A, b, x)       ###  call LUDCMP(4,A,b,x) TODO translate
+          ludcmp!(4, A, b, x)
           dQc = x[1]
           dTc = x[2]
           dTs = x[3]
@@ -132,7 +92,7 @@ function ebalfor(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}) where {Tf<:Real,Ti<:Integer
           if (Tsrf[i, j] + dTs > Tm && Sice[1, i, j] > eps(Sice[1, i, j]))
             Melt[i, j] = sum(Sice[:, i, j]) / dt
             b[3] = Rsrf[i, j] - Hsrf[i, j] - Lsrf * Esrf[i, j] - G[i, j] - Lf * Melt[i, j]
-            ludcmp!(4, A, b, x)       ###  call LUDCMP(4,A,b,x)   TODO translate
+            ludcmp!(4, A, b, x)
             dQc = x[1]
             dTc = x[2]
             dTs = x[3]
@@ -143,7 +103,7 @@ function ebalfor(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}) where {Tf<:Real,Ti<:Integer
             dHs = rho * cp * KHg[i, j] * (dTs - dTc)
             dHv = rho * cp * KHv[i, j] * (dTv - dTc)
             if (Tsrf[i, j] + dTs < Tm)
-              Qsrf = qsat(Ps[i, j], Tm)          # call QSAT(Ps[i,j],Tm,Qsrf)
+              Qsrf = qsat(Ps[i, j], Tm)
               Esrf[i, j] = rho * KWg[i, j] * (Qsrf - Qcan[i, j])
               G[i, j] = Tf(2) * ks1[i, j] * (Tm - Ts1[i, j]) / Ds1[i, j]
               Hsrf[i, j] = rho * cp * KHg[i, j] * (Tm - Tcan[i, j])
@@ -157,7 +117,7 @@ function ebalfor(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}) where {Tf<:Real,Ti<:Integer
               b[3] = Rsrf[i, j] - Hsrf[i, j] - Lsrf * Esrf[i, j] - G[i, j]
               A[4, 3] = Tf(0)
               b[4] = Rveg - Hveg - Lveg * Eveg[i, j] - canh[i, j] * (Tveg[i, j] - Tveg0[i, j]) / dt
-              ludcmp!(4, A, b, x)       ##  call LUDCMP(4,A,b,x) TODO translate
+              ludcmp!(4, A, b, x)
               dQc = x[1]
               dTc = x[2]
               Melt[i, j] = x[3] / Lf
