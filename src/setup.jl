@@ -1,5 +1,7 @@
 function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int; SNFRAC=nothing, TILE="open")
 
+  @unpack_constants(Tf)
+
   # Create fsm object
   fsm = FSM{Tf,Ti}(Nx=Nx, Ny=Ny)
 

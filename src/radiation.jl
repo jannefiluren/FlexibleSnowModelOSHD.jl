@@ -1,5 +1,7 @@
 function radiation(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Integer}
 
+  @unpack_constants(Tf)
+
   @unpack Nx, Ny, dt = fsm
   
   @unpack tthresh, fsky_terr, fveg, dem, tilefrac = fsm

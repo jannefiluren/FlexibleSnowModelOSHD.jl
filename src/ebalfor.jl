@@ -1,5 +1,7 @@
 function ebalfor(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}) where {Tf<:Real,Ti<:Integer}
 
+  @unpack_constants(Tf)
+
   @unpack tthresh = fsm
 
   @unpack LW, Ps, Qa, Ta = meteo

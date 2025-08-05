@@ -1,5 +1,7 @@
 function ebalsrf(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Integer}
 
+  @unpack_constants(Tf)
+
   @unpack CANMOD, SNTRAN, SNSLID = fsm
 
   @unpack TILE, tthresh = fsm

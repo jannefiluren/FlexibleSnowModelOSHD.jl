@@ -1,8 +1,6 @@
 function qsat(P::Tf, T::Tf) where {Tf <: Real}
 
-  eps_fsm = Tf(0.622)   # Ratio of molecular weights of water and dry air
-  Tm = Tf(273.15)       # Melting point (K)
-  e0 = Tf(610.78)       # Saturation vapour pressure at Tm (Pa)
+  @unpack_constants(Tf)
 
   Tc = T - Tm
   if (Tc > Tf(0))

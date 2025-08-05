@@ -1,5 +1,7 @@
 function thermal(fsm::FSM{Tf, Ti}) where {Tf<:Real, Ti<:Integer}
 
+  @unpack_constants(Tf)
+
   @unpack Dzsoil, Nsmax, Nsoil, Nx, Ny = fsm
 
   @unpack bthr, gsat, kfix, rhof = fsm

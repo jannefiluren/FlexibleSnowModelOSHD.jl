@@ -33,5 +33,6 @@ export drive, drive!, drive_grid!
 export open_files, close_files, drive_binfiles!, drive_matfiles!
 export snowcoverfraction!
 export prepare_landuse, crop_landuse_to_domain
+export @unpack_constants
 
 end # module FSMOSHD
