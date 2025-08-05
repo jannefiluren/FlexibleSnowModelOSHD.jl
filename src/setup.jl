@@ -1,38 +1,14 @@
 function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int; SNFRAC=nothing, TILE="open")
 
-  # Model dimensions
-  Nsmax = 3
-  Nsoil = 4
-  Ds_min = Tf(0.01)
-  Ds_surflay = Tf(0.5)
-
   # Create fsm object
-  fsm = FSM{Tf,Ti}(Nsmax=Nsmax, Nsoil=Nsoil, Nx=Nx, Ny=Ny)
+  fsm = FSM{Tf,Ti}(Nx=Nx, Ny=Ny)
 
-  # Driving data heights
-  fsm.zT = Tf(10)
-  fsm.zU = Tf(10)
-  fsm.zRH = Tf(10)
+  # Model configuration overrides
+  if SNFRAC !== nothing
+    fsm.SNFRAC = SNFRAC
+  end
 
-  # Model configuration
-  fsm.ALBEDO = 2
-  fsm.CANMOD = 0
-  fsm.CONDCT = 1
-  fsm.DENSTY = 3
-  fsm.EXCHNG = 1
-  fsm.HYDROL = 2
-  fsm.SNFRAC = SNFRAC === nothing ? 3 : SNFRAC
-  fsm.RADSBG = 0
-  fsm.ZOFFST = 0
-  fsm.OSHDTN = 1
-  fsm.ALRADT = 0
-  fsm.SNTRAN = 0
-  fsm.SNSLID = 0
-  fsm.SNOLAY = 0
-  fsm.CHECKS = 0
-  fsm.HN_ON = false
-  fsm.FOR_HN = true
-
+  # Forest tiles settings
   if TILE == "forest"
     fsm.CANMOD = 1
     fsm.EXCHNG = 2
@@ -40,65 +16,8 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int; SNFRAC=nothing, TILE="op
     fsm.ZOFFST = 1
   end
 
-  # Model perturbations
-  fsm.Z0PERT = false
-  fsm.WCPERT = false
-  fsm.FSPERT = false
-  fsm.ALPERT = false
-  fsm.SLPERT = false
-
   # Modelled tile
   fsm.TILE = TILE
-  fsm.tthresh = Tf(0.1)
-
-  # Defaults for numerical solution parameters
-  fsm.Nitr = 4
-
-  # Defaults for canopy parameters
-  fsm.avg0 = Tf(0.1)
-  fsm.avgs = Tf(0.4)
-  fsm.cden = Tf(0.004)
-  fsm.cvai = Tf(4.4)
-  fsm.cveg = Tf(20)
-  fsm.Gcn1 = Tf(0.5)
-  fsm.Gcn2 = Tf(0)
-  fsm.gsnf = Tf(0)
-  fsm.kdif = Tf(0.5)
-  fsm.kveg = Tf(1)
-  fsm.rchd = Tf(0.67)
-  fsm.rchz = Tf(0.2)
-  fsm.tcnc = Tf(240)
-  fsm.tcnm = Tf(48)
-
-  # Defaults for snow parameters
-  fsm.a_eta = Tf(0.1)
-  fsm.asmx = Tf(0.86)
-  fsm.asmn = Tf(0.6)
-  fsm.b_eta = Tf(0.023)
-  fsm.bstb = Tf(5)
-  fsm.bthr = Tf(2)
-  fsm.c_eta = Tf(250)
-  fsm.eta0 = Tf(3.7e7)
-  fsm.eta1 = Tf(7.62237e6)
-  fsm.hfsn = Tf(0.1)
-  fsm.kfix = Tf(0.24)
-  fsm.rho0 = Tf(300)
-  fsm.rhob = Tf(6)
-  fsm.rhoc = Tf(26)
-  fsm.rhof = Tf(109)
-  fsm.rhos_min = Tf(50.0)
-  fsm.rhos_max = Tf(750.0)
-  fsm.rcld = Tf(300)
-  fsm.rgr0 = Tf(5e-5)
-  fsm.rmlt = Tf(500)
-  fsm.snda = Tf(2.8e-6)
-  fsm.Talb = Tf(-2)
-  fsm.tcld = Tf(1000)
-  fsm.tmlt = Tf(100)
-  fsm.trho = Tf(200)
-  fsm.Wirr = Tf(0.03)
-  fsm.z0sn = Tf(0.002)
-  fsm.Sfmin = Tf(10)
 
   # Defaults different for forest tile
   if (fsm.TILE == "forest")
@@ -106,41 +25,15 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int; SNFRAC=nothing, TILE="op
     fsm.z0sn = Tf(0.01)
   end
 
-  # Defaults for ground surface parameters
-  fsm.bstb = Tf(5)
-  fsm.gsat = Tf(0.01)
-
-  # Defaults for additional parameters required for forest snow process parametrization
-  fsm.adfs = Tf(3)
-  fsm.adfl = Tf(2)
-  fsm.fsar = Tf(0.1)
-  fsm.psf = Tf(1)
-  fsm.psr = Tf(0.1)
-  fsm.wcan = Tf(2.5)
-  fsm.zsub = Tf(2)
-  fsm.zgf = Tf(1)
-  fsm.zgr = Tf(0)
-  fsm.khcf = Tf(3)
-
+  # Settings specific for DENSITY=0
   if (fsm.DENSTY == 0)
     fsm.rhof = fsm.rho0
   end
 
-  # Initialize surface properties
+  # Initialize surface properties for non-default tiles
   if (fsm.TILE == "glacier")
     fsm.alb0[:, :] .= Tf(0.3)
     fsm.z0sf[:, :] .= Tf(0.04)
-  else
-    fsm.alb0[:, :] .= Tf(0.2)
-    fsm.z0sf[:, :] .= Tf(0.2)
-  end
-  fsm.fcly[:, :] .= Tf(0.3)
-  fsm.fsnd[:, :] .= Tf(0.6)
-  if (fsm.TILE == "forest")
-    fsm.z0sf[:, :] .= Tf(0.2)
-  end
-  if (fsm.SNTRAN == 1)
-    fsm.vegsnowd_xy[:, :] .= Tf(0.1)
   end
 
   # Derived soil parameters
@@ -159,32 +52,13 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int; SNFRAC=nothing, TILE="op
     end
   end
 
-  # Convert time scales from hours to seconds
-  fsm.tcnc = Tf(3600) * fsm.tcnc
-  fsm.tcnm = Tf(3600) * fsm.tcnm
-  fsm.tcld = Tf(3600) * fsm.tcld
-  fsm.tmlt = Tf(3600) * fsm.tmlt
-  fsm.trho = Tf(3600) * fsm.trho
-
-  # Initial soil profiles from namelist
+  # Initial soil profiles
   fsat = Tf(0.5)
   Tprof = Tf(285)
   for k = 1:fsm.Nsoil
     fsm.theta[k, :, :] .= fsat * fsm.Vsat[:, :]
     fsm.Tsoil[k, :, :] .= Tprof
   end
-  fsm.Tsrf[:, :] = fsm.Tsoil[1, :, :]
-
-  # Initialize model states
-  fsm.albs .= Tf(0.85)
-  fsm.Ds .= Tf(0)
-  fsm.fsnow .= Tf(0)
-  fsm.Nsnow .= Tf(0)
-  fsm.Sice .= Tf(0)
-  fsm.Sliq .= Tf(0)
-  fsm.Tsrf .= 285
-  fsm.Tsnow .= Tm
-  fsm.Tsoil .= Tf(285)
 
   # Load terrain properties from landuse data
   fsm.fsky_terr .= Tf.(landuse["skyvf"]["data"])
@@ -192,7 +66,7 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int; SNFRAC=nothing, TILE="op
   fsm.lon .= Tf.(landuse["x"]["data"])  # TODO remove
   fsm.dem .= Tf.(landuse["dem"]["data"])
 
-  # Cap glacier temperatures to 0°C 
+  # Cap surface temperatures for glacier 
   if (fsm.TILE == "glacier")
     for j = 1:fsm.Ny
       for i = 1:fsm.Nx
@@ -207,45 +81,14 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int; SNFRAC=nothing, TILE="op
   # Model tile fractions 
   if (fsm.TILE == "open")
     fsm.tilefrac = ones(Tf, size(fsm.dem))
-    if (fsm.SNTRAN == 1 || fsm.SNSLID == 1)
-    end
   else
     fsm.tilefrac .= Tf.(landuse[lowercase(TILE)]["data"])
   end
-
-  if (fsm.TILE == "open" && (fsm.SNTRAN == 1 || fsm.SNSLID == 1))   # Cap glacier temperatures only in relevant pixels, and alter snow free albedo and roughness lengths
-    for j = 1:Ny
-      for i = 1:Nx
-        if (fsm.glacierfrac[i, j] > eps(Tf))
-          fsm.Tsrf[i, j] = min(fsm.Tsrf[i, j], Tm)
-          fsm.alb0[i, j] = Tf(0.3)
-          fsm.z0sf[i, j] = Tf(0.04)
-          for k = 1:fsm.Nsoil
-            fsm.Tsoil[k, i, j] = min(fsm.Tsoil[k, i, j], Tm)
-          end
-        end
-      end
-    end
-  end
-
-  if (fsm.SNFRAC == 0 || fsm.SNFRAC == 2)
-    fsm.snowdepthmax .= 0
-  end
-
-  # Initialize SNFRAC=0 specific state variables
-  if (fsm.SNFRAC == 0)
-    fsm.snowdepthmin .= Tf(0)
-    fsm.snowdepthhist .= Tf(0)
-    fsm.swemin .= Tf(0)
-    fsm.swemax .= Tf(0)
-    fsm.swehist .= Tf(0)
-    fsm.slopemu .= Tf.(landuse["slopemu"]["data"])
-    fsm.xi .= Tf.(landuse["xi"]["data"])
-  end
-
-  if (fsm.SNFRAC == 0 || fsm.SNTRAN == 1)
-    fsm.Ld .= Tf.(landuse["Ld"]["data"])
-  end
+  
+  # Initialize snow cover fraction specific variables
+  fsm.slopemu .= Tf.(landuse["slopemu"]["data"])
+  fsm.xi .= Tf.(landuse["xi"]["data"])
+  fsm.Ld .= Tf.(landuse["Ld"]["data"])
 
   # Canopy properties
   if (fsm.TILE != "forest")
@@ -285,8 +128,6 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int; SNFRAC=nothing, TILE="op
 
   fsm.canh[:, :] = Tf(12500) * fsm.VAI[:, :]
   fsm.scap[:, :] = fsm.cvai * fsm.VAI[:, :]
-
-  # Note: SNOWTRAN3D and SnowSlide functionality not yet implemented
 
   # Tuned snow surface properties
 
