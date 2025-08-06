@@ -1,12 +1,6 @@
-# KH = zeros(Nx, Ny)
-# KHa = zeros(Nx, Ny)
-# KHg = zeros(Nx, Ny)
-# KHv = zeros(Nx, Ny)
-# KWg = zeros(Nx, Ny)
-# KWv = zeros(Nx, Ny)
-# Usc = zeros(Nx, Ny)
+function sfexch!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Integer}
 
-function sfexch(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Integer}
+  @unpack_constants(Tf)
 
   @unpack CANMOD, ZOFFST, EXCHNG, OSHDTN, SNFRAC = fsm
 
@@ -50,10 +44,6 @@ function sfexch(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Integ
         # BC, stabilize the tuning point runs by using a Ds threshold instead of fsnow.
         # TODO: test the impact for the grid points.
         if (SNFRAC == 3)
-          # sumtmp = Tf(0.0)
-          # for si in 1:size(Ds, 1)
-          #   sumtmp += Ds[si, i, j]
-          # end
           sumtmp = sum(@view Ds[:, i, j])
           if (sumtmp <= Tf(0.05))
             z0g = z0sf[i, j]
@@ -117,7 +107,7 @@ function sfexch(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Integ
         # Eddy diffusivities
         if (fveg[i, j] == 0)
           KH[i, j] = fh * vkman * ustar / log(zT1 / z0h)
-          Qs = qsat(Ps[i, j], Tsrf[i, j])  #call QSAT(Ps[i,j],Tsrf[i,j],Qs)
+          Qs = qsat(Ps[i, j], Tsrf[i, j])
           if (Sice[1, i, j] > eps(Tf) || Qa[i, j] > Qs)
             KWg[i, j] = KH[i, j]
           else
@@ -140,13 +130,13 @@ function sfexch(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Integ
             KHg[i, j] = vkman * ustar * ((Tf(1) - fveg[i, j]) * fh / log(z0 / z0h) + fveg[i, j] * cden / (Tf(1) + Tf(0.5) * Ric))
             KHv[i, j] = sqrt(ustar) * VAI[i, j] / cveg
           end
-          Qs = qsat(Ps[i, j], Tsrf[i, j])  #call QSAT(Ps[i,j],Tsrf[i,j],Qs)
+          Qs = qsat(Ps[i, j], Tsrf[i, j])
           if (Qcan[i, j] > Qs)
             KWg[i, j] = KHg[i, j]
           else
             KWg[i, j] = gs1[i, j] * KHg[i, j] / (gs1[i, j] + KHg[i, j])
           end
-          Qs = qsat(Ps[i, j], Tveg[i, j])  #call QSAT(Ps[i,j],Tveg[i,j],Qs)
+          Qs = qsat(Ps[i, j], Tveg[i, j])
           if (Sveg[i, j] > eps(Tf) || Qcan[i, j] > Qs)
             KWv[i, j] = KHv[i, j]
           else

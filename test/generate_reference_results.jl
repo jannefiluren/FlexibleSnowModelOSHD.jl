@@ -52,10 +52,7 @@ function run_snow_model(test_data_path::String;
     end
     
     println("Loading landuse data...")
-    landuse = matread(landuse_path)
-    
-    # Process landuse data
-    landuse = process_landuse_for_fsm(landuse)
+    landuse = prepare_landuse(landuse_path)
     
     # Get domain dimensions
     Nx = size(landuse["dem"]["data"], 1)
@@ -63,7 +60,7 @@ function run_snow_model(test_data_path::String;
     println("Domain size: $(Nx)x$(Ny)")
     
     # Setup model
-    fsm = setup_matfiles_grid(Tf, Int32, landuse, Nx, Ny, TILE=tile, SNFRAC=snfrac)
+    fsm = setup(Tf, Int32, landuse, Nx, Ny, TILE=tile, SNFRAC=snfrac)
     met_curr = MET{Tf, Int32}(Nx=Nx, Ny=Ny)
     
     # Initialize 24h snowfall tracking
@@ -148,28 +145,8 @@ function run_snow_model(test_data_path::String;
         Sf_history[:,:,curr_hour] = Sf
         met_curr.Sf24h[:, :] .= Sf24h
         
-        # Run model for this timestep - different workflow for forest vs open tile
-        drive!(fsm, met_curr)
-        radiation(fsm, met_curr, t)
-        thermal(fsm)
-        
-        if tile == "forest"
-            # Forest workflow: use ebalfor + canopy
-            for _ in 1:fsm.Nitr
-                sfexch(fsm, met_curr)
-                ebalfor(fsm, met_curr)
-            end
-            canopy(fsm, met_curr)
-        else
-            # Open workflow: use ebalsrf
-            for _ in 1:fsm.Nitr
-                sfexch(fsm, met_curr)
-                ebalsrf(fsm, met_curr)
-            end
-        end
-        
-        snow(fsm, met_curr, t)
-        soil(fsm)
+        # Run model for this timestep
+        step!(fsm, met_curr, t)
         
         # Store results
         simulation_results["timestamps"][timestep] = string(t)
@@ -208,25 +185,6 @@ function run_snow_model(test_data_path::String;
 end
 
 
-function process_landuse_for_fsm(landuse::Dict)
-    
-    processed_landuse = copy(landuse)
-    
-    # Add required fields that are computed in prepare_landuse_grid
-    dem_size = size(processed_landuse["dem"]["data"])
-    
-    # processed_landuse["is_domain"] = ones(Bool, dem_size)
-    processed_landuse["dhdxdy"] = processed_landuse["dhdxdy"]["data"]   # TODO change in subsequent code
-    processed_landuse["sddem"] = processed_landuse["sd"]["data"]   # TODO change in subsequent code
-    processed_landuse["Ld"] = 250 * ones(dem_size)
-    processed_landuse["slopemu"] = sqrt.((processed_landuse["dhdxdy"] ./ 2))
-    processed_landuse["xi"] = (sqrt(2) * processed_landuse["sddem"]) ./ processed_landuse["slopemu"]
-    processed_landuse["x"] = ones(dem_size)
-    processed_landuse["y"] = ones(dem_size)
-    processed_landuse["prec_multi"]["data"] .= 1
-    
-    return processed_landuse
-end
 
 
 function save_reference_results(reference_results::Dict, output_path::String, tile::String, snfrac::Int)

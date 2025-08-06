@@ -62,7 +62,7 @@ begin
 
 	searchdir(path, key) = filter(x -> occursin(key, x), readdir(path))
 	
-	landuse = prepare_landuse_stations()
+	landuse = prepare_landuse("K:/OSHD_AUX/DATA_LUS/OSHD_LUS_STAT.mat")
 	
 	times = DateTime(2024, 9, 1, 6):Hour(1):DateTime(2025, 6, 1, 6)
 	
@@ -107,7 +107,7 @@ md"""
 
 # ╔═╡ dffe499f-feec-43ba-83a5-ab9007afd8a1
 begin
-	fsm = setup_matfiles(Float32, Int32, landuse, length(landuse["acro"]), 1)
+	fsm = setup(Float32, Int32, landuse, length(landuse["acro"]), 1)
 	fsm.asmn = asmn
 	fsm.afs .= asmx
 	fsm.adm = adm
@@ -142,20 +142,7 @@ begin
 		
 		  met_curr.Sf24h[:, :] .= sum(Sf[max(i-23,1):i,:], dims=1)'
 		  
-		  drive!(fsm, met_curr)
-		
-		  radiation(fsm, met_curr, t)
-		
-		  thermal(fsm)
-		
-		  for i in 1:fsm.Nitr
-			sfexch(fsm, met_curr)
-			ebalsrf(fsm, met_curr)
-		  end
-		
-		  snow(fsm, met_curr, t)
-		
-		  soil(fsm)
+		  step!(fsm, met_curr, t)
 		
 		  snowdepth[i,:] = dropdims(sum(fsm.Ds, dims=1), dims=3)
 

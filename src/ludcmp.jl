@@ -1,16 +1,13 @@
-function ludcmp!(N::Integer, A::Matrix{T}, b::Vector{T}, x::Vector{T}) where {T <: Real}
+function ludcmp!(N::Integer, A::Matrix{Tf}, Acp::Matrix{Tf}, b::Vector{Tf}, x::Vector{Tf}, vv::Vector{Tf}, indx::Vector{Ti}) where {Tf <: Real, Ti <: Integer}
 
-    # TODO remove allocations - maybe sarray will work for this?
-    # N = size(A, 1)
-    Acp = copy(A)
-    # x = copy(b)
+    Acp .= A
     x .= b
-    vv = zeros(N)
-    indx = zeros(Int, N)
+    vv .= 0
+    indx .= 0
 
     # Scaling
-    for i in 1:N
-        aamax = maximum(abs.(Acp[i, :]))
+    @views for i in 1:N
+        aamax = maximum(abs, Acp[i, :])
         vv[i] = 1 / aamax
     end
 
@@ -39,9 +36,13 @@ function ludcmp!(N::Integer, A::Matrix{T}, b::Vector{T}, x::Vector{T}) where {T 
                 aamax = dum
             end
         end
-        if j != imax
-            Acp[imax, :], Acp[j, :] = copy(Acp[j, :]), copy(Acp[imax, :])
-            vv[imax], vv[j] = vv[j], vv[imax]
+        if (j != imax)
+          for k = 1:N
+            dum = Acp[imax,k]
+            Acp[imax,k] = Acp[j,k]
+            Acp[j,k] = dum
+          end
+          vv[imax] = vv[j]
         end
         indx[j] = imax
         if Acp[j, j] == 0.0

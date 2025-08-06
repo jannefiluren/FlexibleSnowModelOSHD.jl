@@ -1,13 +1,6 @@
-# Gsoil = zeros(Nx, Ny)
-# Roff = zeros(Nx, Ny)
-# meltflux_out = zeros(Nx, Ny)
-# Sbsrf = zeros(Nx, Ny)
-# Roff_bare = zeros(Nx, Ny)
-# Roff_snow = zeros(Nx, Ny)
-# fsnow_thres = zeros(Nx, Ny)
-# unload = zeros(Nx, Ny)
+function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Integer}
 
-function snow(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Integer}
+  @unpack_constants(Tf)
 
   @unpack HYDROL, DENSTY, OSHDTN, HN_ON, SNFRAC = fsm
 
@@ -102,7 +95,6 @@ function snow(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Inte
             bsnow[k] = csnow[k] + (Gs[k-1] + Gs[k]) * dt
             c[k] = Tf(0)
             rhs[k] = Gs[k-1] * (Tsnow[k-1, i, j] - Tsnow[k, i, j]) * dt + Gs[k] * (Tsoil[1, i, j] - Tsnow[k, i, j]) * dt
-            ### call TRIDIAG(Nsnow(i,j),Nsmax,a,bsnow,c,rhs,dTssnow)
             tridiag!(dTssnow, Nsnow[i, j], gammasnow, Nsmax, a, bsnow, c, rhs)
           end
           for k = 1:Nsnow[i, j]
@@ -205,9 +197,7 @@ function snow(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Inte
           else  # HYDROL == 2
             # Density-dependent bucket storage
             for k = 1:Nsnow[i, j]
-
-              SliqCap = Tf(0.0)   ###hackhack
-
+              SliqCap = Tf(0.0)
               if (Ds[k, i, j] > eps(Tf))
                 rhos = Sice[k, i, j] / Ds[k, i, j] / fsnow[i, j]
                 SliqCap = Tf(0.03) + Tf(0.07) * (Tf(1) - rhos / Tf(200))
@@ -411,22 +401,6 @@ function snow(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Inte
         # Compute snow cover fraction
         snowcoverfraction!(fsm, snowdepth, SWEtmp, t, i, j, SWEbuffer, snowdepthbuffer, diffSWEbuffer)
         
-        # # HACK - snow cover fraction scheme 3
-
-        # if snowdepth > eps(Tf)
-        #   fsnow[i,j] = 1
-        # else
-        #   fsnow[i,j] = 0
-        # end
-
-        # if snowdepth < eps(Tf)
-        #   fsnow[i,j] = 0
-        # else
-        #   fsnow[i,j] = min(fsnow[i,j], 1.)
-        # end
-        
-        # # HACK - snow cover fraction scheme 3
-
         # Rescale Ds with new snow cover fraction
         if (fsnow[i, j] > eps(Tf))
           # Update surface layer thickness based on new fsnow
@@ -482,7 +456,6 @@ function snow(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Inte
           # Re-assign and count snow layers
           dnew = snowdepth / fsnow[i, j]
           Ds[1, i, j] = dnew
-          #k = 1   #hackhackh
           if (Ds[1, i, j] > Dzsnow[1])
             for k = 1:Nsmax
               Ds[k, i, j] = Dzsnow[k]
@@ -493,8 +466,6 @@ function snow(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Inte
               end
             end
           end
-          #Nsnow[i, j] = k
-          #sum(Ds[:, i, j] .> 0)   ### hackhack
           Nsnow[i, j] = 0
           for si in 1:size(Ds, 1)
             if Ds[si, i, j] > Tf(0)

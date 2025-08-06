@@ -1,5 +1,7 @@
 function drive!(fsm::FSM, meteo::MET{Tf,Ti}) where {Tf<:Real,Ti<:Integer}
 
+  @unpack_constants(Tf)
+
   @unpack dt = fsm
 
   @unpack Tc, es, Qa, Ua, Sf, Rf, Ta, RH, Ps = meteo
