@@ -98,29 +98,7 @@ function run_grid_simulation(;
             end
 
             # Run model
-            drive!(fsm, met_curr)
-
-            radiation!(fsm, met_curr, t)
-
-            thermal!(fsm)
-
-            for i in 1:fsm.Nitr
-                sfexch!(fsm, met_curr)
-                if tile == "forest"
-                    ebalfor!(fsm, met_curr)
-                else
-                    ebalsrf!(fsm, met_curr)
-                end
-            end
-
-            # Forest-specific canopy processing
-            if tile == "forest"
-                canopy!(fsm, met_curr)
-            end
-
-            snow!(fsm, met_curr, t)
-
-            soil!(fsm)
+            step!(fsm, met_curr, t)
 
             # Output data at 5 AM
             if hour(t) == 5

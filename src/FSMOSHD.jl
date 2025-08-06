@@ -23,13 +23,14 @@ include("ebalsrf.jl")
 include("ebalfor.jl")
 include("snow.jl")
 include("soil.jl")
+include("step.jl")
 include("snowcoverfraction.jl")
 include("prepare_landuse.jl")
 
 export FSM, MET, setup, setup_binfiles
 export qsat, tridiag!, ludcmp!
 export canopy!, radiation!, thermal!, sfexch!, ebalsrf!, ebalfor!, snow!, soil!
-export drive, drive!, drive_grid!
+export drive, drive!, drive_grid!, step!
 export open_files, close_files, drive_binfiles!, drive_matfiles!
 export snowcoverfraction!
 export prepare_landuse, crop_landuse_to_domain
