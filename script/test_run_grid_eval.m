@@ -2,19 +2,17 @@
 
 clear; clc
 
-time = datenum(2025,1,11,6,00,00);
+time = datenum(2025,6,11,6,00,00);
 
 str1 = datestr(time-1,"yyyymmddHHMM");
 str2 = datestr(time,"yyyymmddHHMM");
 
-subfolder = "SNFRAC_0";
+tile = "for";
+subfolder_matlab = "FOREST";
+subfolder_julia = "FOREST";
 
-mat = load("D:\julia\FSM_HS_all\LATEST_00h_RUN\"+ subfolder + "\OUTPUT_OSHD_0250\RESULTS_24h_opn\MODELDATA_" + str1 + "-" + str2 + "_FSM22.mat");
-
-
-subfolder = "SNFRAC_0";
-
-jul = load("D:\julia\FSM_HS_julia\"+ subfolder + "\" + str2 + "_output.mat");
+mat = load("D:\julia\FSM_HS_all\LATEST_00h_RUN\"+ subfolder_matlab + "\OUTPUT_OSHD_0250\RESULTS_24h_" + tile + "\MODELDATA_" + str1 + "-" + str2 + "_FSM22.mat");
+jul = load("D:\julia\FSM_HS_julia\"+ subfolder_julia + "\" + str2 + "_output.mat");
 
 
 %% Prepare data
@@ -121,13 +119,13 @@ end
 
 [row_max, col_max] = find(diff_abs == diff_max);
 
-disp("Max diff = " + diff_max)
+disp("Max diff = " + diff_max(1))
 
-disp("Row max = " + row_max)
+disp("Row max = " + row_max(1))
 
-disp("Row max unflipped = " + (size(hs_mat,1) - row_max + 1))
+disp("Row max unflipped = " + (size(hs_mat,1) - row_max(1) + 1))
 
-disp("Col max = " + col_max)
+disp("Col max = " + col_max(1))
 
 % Find linear index of cell with largest error
 
@@ -137,4 +135,4 @@ linear_index = zeros(domain.grid.nrows,domain.grid.ncols);
 linear_index(domain.grid.data) = 1:sum(domain.grid.data(:));
 linear_index = flipud(linear_index);
 
-disp("Linear index = " + linear_index(row_max,col_max))
+disp("Linear index = " + linear_index(row_max(1),col_max(1)))

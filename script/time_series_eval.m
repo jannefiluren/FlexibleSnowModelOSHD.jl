@@ -5,10 +5,11 @@ clear; clc
 tstart = datenum(2024,9,2,6,0,0);
 tend = datenum(2025,6,4,6,0,0);
 
-subfolder_matlab = "SNFRAC_0";
-subfolder_julia = "SNFRAC_0";
+tile = "for";
+subfolder_matlab = "FOREST";
+subfolder_julia = "FOREST";
 
-folder_matlab = "D:\julia\FSM_HS_all\LATEST_00h_RUN\"+ subfolder_matlab + "\OUTPUT_OSHD_0250\RESULTS_24h_opn";
+folder_matlab = "D:\julia\FSM_HS_all\LATEST_00h_RUN\"+ subfolder_matlab + "\OUTPUT_OSHD_0250\RESULTS_24h_" + tile;
 folder_julia = "D:\julia\FSM_HS_julia\"+ subfolder_julia;
 
 
@@ -81,3 +82,23 @@ datetick("x")
 ylabel("SCF (-)")
 
 linkaxes(ax, "x")
+
+
+%% Plot time series with maximum differences
+
+diff_hs = abs(hs_jul - hs_mat);
+diff_fsnow = abs(fsnow_jul - fsnow_mat);
+
+figure("Position",[100 100 800 500]);
+
+t = tiledlayout(2,1);
+
+ax(1) = nexttile();
+plot(times, squeeze(max(diff_hs,[],[1 2])), "b", "LineWidth", 2)
+datetick("x")
+ylabel("dHS (m)")
+
+ax(2) = nexttile();
+plot(times, squeeze(max(diff_fsnow,[],[1 2])), "b", "LineWidth", 2)
+datetick("x")
+ylabel("dfsnow (-)")
