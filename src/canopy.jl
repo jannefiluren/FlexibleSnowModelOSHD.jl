@@ -1,3 +1,12 @@
+"""
+    canopy!(fsm, meteo)
+
+Snow interception, sublimation, and unloading from vegetation canopy.
+
+# Arguments
+- `fsm::FSM`: Model state structure (modified in-place)
+- `meteo::MET`: Current meteorological conditions (may be modified)
+"""
 function canopy!(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}) where {Tf<:Real,Ti<:Integer}
 
   @unpack_constants(Tf)

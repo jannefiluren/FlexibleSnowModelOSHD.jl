@@ -1,3 +1,11 @@
+"""
+    soil!(fsm)
+
+Soil thermal processes and heat conduction calculations.
+
+# Arguments
+- `fsm::FSM`: Model state structure (modified in-place)
+"""
 function soil!(fsm::FSM{Tf,Ti}) where {Tf <: Real, Ti <: Integer}
 
   @unpack SNTRAN, SNSLID = fsm

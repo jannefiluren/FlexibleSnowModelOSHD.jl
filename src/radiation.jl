@@ -1,3 +1,13 @@
+"""
+    radiation!(fsm, meteo, t)
+
+Snow albedo calculations, surface and canopy net shortwave radiation.
+
+# Arguments
+- `fsm::FSM`: Model state structure (modified in-place)
+- `meteo::MET`: Current meteorological conditions  
+- `t`: Current simulation time
+"""
 function radiation!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Integer}
 
   @unpack_constants(Tf)

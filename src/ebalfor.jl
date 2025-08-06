@@ -1,3 +1,12 @@
+"""
+    ebalfor!(fsm, meteo)
+
+Energy balance solution for forest tiles with 1-layer canopy model.
+
+# Arguments
+- `fsm::FSM`: Model state structure (modified in-place)
+- `meteo::MET`: Current meteorological conditions
+"""
 function ebalfor!(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}) where {Tf<:Real,Ti<:Integer}
 
   @unpack_constants(Tf)

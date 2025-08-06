@@ -1,13 +1,66 @@
-# FSMOSHD
+# FSMOSHD.jl
 
-The code located here `D:\julia\FSMOSHD` should be a replicate of `D:\julia\jim_operational` under branch `jan-sync-jim`. The script `test_against_jim.jl` evaluates the translated code agaist the Matlab and Fortran version. All old code is placed under the branch `legacy`.
+A Julia implementation of the **Factorial Snow Model (FSM)** for the **Operational Snow Hydrological Service (OSHD)** at SLF. This package provides a comprehensive snow physics model for simulating snow accumulation and melt processes in complex terrain.
 
-# Replace number is vs code
+## Overview
 
-Regex: [+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)
+FSMOSHD is a multi-layer snow model that simulates:
 
-Replacement: T($1)
+- **Snow accumulation and ablation** with detailed physics-based processes
+- **Multi-layer snow structure** with dynamic layer evolution 
+- **Energy balance** including shortwave/longwave radiation, turbulent fluxes, and ground heat transfer
+- **Snow hydraulics** with configurable drainage schemes and liquid water retention
+- **Forest canopy interactions** including snow interception, unloading, and subcanopy processes
+- **Fractional snow cover** using multiple parameterization approaches
 
-# Discussion on types
+The model is designed for operational snow forecasting applications and supports both point-scale and distributed (gridded) simulations across various surface types including open areas, forests, and glaciers.
 
-https://discourse.julialang.org/t/how-to-code-a-type-flexible-model-that-is-type-stable/124138
+## Installation
+
+### Prerequisites
+- Julia 1.6 or higher
+- Required packages are specified in `Project.toml`
+
+### Installation Steps
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/jannefiluren/FSMOSHD
+   cd FSMOSHD
+   ```
+
+2. **Activate the package environment:**
+   ```julia
+   using Pkg
+   Pkg.activate(".")
+   Pkg.instantiate()
+   ```
+
+3. **Load the package:**
+   ```julia
+   using FSMOSHD
+   ```
+
+## Examples
+
+See the `notebooks/` directory for interactive examples and the `script/` directory for complete simulation workflows.
+
+## Package Structure
+
+```
+FSMOSHD.jl/
+├── src/                   # Source code
+│   ├── FSMOSHD.jl         # Main module
+│   ├── types.jl           # Model data structures  
+│   ├── parameters.jl      # Physical constants
+│   ├── setup.jl           # Model initialization
+│   ├── step.jl            # Main physics time step
+│   ├── snow.jl            # Snow physics processes
+│   ├── radiation.jl       # Radiation calculations
+│   ├── thermal.jl         # Thermal properties
+│   └── ...                # Additional physics modules
+├── script/                # Simulation scripts
+├── notebooks/             # Example Pluto.jl notebooks
+└── test/                  # Unit tests and regression tests
+```
+

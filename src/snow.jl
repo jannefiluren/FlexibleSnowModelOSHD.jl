@@ -1,3 +1,13 @@
+"""
+    snow!(fsm, meteo, t)
+
+Snow physics processes including heat conduction, melting, sublimation, hydraulics, and compaction.
+
+# Arguments
+- `fsm::FSM`: Model state structure (modified in-place)
+- `meteo::MET`: Current meteorological conditions
+- `t`: Current simulation time
+"""
 function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Integer}
 
   @unpack_constants(Tf)

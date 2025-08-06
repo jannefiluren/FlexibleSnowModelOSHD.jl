@@ -1,3 +1,12 @@
+"""
+    sfexch!(fsm, meteo)
+
+Surface exchange coefficients and turbulent transfer calculations.
+
+# Arguments
+- `fsm::FSM`: Model state structure (modified in-place)
+- `meteo::MET`: Current meteorological conditions
+"""
 function sfexch!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Integer}
 
   @unpack_constants(Tf)

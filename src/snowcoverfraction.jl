@@ -1,3 +1,18 @@
+"""
+    snowcoverfraction!(fsm, snowdepth, SWEtmp, t, i, j, SWEbuffer, snowdepthbuffer, diffSWEbuffer)
+
+Snow cover fraction calculation using multiple parameterizations.
+
+# Arguments
+- `fsm::FSM`: Model state structure (modified in-place)
+- `snowdepth::Real`: Current snow depth (m)
+- `SWEtmp::Real`: Current snow water equivalent (kg/m²)
+- `t::DateTime`: Current simulation time
+- `i::Int, j::Int`: Grid indices
+- `SWEbuffer::Array`: Workspace for SWE history tracking
+- `snowdepthbuffer::Array`: Workspace for depth history tracking  
+- `diffSWEbuffer::Array`: Workspace for SWE difference calculations
+"""
 function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::DateTime, i::Int, j::Int, SWEbuffer::Array{Tf}, snowdepthbuffer::Array{Tf}, diffSWEbuffer::Array{Tf}) where {Tf <: Real, Ti <: Integer}
 
     @unpack SNFRAC = fsm

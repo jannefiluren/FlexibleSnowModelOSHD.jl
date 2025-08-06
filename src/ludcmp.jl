@@ -1,3 +1,8 @@
+"""
+    ludcmp!(N, A, Acp, b, x, vv, indx)
+
+LU decomposition solver for linear systems with partial pivoting.
+"""
 function ludcmp!(N::Integer, A::Matrix{Tf}, Acp::Matrix{Tf}, b::Vector{Tf}, x::Vector{Tf}, vv::Vector{Tf}, indx::Vector{Ti}) where {Tf <: Real, Ti <: Integer}
 
     Acp .= A

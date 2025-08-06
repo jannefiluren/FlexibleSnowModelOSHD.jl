@@ -1,3 +1,18 @@
+"""
+    qsat(P, T)
+
+Saturation specific humidity calculation using Tetens formula.
+
+Computes saturation specific humidity for given pressure and temperature using empirical 
+relations for saturation vapor pressure over water (T > 0°C) and ice (T ≤ 0°C).
+
+# Arguments
+- `P`: Atmospheric pressure (Pa)
+- `T`: Temperature (K)
+
+# Returns
+- Saturation specific humidity (kg/kg)
+"""
 function qsat(P::Tf, T::Tf) where {Tf <: Real}
 
   @unpack_constants(Tf)

@@ -1,3 +1,18 @@
+"""
+    tridiag!(x, Nvec, gamma, Nmax, a, b, c, r)
+
+Tridiagonal matrix solver using Thomas algorithm.
+
+# Arguments
+- `x::Vector`: Solution vector (output)
+- `Nvec`: Number of equations in the system
+- `gamma`: Workspace vector for elimination coefficients
+- `Nmax`: Maximum system size (for array bounds)
+- `a`: Sub-diagonal coefficients
+- `b`: Main diagonal coefficients  
+- `c`: Super-diagonal coefficients
+- `r`: Right-hand side vector
+"""
 function tridiag!(x::Vector{Tf}, Nvec, gamma, Nmax, a, b, c, r) where Tf <: Real
 
   fill!(gamma, zero(Tf))

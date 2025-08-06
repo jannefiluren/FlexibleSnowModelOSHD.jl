@@ -1,3 +1,12 @@
+"""
+    ebalsrf!(fsm, meteo)
+
+Surface energy balance solution for open and non-forest tiles.
+
+# Arguments
+- `fsm::FSM`: Model state structure (modified in-place)
+- `meteo::MET`: Current meteorological conditions
+"""
 function ebalsrf!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Integer}
 
   @unpack_constants(Tf)

@@ -1,3 +1,23 @@
+"""
+    setup(Tf, Ti, landuse, Nx, Ny; SNFRAC=nothing, TILE="open")
+
+Initialize the FSM snow model with specified configuration and domain properties.
+
+Creates and configures the main FSM model state structure with landuse data, model parameters,
+and domain dimensions. Sets up soil properties, surface characteristics, and tile-specific 
+configurations for different surface types (open, forest, glacier).
+
+# Arguments
+- `Tf`: Floating-point precision type (typically Float32 or Float64)
+- `Ti`: Integer type for array indices  (typically Int32 or Int64)
+- `landuse::Dict`: Landuse data dictionary with topographic and surface properties
+- `Nx::Int, Ny::Int`: Model domain dimensions
+- `SNFRAC`: Snow cover fraction parameterization (optional override)
+- `TILE::String`: Surface tile type ("open", "forest", "glacier")
+
+# Returns
+- `FSM`: Initialized model state structure ready for simulation
+"""
 function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int; SNFRAC=nothing, TILE="open")
 
   @unpack_constants(Tf)
