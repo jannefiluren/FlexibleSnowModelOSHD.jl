@@ -62,7 +62,7 @@ begin
 
 	searchdir(path, key) = filter(x -> occursin(key, x), readdir(path))
 	
-	landuse = prepare_landuse_stations()
+	landuse = prepare_landuse("K:/OSHD_AUX/DATA_LUS/OSHD_LUS_STAT.mat")
 	
 	times = DateTime(2024, 9, 1, 6):Hour(1):DateTime(2025, 6, 1, 6)
 	
