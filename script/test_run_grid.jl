@@ -14,24 +14,42 @@ end
     include("run_grid_simulation.jl")
 end
 
-configurations = [
-    ("open", 0, "SNFRAC_0"),
-    ("open", 3, "SNFRAC_3"),
-    ("open", 4, "SNFRAC_4"),
-    ("forest", 4, "FOREST"),
+settings = [
+    Dict(
+        "tile" => "open",
+        "config" => Dict("SNFRAC" => 0)
+    ),
+    Dict(
+        "tile" => "open",
+        "config" => Dict("SNFRAC" => 3)
+    ),
+    Dict(
+        "tile" => "open",
+        "config" => Dict("SNFRAC" => 4)
+    ),
+    Dict(
+        "tile" => "forest",
+        "config" => Dict("CANMOD" => 1, "EXCHNG" => 2, "SNFRAC" => 4, "ZOFFST" => 1),
+        "params" => Dict("hfsn" => 0.3, "z0sn" => 0.01)
+    )
 ]
 
-println("Running $(length(configurations)) configurations in parallel on $(nprocs()) processes")
+println("Running $(length(settings)) configurations in parallel on $(nprocs()) processes")
 
 # Run configurations in parallel
-pmap(configurations) do (tile, snfrac, subfolder)
+pmap(settings) do (setting)
     worker_id = myid()
+    
+    tile = setting["tile"]
+    snfrac = setting["config"]["SNFRAC"]
+    subfolder = uppercase(tile) * "_SNFRAC_" * string(snfrac)
+
     println("Worker $worker_id: Starting $tile SNFRAC=$snfrac -> $subfolder")
-    
+
     start_time = time()
-    run_grid_simulation(tile=tile, snfrac=snfrac, subfolder=subfolder, verbose=false)
+    run_grid_simulation(settings=setting, subfolder=subfolder, verbose=false)
     elapsed = time() - start_time
-    
+
     println("Worker $worker_id: Completed $tile SNFRAC=$snfrac in $(round(elapsed/60, digits=1)) minutes")
 end
 

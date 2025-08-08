@@ -17,7 +17,8 @@ Run a point-based snow model simulation for station data with optional compariso
 - `output_base_folder::String=""`: Base output folder (must be a valid directory)
 - `reference_path::String=""`: Reference results path (empty string to skip)
 - `write_outputs::Bool=true`: Whether to write CSV output files
-- `precision::Type=Float32`: Numerical precision type
+- `Tf::Type=Float32`: Numerical precision for floats
+- `Ti::Type=Int32`: Numerical precision for integers
 - `verbose::Bool=true`: Show progress bars
 
 # Returns
@@ -34,7 +35,8 @@ function run_point_simulation(;
     output_base_folder::String = "",
     reference_path::String = "",
     write_outputs::Bool = true,
-    precision::Type = Float32,
+    Tf::Type=Float32,
+    Ti::Type=Int32,
     verbose::Bool = true
 )
 
@@ -50,8 +52,8 @@ function run_point_simulation(;
     met_data = load_meteorological_data(times, meteo_base_path, nstat, verbose)
 
     # Setup model
-    fsm = setup(precision, Int32, landuse_cropped, nstat, 1)
-    met = MET{precision, Int32}(Nx=nstat)
+    fsm = setup(Tf, Ti, landuse_cropped, nstat, 1, Dict("tile" => "open"))
+    met = MET{Tf, Ti}(Nx=nstat)
 
     # Run simulation
     snowdepth = run_simulation_loop(fsm, met, met_data, times, verbose)
