@@ -9,23 +9,38 @@ function create_full_reference_dataset()
     base_path = joinpath(dirname(@__FILE__), "test_data")
     reference_path = joinpath(base_path, "reference")
     
-    # Configuration matrix: (tile, snfrac)
-    configurations = [
-        ("open", 0),
-        ("open", 3), 
-        ("open", 4),
-        ("forest", 4)
+    # Configuration matrix
+    settings = [
+        Dict(
+            "tile" => "open",
+            "config" => Dict("SNFRAC" => 0)
+            ),
+        Dict(
+            "tile" => "open",
+            "config" => Dict("SNFRAC" => 3)
+            ),
+        Dict(
+            "tile" => "open",
+            "config" => Dict("SNFRAC" => 4)
+            ),
+        Dict(
+            "tile" => "forest",
+            "config" => Dict("CANMOD" => 1, "EXCHNG" => 2, "SNFRAC" => 4, "ZOFFST" => 1),
+            "params" => Dict("hfsn" => 0.3, "z0sn" => 0.01)
+            )
     ]
     
-    println("Generating reference results for $(length(configurations)) configurations...")
+    println("Generating reference results for $(length(settings)) settings...")
     
-    for (tile, snfrac) in configurations
+    for config in settings
+        tile = config["tile"]
+        snfrac = get(get(config, "config", Dict()), "SNFRAC", 0)
         println("\n" * "="^60)
-        println("Generating reference for: tile=$tile, SNFRAC=$snfrac")
+        println("Generating reference for: $config")
         println("="^60)
         
         # Run simulation for this configuration
-        reference_results = run_snow_model(base_path, Tf=Float32, tile=tile, snfrac=snfrac)
+        reference_results = run_snow_model(base_path, config, Tf=Float32)
         
         # Save results with configuration-specific filename
         save_reference_results(reference_results, reference_path, tile, snfrac)
@@ -39,11 +54,12 @@ function create_full_reference_dataset()
 end
 
 
-function run_snow_model(test_data_path::String; 
-                                     Tf::Type=Float32, tile::String="open", snfrac::Int=0)
+function run_snow_model(test_data_path::String, settings::Dict; Tf::Type=Float32, Ti::Type=Int32)
     
+    tile = settings["tile"]
+    snfrac = settings["config"]["SNFRAC"]
+
     println("Run simulation...")
-    println("Precision: $Tf, SNFRAC: $snfrac, TILE: $tile")
     
     # Load landuse data
     landuse_path = joinpath(test_data_path, "landuse", "landuse.mat")
@@ -51,7 +67,6 @@ function run_snow_model(test_data_path::String;
         error("Landuse file not found: $landuse_path")
     end
     
-    println("Loading landuse data...")
     landuse = prepare_landuse(landuse_path)
     
     # Get domain dimensions
@@ -60,8 +75,8 @@ function run_snow_model(test_data_path::String;
     println("Domain size: $(Nx)x$(Ny)")
     
     # Setup model
-    fsm = setup(Tf, Int32, landuse, Nx, Ny, TILE=tile, SNFRAC=snfrac)
-    met_curr = MET{Tf, Int32}(Nx=Nx, Ny=Ny)
+    fsm = setup(Tf, Ti, landuse, Nx, Ny, settings)
+    met_curr = MET{Tf, Ti}(Nx=Nx, Ny=Ny)
     
     # Initialize 24h snowfall tracking
     Sf24h = zeros(Tf, Nx, Ny)

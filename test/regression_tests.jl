@@ -16,20 +16,22 @@ function load_reference_results(reference_path::String, tile::String, snfrac::In
 end
 
 
-function run_regression_test(test_data_path::String, tile::String, snfrac::Int; tolerance::Float64=1e-10)
+function run_regression_test(test_data_path::String, settings::Dict; tolerance::Float64=1e-10)
     
+    tile = settings["tile"]
+    snfrac = settings["config"]["SNFRAC"]
+
     println("Running regression test for tile=$tile, SNFRAC=$snfrac...")
     println("Test data: $test_data_path")
     println("Tolerance: $tolerance")
     
     # Run current model to get simulation results
-    println("Running current model...")
-    current_results = run_snow_model(test_data_path, Tf=Float32, tile=tile, snfrac=snfrac)
+    current_results = run_snow_model(test_data_path, settings, Tf=Float32)
     
     # Load reference results
     println("Loading reference results...")
     reference_path = joinpath(test_data_path, "reference")
-    reference_results = load_reference_results(reference_path, tile, snfrac)
+    reference_results = load_reference_results(reference_path, settings["tile"], settings["config"]["SNFRAC"])
     
     # Compare results
     println("Comparing results...")
@@ -74,7 +76,7 @@ function run_regression_test(test_data_path::String, tile::String, snfrac::Int; 
     end
     
     # Print summary
-    println("\nRegression test summary for tile=$tile, SNFRAC=$snfrac:")
+    println("\nRegression test summary for $tile, SNFRAC=$snfrac:")
     println("=" ^ 60)
     for variable in sort(collect(keys(max_differences)))
         max_diff = max_differences[variable]
@@ -84,9 +86,9 @@ function run_regression_test(test_data_path::String, tile::String, snfrac::Int; 
     println("=" ^ 60)
     
     if test_passed
-        println("✅ Regression test PASSED for tile=$tile, SNFRAC=$snfrac")
+        println("✅ Regression test PASSED for $tile, SNFRAC=$snfrac")
     else
-        println("❌ Regression test FAILED for tile=$tile, SNFRAC=$snfrac")
+        println("❌ Regression test FAILED for $tile, SNFRAC=$snfrac")
     end
     
     return test_passed, max_differences
