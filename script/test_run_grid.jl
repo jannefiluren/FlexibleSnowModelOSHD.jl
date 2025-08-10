@@ -1,8 +1,17 @@
 using Distributed
 
+configurations = [
+    ("open", 0, "OPEN_SNFRAC_0"),
+    ("open", 3, "OPEN_SNFRAC_3"),
+    ("open", 4, "OPEN_SNFRAC_4"),
+    ("forest", 4, "FOREST_SNFRAC_4"),
+    ("glacier", 0, "GLACIER_SNFRAC_0"),
+    ("glacier", 3, "GLACIER_SNFRAC_3"),
+]
+
 # Add worker processes (adjust based on available cores)
 # Use nprocs() - 1 to leave one core for the main process
-n_workers = min(4, Sys.CPU_THREADS - 1)  # Limit to 4 workers or available cores
+n_workers = min(length(configurations), Sys.CPU_THREADS - 1)  # Limit to length(configurations) workers or available cores
 if nprocs() == 1  # Only add workers if not already added
     addprocs(n_workers)
     println("Added $n_workers worker processes")
@@ -14,12 +23,6 @@ end
     include("run_grid_simulation.jl")
 end
 
-configurations = [
-    ("open", 0, "SNFRAC_0"),
-    ("open", 3, "SNFRAC_3"),
-    ("open", 4, "SNFRAC_4"),
-    ("forest", 4, "FOREST"),
-]
 
 println("Running $(length(configurations)) configurations in parallel on $(nprocs()) processes")
 

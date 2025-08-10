@@ -28,7 +28,7 @@ function run_grid_simulation(;
 )
 
     # Validate argmuments
-    tile in ["open", "forest"] || error("Unsupported tile option. Must be open, forest")
+    tile in ["open", "forest", "glacier"] || error("Unsupported tile option. Must be open, forest")
     snfrac in [0, 3, 4] || error("Unsupported tile option. Must be 0, 3, 4")
 
     # Helper function
