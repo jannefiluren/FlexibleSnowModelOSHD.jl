@@ -53,6 +53,9 @@ function extract_test_domain_from_landuse(landuse_data::Dict, center_x::Int, cen
         end
     end
 
+    # Add field for glacier tile
+    test_landuse["glacier"] = Dict("data" => ones(domain_size, domain_size))
+
     # Add domain definition
     test_landuse["is_domain"] = Dict("data" => ones(Bool, size(test_landuse["dem"]["data"])))
 

@@ -33,7 +33,11 @@ reference_path = joinpath(test_data_path, "reference")
             "tile" => "forest",
             "config" => Dict("CANMOD" => 1, "EXCHNG" => 2, "SNFRAC" => 4, "ZOFFST" => 1),
             "params" => Dict("hfsn" => 0.3, "z0sn" => 0.01)
-            )
+            ),
+        Dict(
+            "tile" => "glacier",
+            "config" => Dict("SNFRAC" => 0)
+        )
     ]
 
     # Create test data if it doesn't exist
