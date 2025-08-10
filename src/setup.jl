@@ -1,50 +1,47 @@
 """
-    setup(Tf, Ti, landuse, Nx, Ny; SNFRAC=nothing, TILE="open")
+    setup(Tf, Ti, landuse, Nx, Ny, settings)
 
 Initialize the FSM snow model with specified configuration and domain properties.
 
-Creates and configures the main FSM model state structure with landuse data, model parameters,
-and domain dimensions. Sets up soil properties, surface characteristics, and tile-specific 
-configurations for different surface types (open, forest, glacier).
+Creates and configures the FSM model state structure with landuse data, model parameters,
+and domain dimensions. Sets up soil properties, surface characteristics, and applies 
+configuration-specific settings for different surface types and model behaviors.
 
 # Arguments
 - `Tf`: Floating-point precision type (typically Float32 or Float64)
-- `Ti`: Integer type for array indices  (typically Int32 or Int64)
+- `Ti`: Integer type for array indices (typically Int32 or Int64)
 - `landuse::Dict`: Landuse data dictionary with topographic and surface properties
 - `Nx::Int, Ny::Int`: Model domain dimensions
-- `SNFRAC`: Snow cover fraction parameterization (optional override)
-- `TILE::String`: Surface tile type ("open", "forest", "glacier")
+- `settings::Dict`: Configuration dictionary containing:
+  - `"tile"`: Surface tile type ("open", "forest", "glacier")
+  - `"config"` (optional): Model configuration flags (SNFRAC, CANMOD, EXCHNG, ZOFFST, etc.)
+  - `"params"` (optional): Parameter overrides (hfsn, z0sn, etc.)
 
 # Returns
 - `FSM`: Initialized model state structure ready for simulation
 """
-function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int; SNFRAC=nothing, TILE="open")
+function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
 
   @unpack_constants(Tf)
 
   # Create fsm object
   fsm = FSM{Tf,Ti}(Nx=Nx, Ny=Ny)
 
-  # Model configuration overrides
-  if SNFRAC !== nothing
-    fsm.SNFRAC = SNFRAC
+  # Set tile
+  fsm.TILE = settings["tile"]
+
+  # Apply model configuration
+  if haskey(settings, "config")
+    for (key, value) in settings["config"]
+      setfield!(fsm, Symbol(key), Int32(value))
+    end
   end
 
-  # Forest tiles settings
-  if TILE == "forest"
-    fsm.CANMOD = 1
-    fsm.EXCHNG = 2
-    fsm.SNFRAC = 4
-    fsm.ZOFFST = 1
-  end
-
-  # Modelled tile
-  fsm.TILE = TILE
-
-  # Defaults different for forest tile
-  if (fsm.TILE == "forest")
-    fsm.hfsn = Tf(0.3)
-    fsm.z0sn = Tf(0.01)
+  # Apply parameter overrides
+  if haskey(settings, "params")
+    for (key, value) in settings["params"]
+      setfield!(fsm, Symbol(key), Tf(value))
+    end
   end
 
   # Settings specific for DENSITY=0
@@ -59,20 +56,17 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int; SNFRAC=nothing, TILE="op
   end
 
   # Derived soil parameters
-  for j = 1:fsm.Ny
-    for i = 1:fsm.Nx
-      if (fsm.fcly[i, j] + fsm.fsnd[i, j] > Tf(1))
-        fsm.fcly[i, j] = Tf(1) - fsm.fsnd[i, j]
-      end
-      fsm.b[i, j] = Tf(3.1) + Tf(15.7) * fsm.fcly[i, j] - Tf(0.3) * fsm.fsnd[i, j]
-      fsm.hcap_soil[i, j] = (Tf(2.128) * fsm.fcly[i, j] + Tf(2.385) * fsm.fsnd[i, j]) * Tf(1e6) / (fsm.fcly[i, j] + fsm.fsnd[i, j])
-      fsm.sathh[i, j] = Tf(10)^(Tf(0.17) - Tf(0.63) * fsm.fcly[i, j] - Tf(1.58) * fsm.fsnd[i, j])
-      fsm.Vsat[i, j] = Tf(0.505) - Tf(0.037) * fsm.fcly[i, j] - Tf(0.142) * fsm.fsnd[i, j]
-      fsm.Vcrit[i, j] = fsm.Vsat[i, j] * (fsm.sathh[i, j] / Tf(3.364))^(Tf(1) / fsm.b[i, j])
-      hcon_min = (hcon_clay^fsm.fcly[i, j]) * (hcon_sand^(Tf(1) - fsm.fcly[i, j]))
-      fsm.hcon_soil[i, j] = (hcon_air^fsm.Vsat[i, j]) * (hcon_min^(Tf(1) - fsm.Vsat[i, j]))
-    end
-  end
+
+  mask = fsm.fcly .+ fsm.fsnd .> Tf(1)
+  fsm.fcly[mask] .= Tf(1) .- fsm.fsnd[mask]
+    
+  fsm.b .= Tf(3.1) .+ Tf(15.7) .* fsm.fcly .- Tf(0.3) .* fsm.fsnd
+  fsm.hcap_soil .= (Tf(2.128) .* fsm.fcly .+ Tf(2.385) .* fsm.fsnd) .* Tf(1e6) ./ (fsm.fcly .+ fsm.fsnd)
+  fsm.sathh .= Tf(10) .^ (Tf(0.17) .- Tf(0.63) .* fsm.fcly .- Tf(1.58) .* fsm.fsnd)
+  fsm.Vsat .= Tf(0.505) .- Tf(0.037) .* fsm.fcly .- Tf(0.142) .* fsm.fsnd
+  fsm.Vcrit .= fsm.Vsat .* (fsm.sathh ./ Tf(3.364)) .^ (Tf(1) ./ fsm.b)
+  hcon_min = (hcon_clay .^ fsm.fcly) .* (hcon_sand .^ (Tf(1) .- fsm.fcly))
+  fsm.hcon_soil .= (hcon_air .^ fsm.Vsat) .* (hcon_min .^ (Tf(1) .- fsm.Vsat))
 
   # Initial soil profiles
   fsat = Tf(0.5)
@@ -90,21 +84,15 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int; SNFRAC=nothing, TILE="op
 
   # Cap surface temperatures for glacier 
   if (fsm.TILE == "glacier")
-    for j = 1:fsm.Ny
-      for i = 1:fsm.Nx
-        fsm.Tsrf[i, j] = min(fsm.Tsrf[i, j], Tm)
-        for k = 1:fsm.Nsoil
-          fsm.Tsoil[k, i, j] = min(fsm.Tsoil[k, i, j], Tm)
-        end
-      end
-    end
+    fsm.Tsrf .= min.(fsm.Tsrf, Tm)
+    fsm.Tsoil .= min.(fsm.Tsoil, Tm)
   end
 
   # Model tile fractions 
   if (fsm.TILE == "open")
     fsm.tilefrac = ones(Tf, size(fsm.dem))
   else
-    fsm.tilefrac .= Tf.(landuse[lowercase(TILE)]["data"])
+    fsm.tilefrac .= Tf.(landuse[lowercase(fsm.TILE)]["data"])
   end
   
   # Initialize snow cover fraction specific variables
@@ -135,17 +123,11 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int; SNFRAC=nothing, TILE="op
 
     fsm.VAI[:, :] = fsm.lai[:, :]
     fsm.trcn[:, :] = Tf(1) .- Tf(0.9) .* fsm.fveg[:, :]
-    for j = 1:fsm.Ny
-      for i = 1:fsm.Nx
-        fsm.fsky[i, j] = fsm.vfhp[i, j] ./ fsm.trcn[i, j]
-        if (fsm.fsky[i, j] > Tf(1))
-          fsm.trcn[i, j] = fsm.vfhp[i, j]
-        end
-        if (fsm.fsky[i, j] > Tf(1))
-          fsm.fsky[i, j] = Tf(1)
-        end
-      end
-    end
+    fsm.fsky .= fsm.vfhp ./ fsm.trcn
+    # Handle values where fsky > 1
+    mask = fsm.fsky .> Tf(1)
+    fsm.trcn[mask] .= fsm.vfhp[mask]
+    fsm.fsky[mask] .= Tf(1)
   end
 
   fsm.canh[:, :] = Tf(12500) * fsm.VAI[:, :]
@@ -168,17 +150,13 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int; SNFRAC=nothing, TILE="op
 
     fsm.adm = Tf(130)
 
+    # Elevation-dependent tuning of cold snow albedo decay time
+    fsm.adc .= Tf(6000) .+ (Tf(2300) .- fsm.dem) ./ (Tf(2300) .- Tf(1500)) .* (Tf(3000) .- Tf(6000))
+    fsm.adc[fsm.dem .>= Tf(2300)] .= Tf(6000)
+    fsm.adc[fsm.dem .<= Tf(1500)] .= Tf(3000)
+
     for j = 1:fsm.Ny
       for i = 1:fsm.Nx
-
-        # Elevation-dependent tuning of cold snow albedo decay time
-        if (fsm.dem[i, j] >= Tf(2300))
-          fsm.adc[i, j] = Tf(6000)
-        elseif (fsm.dem[i, j] <= Tf(1500))
-          fsm.adc[i, j] = Tf(3000)
-        else
-          fsm.adc[i, j] = Tf(6000) + (Tf(2300) - fsm.dem[i, j]) / (Tf(2300) - Tf(1500)) * (Tf(3000) - Tf(6000))
-        end
 
         # Fresh snow albedo is now constant (previously elevation-dependent)
         fsm.afs[i, j] = fsm.asmx

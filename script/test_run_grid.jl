@@ -1,17 +1,37 @@
 using Distributed
 
-configurations = [
-    ("open", 0, "OPEN_SNFRAC_0"),
-    ("open", 3, "OPEN_SNFRAC_3"),
-    ("open", 4, "OPEN_SNFRAC_4"),
-    ("forest", 4, "FOREST_SNFRAC_4"),
-    ("glacier", 0, "GLACIER_SNFRAC_0"),
-    ("glacier", 3, "GLACIER_SNFRAC_3"),
+# Configure simulations
+settings = [
+    Dict(
+        "tile" => "open",
+        "config" => Dict("SNFRAC" => 0)
+    ),
+    Dict(
+        "tile" => "open",
+        "config" => Dict("SNFRAC" => 3)
+    ),
+    Dict(
+        "tile" => "open",
+        "config" => Dict("SNFRAC" => 4)
+    ),
+    Dict(
+        "tile" => "forest",
+        "config" => Dict("CANMOD" => 1, "EXCHNG" => 2, "SNFRAC" => 4, "ZOFFST" => 1),
+        "params" => Dict("hfsn" => 0.3, "z0sn" => 0.01)
+    ),
+    Dict(
+        "tile" => "glacier",
+        "config" => Dict("SNFRAC" => 0)
+    ),
+    Dict(
+        "tile" => "glacier",
+        "config" => Dict("SNFRAC" => 4)
+    ),
 ]
 
 # Add worker processes (adjust based on available cores)
 # Use nprocs() - 1 to leave one core for the main process
-n_workers = min(length(configurations), Sys.CPU_THREADS - 1)  # Limit to length(configurations) workers or available cores
+n_workers = min(length(settings), Sys.CPU_THREADS - 1)  # Limit to length(settings) workers or available cores
 if nprocs() == 1  # Only add workers if not already added
     addprocs(n_workers)
     println("Added $n_workers worker processes")
@@ -23,18 +43,22 @@ end
     include("run_grid_simulation.jl")
 end
 
-
-println("Running $(length(configurations)) configurations in parallel on $(nprocs()) processes")
-
 # Run configurations in parallel
-pmap(configurations) do (tile, snfrac, subfolder)
+println("Running $(length(settings)) configurations in parallel on $(nprocs()) processes")
+
+pmap(settings) do (setting)
     worker_id = myid()
+    
+    tile = setting["tile"]
+    snfrac = setting["config"]["SNFRAC"]
+    subfolder = uppercase(tile) * "_SNFRAC_" * string(snfrac)
+
     println("Worker $worker_id: Starting $tile SNFRAC=$snfrac -> $subfolder")
-    
+
     start_time = time()
-    run_grid_simulation(tile=tile, snfrac=snfrac, subfolder=subfolder, verbose=false)
+    run_grid_simulation(settings=setting, subfolder=subfolder, verbose=false)
     elapsed = time() - start_time
-    
+
     println("Worker $worker_id: Completed $tile SNFRAC=$snfrac in $(round(elapsed/60, digits=1)) minutes")
 end
 

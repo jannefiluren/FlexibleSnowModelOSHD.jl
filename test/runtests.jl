@@ -15,12 +15,29 @@ reference_path = joinpath(test_data_path, "reference")
 
 @testset "FSMOSHD Regression Tests" begin
 
-    # Configuration matrix: (tile, snfrac)
-    configurations = [
-        ("open", 0),
-        ("open", 3), 
-        ("open", 4),
-        ("forest", 4)
+    # Configuration matrix
+    settings = [
+        Dict(
+            "tile" => "open",
+            "config" => Dict("SNFRAC" => 0)
+            ),
+        Dict(
+            "tile" => "open",
+            "config" => Dict("SNFRAC" => 3)
+            ),
+        Dict(
+            "tile" => "open",
+            "config" => Dict("SNFRAC" => 4)
+            ),
+        Dict(
+            "tile" => "forest",
+            "config" => Dict("CANMOD" => 1, "EXCHNG" => 2, "SNFRAC" => 4, "ZOFFST" => 1),
+            "params" => Dict("hfsn" => 0.3, "z0sn" => 0.01)
+            ),
+        Dict(
+            "tile" => "glacier",
+            "config" => Dict("SNFRAC" => 0)
+        )
     ]
 
     # Create test data if it doesn't exist
@@ -31,28 +48,32 @@ reference_path = joinpath(test_data_path, "reference")
     else
         # Check if all reference files exist
         missing_refs = []
-        for (tile, snfrac) in configurations
+        for setting in settings
+            tile = setting["tile"]
+            snfrac = setting["config"]["SNFRAC"]
             ref_file = joinpath(reference_path, "reference_results_$(tile)_SNFRAC_$(snfrac).mat")
             if !isfile(ref_file)
-                push!(missing_refs, (tile, snfrac))
+                push!(missing_refs, setting)
             end
         end
         
         if !isempty(missing_refs)
-            println("Missing reference files for configurations: $missing_refs")
+            println("Missing reference files for settings: $missing_refs")
             println("Creating missing reference results...")
             create_full_reference_dataset()
         end
     end
     
     # Run regression tests for each configuration
-    for (tile, snfrac) in configurations
+    for setting in settings
+        tile = setting["tile"]
+        snfrac = setting["config"]["SNFRAC"]
         @testset "$(tile) tile, SNFRAC=$(snfrac)" begin
             println("\n" * "="^60)
-            println("Testing configuration: tile=$tile, SNFRAC=$snfrac")
+            println("Testing configuration: tile=$(setting["tile"]), snfrac=$(setting["config"]["SNFRAC"])")
             println("="^60)
             
-            test_passed, max_differences = run_regression_test(test_data_path, tile, snfrac, tolerance=1e-10)
+            test_passed, max_differences = run_regression_test(test_data_path, setting, tolerance=1e-10)
             
             @test test_passed            
         end

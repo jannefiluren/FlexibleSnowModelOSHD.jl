@@ -9,27 +9,23 @@ using FSMOSHD
 Run a grid-based snow model simulation for open or forest tiles.
 
 # Arguments
-- `tile::String="open"`: Tile type ("open" or "forest")
-- `snfrac::Integer=0`: SNFRAC parameter (defaults: 0 for open, forest uses default)
+- `settings::Dict`: Configuration dictionary
 - `subfolder::String="default"`: Output subfolder (auto-generated if empty)
 - `base_folder::String="D:/julia"`: Base output folder
 - `times::StepRange=DateTime(2024,9,1,6):Hour(1):DateTime(2025,6,12,6)`: Time range
-- `precision::Type=Float32`: Numerical precision
+- `Tf::Type=Float32`: Numerical precision for floats
+- `Ti::Type=Int32`: Numerical precision for integers
 - `verbose::Bool=true`: Display progress
 """
 function run_grid_simulation(;
-    tile::String="open",
-    snfrac::Integer=0,
+    settings::Dict=Dict("tile" => "open"),
     subfolder::String="default",
     base_folder::String="D:/julia",
     times::StepRange=DateTime(2024, 9, 1, 6):Hour(1):DateTime(2025, 6, 12, 6),
-    precision::Type=Float32,
+    Tf::Type=Float32,
+    Ti::Type=Int32,
     verbose::Bool=true
 )
-
-    # Validate argmuments
-    tile in ["open", "forest", "glacier"] || error("Unsupported tile option. Must be open, forest")
-    snfrac in [0, 3, 4] || error("Unsupported tile option. Must be 0, 3, 4")
 
     # Helper function
     searchdir(path, key) = filter(x -> occursin(key, x), readdir(path))
@@ -41,9 +37,9 @@ function run_grid_simulation(;
     Nx = size(landuse["dem"]["data"], 1)
     Ny = size(landuse["dem"]["data"], 2)
 
-    fsm = setup(precision, Int32, landuse, Nx, Ny; TILE=tile, SNFRAC=snfrac)
+    fsm = setup(Tf, Ti, landuse, Nx, Ny, settings)
 
-    met_curr = MET{precision,Int32}(Nx=Nx, Ny=Ny)
+    met_curr = MET{Tf, Ti}(Nx=Nx, Ny=Ny)
 
     Sf24h = zeros(size(met_curr.Sf24h))
     Sf_history = zeros(size(met_curr.Sf_history))
@@ -90,7 +86,7 @@ function run_grid_simulation(;
             met_curr.Sf24h[:, :] .= Sf24h
 
             # Forest-specific TVT data loading
-            if tile == "forest"
+            if settings["tile"] == "forest"
                 folder_tvt = "K:/OSHD_AUX/DATA_CANRAD/OUTPUT_OSHD_0250/CR_2410_static/YYYY." * Dates.format(t, "mm")
                 filename_tvt = searchdir(folder_tvt, "CANRAD_" * Dates.format(t, "mmddHHMM"))
                 tvt_single = matread(joinpath(folder_tvt, filename_tvt[1]))
