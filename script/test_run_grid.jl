@@ -1,19 +1,6 @@
 using Distributed
 
-# Add worker processes (adjust based on available cores)
-# Use nprocs() - 1 to leave one core for the main process
-n_workers = min(4, Sys.CPU_THREADS - 1)  # Limit to 4 workers or available cores
-if nprocs() == 1  # Only add workers if not already added
-    addprocs(n_workers)
-    println("Added $n_workers worker processes")
-end
-
-# Load required packages on all workers
-@everywhere begin
-    using ProgressMeter, MAT, Dates, FSMOSHD
-    include("run_grid_simulation.jl")
-end
-
+# Configure simulations
 settings = [
     Dict(
         "tile" => "open",
@@ -31,12 +18,34 @@ settings = [
         "tile" => "forest",
         "config" => Dict("CANMOD" => 1, "EXCHNG" => 2, "SNFRAC" => 4, "ZOFFST" => 1),
         "params" => Dict("hfsn" => 0.3, "z0sn" => 0.01)
-    )
+    ),
+    Dict(
+        "tile" => "glacier",
+        "config" => Dict("SNFRAC" => 0)
+    ),
+    Dict(
+        "tile" => "glacier",
+        "config" => Dict("SNFRAC" => 4)
+    ),
 ]
 
-println("Running $(length(settings)) configurations in parallel on $(nprocs()) processes")
+# Add worker processes (adjust based on available cores)
+# Use nprocs() - 1 to leave one core for the main process
+n_workers = min(length(settings), Sys.CPU_THREADS - 1)  # Limit to length(settings) workers or available cores
+if nprocs() == 1  # Only add workers if not already added
+    addprocs(n_workers)
+    println("Added $n_workers worker processes")
+end
+
+# Load required packages on all workers
+@everywhere begin
+    using ProgressMeter, MAT, Dates, FSMOSHD
+    include("run_grid_simulation.jl")
+end
 
 # Run configurations in parallel
+println("Running $(length(settings)) configurations in parallel on $(nprocs()) processes")
+
 pmap(settings) do (setting)
     worker_id = myid()
     

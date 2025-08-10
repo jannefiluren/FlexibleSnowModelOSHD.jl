@@ -8,6 +8,8 @@ Soil thermal processes and heat conduction calculations.
 """
 function soil!(fsm::FSM{Tf,Ti}) where {Tf <: Real, Ti <: Integer}
 
+  @unpack_constants(Tf)
+  
   @unpack SNTRAN, SNSLID = fsm
 
   @unpack TILE, tthresh, glacierfrac = fsm
