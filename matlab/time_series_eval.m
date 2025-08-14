@@ -2,20 +2,34 @@
 
 clear; clc
 
+irow = 489;   % unflipped
+icol = 883;
+
 tstart = datenum(2024,9,2,6,0,0);
-tend = datenum(2025,6,4,6,0,0);
+tend = datenum(2025,6,1,6,0,0);
 
-tile = "for";
-subfolder_matlab = "FOREST";
-subfolder_julia = "FOREST";
+tile = "opn";
+snfrac = 0;
 
-folder_matlab = "D:\julia\FSM_HS_all\LATEST_00h_RUN\"+ subfolder_matlab + "\OUTPUT_OSHD_0250\RESULTS_24h_" + tile;
-folder_julia = "D:\julia\FSM_HS_julia\"+ subfolder_julia;
+subfolder_matlab = "SNFRAC_" + snfrac;
+
+if tile == "opn"
+  subfolder_julia = "OPEN_SNFRAC_" + snfrac;
+elseif tile == "for"
+  subfolder_julia = "FOREST_SNFRAC_" + snfrac;
+elseif tile == "glc"
+  subfolder_julia = "GLACIER_SNFRAC_" + snfrac;
+end
 
 
 %% Load data
 
 times = tstart:tend;
+
+hs_mat = -9999*ones(1088, 1488, length(times));
+hs_jul = -9999*ones(1088, 1488, length(times));
+fsnow_mat = -9999*ones(1088, 1488, length(times));
+fsnow_jul = -9999*ones(1088, 1488, length(times));
 
 for itime = 1:length(times)
   
@@ -24,14 +38,14 @@ for itime = 1:length(times)
 
   disp("Loading data for " + str1 + " to " + str2)
 
-  mat = load(fullfile(folder_matlab, "MODELDATA_" + str1 + "-" + str2 + "_FSM22.mat"), "hsnt", "scfe");
-  jul = load(fullfile(folder_julia, str2 + "_output.mat"));
+  mat = load("D:\julia\FSM_HS_all\LATEST_00h_RUN\"+ subfolder_matlab + "\OUTPUT_OSHD_0250\RESULTS_24h_" + tile + "\MODELDATA_" + str1 + "-" + str2 + "_FSM22.mat","hsnt","scfe");
+  jul = load("D:\julia\FSM_HS_julia\"+ subfolder_julia + "\" + str2 + "_output.mat");
 
-  hs_mat(:,:,itime) = flipud(mat.hsnt.data);
-  hs_jul(:,:,itime) = flipud(jul.hs);
+  hs_mat(:,:,itime) = mat.hsnt.data;
+  hs_jul(:,:,itime) = jul.hs;
   
-  fsnow_mat(:,:,itime) = flipud(mat.scfe.data);
-  fsnow_jul(:,:,itime) = flipud(jul.fsnow);
+  fsnow_mat(:,:,itime) = mat.scfe.data;
+  fsnow_jul(:,:,itime) = jul.fsnow;
 
 end
 
@@ -45,9 +59,6 @@ fsnow_jul(inan) = NaN;
 
 
 %% Plot dummy grid ensuring correct selection of pixel
-
-irow = 968;
-icol = 446;
 
 figure("Position",[100 100 800 500]);
 
@@ -92,6 +103,7 @@ diff_fsnow = abs(fsnow_jul - fsnow_mat);
 figure("Position",[100 100 800 500]);
 
 t = tiledlayout(2,1);
+title(t, "Maxiumu difference for whole grid: FSM Julia minus FSM Fortran/Matlab")
 
 ax(1) = nexttile();
 plot(times, squeeze(max(diff_hs,[],[1 2])), "b", "LineWidth", 2)
