@@ -203,6 +203,24 @@ function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::Date
 
         # Use the largest of the two fsnow estimates
         fsnow[i,j] = max(fsnow_season,fsnow_nsnow)
+        
+
+
+        push!(debug_dict["swe"], Float64(SWEtmp[i,j]))
+        push!(debug_dict["snowdepth"], Float64(snowdepth[i,j]))
+        push!(debug_dict["swemin"], Float64(swemax[i,j]))
+        push!(debug_dict["swemax"], Float64(swemax[i,j]))
+        push!(debug_dict["snowdepthmax"], Float64(snowdepthmax[i,j]))
+        push!(debug_dict["snowdepthmin"], Float64(snowdepthmin[i,j]))
+        push!(debug_dict["fsnow_season"], Float64(fsnow_season))
+        push!(debug_dict["fsnow_nsnow"], Float64(fsnow_nsnow))
+        push!(debug_dict["fsnow_nsnow_recent"], Float64(fsnow_nsnow_recent))
+        push!(debug_dict["fsnow"], Float64(fsnow[i,j]))
+        push!(debug_dict["dsnowdepth"], Float64(dsnowdepth))
+        push!(debug_dict["dsnowdepthmax"], Float64(dsnowdepthmax))
+
+
+
 
         # BC update history of SWE and hs only if they correspond to 6:00am values
         if 4.5 < hour(t) < 5.5

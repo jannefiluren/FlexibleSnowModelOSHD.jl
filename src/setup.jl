@@ -78,8 +78,8 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
 
   # Load terrain properties from landuse data
   fsm.fsky_terr .= Tf.(landuse["skyvf"]["data"])
-  fsm.lat .= Tf.(landuse["y"]["data"])  # TODO remove
-  fsm.lon .= Tf.(landuse["x"]["data"])  # TODO remove
+  # fsm.lat .= Tf.(landuse["y"]["data"])  # TODO remove
+  # fsm.lon .= Tf.(landuse["x"]["data"])  # TODO remove
   fsm.dem .= Tf.(landuse["dem"]["data"])
 
   # Cap surface temperatures for glacier 

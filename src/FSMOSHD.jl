@@ -4,6 +4,8 @@ using Parameters
 using MAT
 using Dates
 
+debug_dict = Dict{String, Vector{Float64}}()
+
 include("parameters.jl")
 include("types.jl")
 include("setup.jl")
@@ -29,5 +31,6 @@ export qsat, tridiag!, ludcmp!
 export drive!, step!, setup
 export prepare_landuse, crop_landuse_to_domain
 export @unpack_constants
+export debug_dict
 
 end
