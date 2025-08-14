@@ -48,6 +48,8 @@ function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::Date
             diffSWEbuffer = SWEbuffer[iloop+1]-SWEbuffer[iloop]
             if (diffSWEbuffer > Tf(0.5))
                 break
+            else
+                ifinal = iloop + 1
             end
         end
         irecentmin = argmin(SWEbuffer[1:ifinal])
