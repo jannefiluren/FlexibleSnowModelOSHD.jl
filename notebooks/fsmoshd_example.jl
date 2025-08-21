@@ -106,7 +106,8 @@ md"""
 
 # ╔═╡ dffe499f-feec-43ba-83a5-ab9007afd8a1
 begin
-	fsm = setup(Float32, Int32, landuse, length(landuse["acro"]), 1)
+	settings = Dict("tile" => "open")
+	fsm = setup(Float32, Int32, landuse, length(landuse["acro"]), 1, settings)
 	fsm.asmn = asmn
 	fsm.afs .= asmx
 	fsm.adm = adm
