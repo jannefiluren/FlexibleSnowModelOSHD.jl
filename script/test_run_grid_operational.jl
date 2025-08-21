@@ -52,7 +52,6 @@ function run_operational(tstart::DateTime, tend::DateTime, restart::Bool=false)
 end
 
 
-searchdir(path, key) = filter(x -> occursin(key, x), readdir(path))
 
 
 function write_results(fsm, folder, t)

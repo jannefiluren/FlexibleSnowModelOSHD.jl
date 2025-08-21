@@ -60,7 +60,6 @@ md"""
 # ╔═╡ 57044111-0cad-4775-aa98-e32886fe2edd
 begin
 
-	searchdir(path, key) = filter(x -> occursin(key, x), readdir(path))
 	
 	landuse = prepare_landuse("K:/OSHD_AUX/DATA_LUS/OSHD_LUS_STAT.mat")
 	

@@ -260,5 +260,3 @@ function compute_max_difference(snowdepth, snowdepth_ref; by_station::Bool=false
     end
 end
 
-# Helper function (from original script)
-searchdir(path, key) = filter(x -> occursin(key, x), readdir(path))

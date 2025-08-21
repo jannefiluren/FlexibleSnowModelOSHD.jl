@@ -110,8 +110,6 @@ function load_forcing_data(start_date::Date, end_date::Date, landuse::Dict;
     # Create hourly datetime range
     datetimes = DateTime(start_date):Hour(1):DateTime(end_date)
     
-    # Helper function to find files
-    searchdir(path, key) = filter(x -> occursin(key, x), readdir(path))
     
     println("Loading meteorological and time-varying transmissivity data")
     println("Period: $start_date to $end_date")

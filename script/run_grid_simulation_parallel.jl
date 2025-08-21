@@ -1,11 +1,14 @@
-using MAT, Dates, FSMOSHD, ChunkSplitters
+using MAT
+using Dates
+using FSMOSHD
+using ChunkSplitters
 
 """
-    create_fsm_chunk(fsm_full::FSM{Tf,Ti}, chunk_range::UnitRange{Int}) where {Tf,Ti}
+    create_fsm_chunk(fsm_full::FSM{Tf, Ti}, chunk_range::UnitRange{Int}) where {Tf, Ti}
 
 Create FSM chunk for spatial domain decomposition.
 """
-function create_fsm_chunk(fsm_full::FSM{Tf,Ti}, chunk_range::UnitRange{Int}) where {Tf,Ti}
+function create_fsm_chunk(fsm_full::FSM{Tf, Ti}, chunk_range::UnitRange{Int}) where {Tf, Ti}
     fsm_chunk = deepcopy(fsm_full)
     fsm_chunk.Nx = length(chunk_range)
     fsm_chunk.Ny = fsm_full.Ny
@@ -25,20 +28,20 @@ function create_fsm_chunk(fsm_full::FSM{Tf,Ti}, chunk_range::UnitRange{Int}) whe
 end
 
 """
-    create_met_chunk(chunk_Nx::Ti, Ny::Ti, ::Type{Tf}, ::Type{Ti}) where {Tf,Ti}
+    create_met_chunk(chunk_Nx, Ny, ::Type{Tf}, ::Type{Ti}) where {Tf, Ti}
 
 Create empty MET structure for chunk.
 """
-function create_met_chunk(chunk_Nx::Ti, Ny::Ti, ::Type{Tf}, ::Type{Ti}) where {Tf,Ti}
-    return MET{Tf,Ti}(Nx=chunk_Nx, Ny=Ny)
+function create_met_chunk(chunk_Nx, Ny, ::Type{Tf}, ::Type{Ti}) where {Tf, Ti}
+    return MET{Tf, Ti}(Nx=chunk_Nx, Ny=Ny)
 end
 
 """
-    fill_met_chunk!(met_chunk::MET{Tf,Ti}, met_full::MET{Tf,Ti}, chunk_range::UnitRange{Int}) where {Tf,Ti}
+    fill_met_chunk!(met_chunk::MET{Tf, Ti}, met_full::MET{Tf, Ti}, chunk_range::UnitRange{Int}) where {Tf, Ti}
 
 Copy meteorological data to chunk.
 """
-function fill_met_chunk!(met_chunk::MET{Tf,Ti}, met_full::MET{Tf,Ti}, chunk_range::UnitRange{Int}) where {Tf,Ti}
+function fill_met_chunk!(met_chunk::MET{Tf, Ti}, met_full::MET{Tf, Ti}, chunk_range::UnitRange{Int}) where {Tf, Ti}
     @views begin
         met_chunk.LW .= met_full.LW[chunk_range, :]
         met_chunk.Ps .= met_full.Ps[chunk_range, :]
@@ -59,12 +62,12 @@ end
 
 """
     extract_outputs!(hs_output::Array{Tf,2}, fsnow_output::Array{Tf,2}, 
-                    fsm_chunks::Vector{FSM{Tf,Ti}}, chunk_ranges) where {Tf,Ti}
+                    fsm_chunks::Vector{FSM{Tf, Ti}}, chunk_ranges) where {Tf, Ti}
 
 Extract simulation outputs from chunks.
 """
 function extract_outputs!(hs_output::Array{Tf,2}, fsnow_output::Array{Tf,2}, 
-                         fsm_chunks::Vector{FSM{Tf,Ti}}, chunk_ranges) where {Tf,Ti}
+                         fsm_chunks::Vector{FSM{Tf, Ti}}, chunk_ranges) where {Tf, Ti}
     for (chunk_idx, chunk_range) in enumerate(chunk_ranges)
         fsm_chunk = fsm_chunks[chunk_idx]
         
@@ -79,22 +82,20 @@ end
 Run a grid-based snow model simulation with parallel execution using spatial domain decomposition.
 """
 function run_grid_simulation_parallel(;
-    settings::Dict=Dict("tile" => "open", "config" => Dict("SNFRAC" => 0)),
-    subfolder::String="parallel_$(Dates.format(now(), "yyyymmdd_HHMMSS"))",
-    base_folder::String="D:/julia",
     times::StepRange=DateTime(2024, 9, 1, 6):Hour(1):DateTime(2025, 6, 12, 6),
+    settings::Dict=Dict("tile" => "open", "config" => Dict("SNFRAC" => 0)),
+    landuse_file::String="K:/OSHD_AUX/DATA_LUS/OSHD_LUS_0250.mat",
+    base_folder::String="D:/julia",
+    subfolder::String="parallel_$(Dates.format(now(), "yyyymmdd_HHMMSS"))",
     Tf::Type=Float32,
     Ti::Type=Int32,
     verbose::Bool=true,
-    nchunks::Int=Threads.nthreads(),
-    landuse_file::String="K:/OSHD_AUX/DATA_LUS/OSHD_LUS_0250.mat"
+    nchunks::Int=Threads.nthreads()
 )
 
-    # Helper function
-    searchdir(path, key) = filter(x -> occursin(key, x), readdir(path))
 
     if verbose
-        println("Starting parallel simulation with $(Threads.nthreads()) threads and $nchunks chunks")
+        println("Starting parallel simulation with $(Threads.nthreads()) threads")
     end
 
     # Read landuse data
@@ -130,15 +131,15 @@ function run_grid_simulation_parallel(;
         println("Creating $(length(chunk_ranges)) FSM and MET chunks...")
     end
     
-    fsm_chunks = Vector{FSM{Tf,Ti}}(undef, length(chunk_ranges))
-    met_chunks = Vector{MET{Tf,Ti}}(undef, length(chunk_ranges))
+    fsm_chunks = Vector{FSM{Tf, Ti}}(undef, length(chunk_ranges))
+    met_chunks = Vector{MET{Tf, Ti}}(undef, length(chunk_ranges))
     
     for (chunk_idx, chunk_range) in enumerate(chunk_ranges)
         chunk_Nx = length(chunk_range)
         
         fsm_chunks[chunk_idx] = create_fsm_chunk(fsm, chunk_range)
         
-        met_chunks[chunk_idx] = create_met_chunk(Ti(chunk_Nx), Ti(Ny), Tf, Ti)
+        met_chunks[chunk_idx] = create_met_chunk(chunk_Nx, Ny, Tf, Ti)
         
         if verbose
             println("  ✓ Chunk $chunk_idx: $(chunk_Nx) × $Ny cells")
@@ -172,9 +173,9 @@ function run_grid_simulation_parallel(;
 
         elapsed_total = @elapsed begin
 
+            # Load forcing data
             elapsed_loading = @elapsed begin
                 
-                # Load meteorological data in parallel
                 folder_icon = joinpath(icon_base, Dates.format(t, "yyyy.mm"))
                 filename_icon = searchdir(folder_icon, "ICONDATA_" * Dates.format(t, "yyyymmddHHMM") * "_C1EFA_")
                 mat_filepath = joinpath(folder_icon, filename_icon[1])
@@ -187,14 +188,12 @@ function run_grid_simulation_parallel(;
                     target_array[:, :] .= data
                 end
     
-                # Update 24-hour snowfall tracking
                 curr_hour = Dates.value(Hour(t)) + 1
                 Sf24h .+= met_curr.Sf
                 Sf24h .-= Sf_history[:, :, curr_hour]
                 Sf_history[:, :, curr_hour] = met_curr.Sf
                 met_curr.Sf24h[:, :] .= Sf24h
     
-                # Load forest canopy data if needed
                 if settings["tile"] == "forest"
                     folder_tvt = tvt_base * Dates.format(t, "mm")
                     filename_tvt = searchdir(folder_tvt, "CANRAD_" * Dates.format(t, "mmddHHMM"))
@@ -202,25 +201,24 @@ function run_grid_simulation_parallel(;
                     met_curr.Tv[:, :] .= tvt_single["stdx"]["data"]
                 end
     
-                # Fill meteorological data into chunks
                 for (chunk_idx, chunk_range) in enumerate(chunk_ranges)
                     fill_met_chunk!(met_chunks[chunk_idx], met_curr, chunk_range)
                 end
 
             end
 
+            # Run model
             elapsed_simulation = @elapsed begin
                 
-                # Parallel physics execution
                 Threads.@threads for chunk_idx in 1:length(chunk_ranges)
                     step!(fsm_chunks[chunk_idx], met_chunks[chunk_idx], t)
                 end
 
             end
 
+            # Save outputs
             elapsed_saving = @elapsed begin
                 
-                # Save outputs
                 if hour(t) == 5
                     extract_outputs!(hs_output, fsnow_output, fsm_chunks, chunk_ranges)
                     filename = Dates.format(t + Hour(1), "yyyymmddHHMM") * "_output.mat"
