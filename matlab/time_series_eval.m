@@ -6,10 +6,10 @@ tstart = datenum(2024,9,2,6,0,0);
 tend = datenum(2025,6,4,6,0,0);
 
 tile = "for";
-subfolder_matlab = "FOREST";
-subfolder_julia = "FOREST";
+subfolder_matlab = "SNFRAC_0";
+subfolder_julia = "FOREST_SNFRAC_4";
 
-folder_matlab = "D:\julia\FSM_HS_all\LATEST_00h_RUN\"+ subfolder_matlab + "\OUTPUT_OSHD_0250\RESULTS_24h_" + tile;
+folder_matlab = "D:\julia\FSM_HS_matlab\LATEST_00h_RUN\"+ subfolder_matlab + "\OUTPUT_OSHD_0250\RESULTS_24h_" + tile;
 folder_julia = "D:\julia\FSM_HS_julia\"+ subfolder_julia;
 
 
