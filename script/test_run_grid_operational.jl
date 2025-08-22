@@ -13,7 +13,7 @@ function run_operational(tstart::DateTime, tend::DateTime, restart::Bool=false)
 
   # Settings
 
-  base_folder = "D:/julia/FSM_julia_operational"
+  base_folder = "D:/julia/FSM_HS_julia_operational"
   
   # Read landuse data
 
@@ -51,10 +51,6 @@ function run_operational(tstart::DateTime, tend::DateTime, restart::Bool=false)
 
 end
 
-
-searchdir(path, key) = filter(x -> occursin(key, x), readdir(path))
-
-
 function write_results(fsm, folder, t)
 
   matwrite(joinpath(folder, "results", Dates.format(t + Dates.Hour(1), "yyyymmddHHMM") * "_output.mat"),
@@ -64,7 +60,6 @@ function write_results(fsm, folder, t)
         ); compress=true)
 
 end
-
 
 function write_states(fsm, folder, t)
 
@@ -85,7 +80,6 @@ function write_states(fsm, folder, t)
   matwrite(file, states, ; compress=true)
 
 end
-
 
 function read_states!(fsm, folder, t)
 

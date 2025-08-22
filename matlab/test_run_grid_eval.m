@@ -22,7 +22,7 @@ function test_run_grid_eval(time,tile,snfrac,variable)
     subfolder_julia = "GLACIER_SNFRAC_" + snfrac;
   end
 
-  mat = load("D:\julia\FSM_HS_all\LATEST_00h_RUN\"+ subfolder_matlab + "\OUTPUT_OSHD_0250\RESULTS_24h_" + tile + "\MODELDATA_" + str1 + "-" + str2 + "_FSM22.mat");
+  mat = load("D:\julia\FSM_HS_matlab\LATEST_00h_RUN\"+ subfolder_matlab + "\OUTPUT_OSHD_0250\RESULTS_24h_" + tile + "\MODELDATA_" + str1 + "-" + str2 + "_FSM22.mat");
   jul = load("D:\julia\FSM_HS_julia\"+ subfolder_julia + "\" + str2 + "_output.mat");
 
 

@@ -9,31 +9,13 @@ using Tables
     run_point_simulation(; kwargs...)
 
 Run a point-based snow model simulation for station data with optional comparison to reference results.
-
-# Arguments
-- `times::StepRange=DateTime(2024,9,1,6):Hour(1):DateTime(2025,6,12,6)`: Simulation time range
-- `landuse_file::String="K:/OSHD_AUX/DATA_LUS/OSHD_LUS_STAT.mat"`: Landuse file path
-- `meteo_base_path::String="K:/DATA_ICON/OUTPUT_OSHD_STAT/PROCESSED_ANALYSIS/ICON_1EFA"`: Base path for meteorological data
-- `output_base_folder::String=""`: Base output folder (must be a valid directory)
-- `reference_path::String=""`: Reference results path (empty string to skip)
-- `write_outputs::Bool=true`: Whether to write CSV output files
-- `Tf::Type=Float32`: Numerical precision for floats
-- `Ti::Type=Int32`: Numerical precision for integers
-- `verbose::Bool=true`: Show progress bars
-
-# Returns
-- `NamedTuple` with fields:
-  - `snowdepth`: Simulated snow depth time series (times × stations)
-  - `snowdepth_ref`: Reference snow depth (if reference_path provided, otherwise `nothing`)
-  - `times`: Time vector used
-```
 """
 function run_point_simulation(;
     times::StepRange = DateTime(2024, 9, 1, 6):Hour(1):DateTime(2025, 6, 12, 6),
     landuse_file::String = "K:/OSHD_AUX/DATA_LUS/OSHD_LUS_STAT.mat",
     meteo_base_path::String = "K:/DATA_ICON/OUTPUT_OSHD_STAT/PROCESSED_ANALYSIS/ICON_1EFA",
-    output_base_folder::String = "",
-    reference_path::String = "",
+    base_folder::String = "D:/julia",
+    reference_path::String = "FSM_HS_matlab/LATEST_00h_RUN/OUTPUT_OSHD_STAT/RESULTS_01h_opn",
     write_outputs::Bool = true,
     Tf::Type=Float32,
     Ti::Type=Int32,
@@ -41,7 +23,7 @@ function run_point_simulation(;
 )
 
     # Check if output path exist
-    isdir(output_base_folder) || error("Output base folder does not exist")
+    isdir(base_folder) || error("Base folder does not exist")
 
     # Prepare landuse data
     landuse = prepare_landuse(landuse_file)
@@ -61,12 +43,13 @@ function run_point_simulation(;
     # Load reference results if requested
     snowdepth_ref = nothing
     if !isempty(reference_path)
+        reference_path = joinpath(base_folder, reference_path)
         snowdepth_ref = load_reference_results(times, reference_path, nstat, verbose)
     end
 
     # Write outputs if requested
     if write_outputs
-        write_simulation_outputs(snowdepth, snowdepth_ref, output_base_folder)
+        write_simulation_outputs(snowdepth, snowdepth_ref, base_folder)
     end
 
     return (
@@ -206,7 +189,7 @@ end
 Write simulation results to CSV files.
 """
 function write_simulation_outputs(snowdepth, snowdepth_ref, base_folder)
-    output_dir = joinpath(base_folder, "FSM_HS_all")
+    output_dir = joinpath(base_folder, "FSM_HS_matlab")
     mkpath(output_dir)
 
     CSV.write(joinpath(output_dir, "snowdepth_julia.csv"), Tables.table(snowdepth))
@@ -220,25 +203,6 @@ end
     compute_max_difference(snowdepth, snowdepth_ref; by_station=false)
 
 Compute maximum difference between simulation and reference results.
-
-# Arguments
-- `snowdepth`: Simulated snow depth array (times × stations)
-- `snowdepth_ref`: Reference snow depth array (times × stations)
-- `by_station::Bool=false`: If true, return max difference for each station separately
-
-# Returns
-- If `by_station=false`: Single maximum absolute difference across all data
-- If `by_station=true`: Vector of maximum absolute differences per station
-
-# Example
-```julia
-results = run_point_simulation()
-max_diff = compute_max_difference(results.snowdepth, results.snowdepth_ref)
-println("Maximum difference: ", max_diff, " m")
-
-# Per-station differences
-station_diffs = compute_max_difference(results.snowdepth, results.snowdepth_ref, by_station=true)
-```
 """
 function compute_max_difference(snowdepth, snowdepth_ref; by_station::Bool=false)
     if snowdepth_ref === nothing
@@ -259,6 +223,3 @@ function compute_max_difference(snowdepth, snowdepth_ref; by_station::Bool=false
         return maximum(diff_array)
     end
 end
-
-# Helper function (from original script)
-searchdir(path, key) = filter(x -> occursin(key, x), readdir(path))

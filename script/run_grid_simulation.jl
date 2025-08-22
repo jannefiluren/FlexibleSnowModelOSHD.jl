@@ -7,15 +7,6 @@ using FSMOSHD
     run_grid_simulation(; kwargs...)
 
 Run a grid-based snow model simulation for open or forest tiles.
-
-# Arguments
-- `settings::Dict`: Configuration dictionary
-- `subfolder::String="default"`: Output subfolder (auto-generated if empty)
-- `base_folder::String="D:/julia"`: Base output folder
-- `times::StepRange=DateTime(2024,9,1,6):Hour(1):DateTime(2025,6,12,6)`: Time range
-- `Tf::Type=Float32`: Numerical precision for floats
-- `Ti::Type=Int32`: Numerical precision for integers
-- `verbose::Bool=true`: Display progress
 """
 function run_grid_simulation(;
     settings::Dict=Dict("tile" => "open"),
@@ -27,8 +18,6 @@ function run_grid_simulation(;
     verbose::Bool=true
 )
 
-    # Helper function
-    searchdir(path, key) = filter(x -> occursin(key, x), readdir(path))
 
     # Read landuse data
     landuse = prepare_landuse("K:/OSHD_AUX/DATA_LUS/OSHD_LUS_0250.mat")

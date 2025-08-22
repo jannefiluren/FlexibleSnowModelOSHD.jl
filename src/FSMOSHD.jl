@@ -22,12 +22,14 @@ include("soil.jl")
 include("step.jl")
 include("snowcoverfraction.jl")
 include("prepare_landuse.jl")
+include("utils.jl")
 
 export FSM, MET
 export canopy!, radiation!, thermal!, sfexch!, ebalsrf!, ebalfor!, snow!, soil!, snowcoverfraction!
 export qsat, tridiag!, ludcmp!
 export drive!, step!, setup
 export prepare_landuse, crop_landuse_to_domain
+export searchdir
 export @unpack_constants
 
 end
