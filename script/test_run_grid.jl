@@ -4,28 +4,33 @@ using Distributed
 settings = [
     Dict(
         "tile" => "open",
-        "config" => Dict("SNFRAC" => 0)
+        "config" => Dict("SNFRAC" => 0),
+        "params" => Dict("wind_scaling" => 0.7)
     ),
     Dict(
         "tile" => "open",
-        "config" => Dict("SNFRAC" => 3)
+        "config" => Dict("SNFRAC" => 3),
+        "params" => Dict("wind_scaling" => 0.7)
     ),
     Dict(
         "tile" => "open",
-        "config" => Dict("SNFRAC" => 4)
+        "config" => Dict("SNFRAC" => 4),
+        "params" => Dict("wind_scaling" => 0.7)
     ),
     Dict(
         "tile" => "forest",
         "config" => Dict("CANMOD" => 1, "EXCHNG" => 2, "SNFRAC" => 4, "ZOFFST" => 1),
-        "params" => Dict("hfsn" => 0.3, "z0sn" => 0.01)
+        "params" => Dict("hfsn" => 0.3, "z0sn" => 0.01, "wind_scaling" => 0.7)
     ),
     Dict(
         "tile" => "glacier",
-        "config" => Dict("SNFRAC" => 0)
+        "config" => Dict("SNFRAC" => 0),
+        "params" => Dict("wind_scaling" => 0.7)
     ),
     Dict(
         "tile" => "glacier",
-        "config" => Dict("SNFRAC" => 4)
+        "config" => Dict("SNFRAC" => 4),
+        "params" => Dict("wind_scaling" => 0.7)
     ),
 ]
 

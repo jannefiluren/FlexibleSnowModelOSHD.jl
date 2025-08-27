@@ -21,11 +21,17 @@ function prepare_landuse(filename::String)
     _ensure_data_field!(landuse, "is_domain", ones(Bool, dem_size))
     _ensure_data_field!(landuse, "dhdxdy", ones(dem_size))
     _ensure_data_field!(landuse, "sd", ones(dem_size))
-    _ensure_data_field!(landuse, "Ld", 250 * ones(dem_size))
     _ensure_data_field!(landuse, "x", ones(dem_size))
     _ensure_data_field!(landuse, "y", ones(dem_size))
     _ensure_data_field!(landuse, "prec_multi", ones(dem_size))
     _ensure_data_field!(landuse, "skyvf", ones(dem_size))
+
+    # Handle the special case of grid cell size (not available for station simulations)
+    if haskey(landuse, "cellsize")
+        _ensure_data_field!(landuse, "Ld", landuse["cellsize"] * ones(dem_size))
+    else
+        _ensure_data_field!(landuse, "Ld", zeros(dem_size))
+    end
     
     # Handle optional forest fields
     _ensure_data_field!(landuse, "fveg", nothing)

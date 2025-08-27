@@ -11,11 +11,11 @@ function drive!(fsm::FSM, meteo::MET{Tf,Ti}) where {Tf<:Real,Ti<:Integer}
 
   @unpack_constants(Tf)
 
-  @unpack dt = fsm
+  @unpack dt, wind_scaling = fsm
 
   @unpack Tc, es, Qa, Ua, Sf, Rf, Ta, RH, Ps = meteo
 
-  Ua .= Tf(0.7) .* Ua
+  Ua .= wind_scaling .* Ua
   Ua .= max.(Ua, Tf(0.1))
 
   Sf .= Sf ./ dt
