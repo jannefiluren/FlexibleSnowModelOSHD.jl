@@ -59,6 +59,9 @@ function extract_test_domain_from_landuse(landuse_data::Dict, center_x::Int, cen
     # Add domain definition
     test_landuse["is_domain"] = Dict("data" => ones(Bool, size(test_landuse["dem"]["data"])))
 
+    # Add grid cell size
+    test_landuse["cellsize"] = landuse_data["cellsize"]
+
     # Add indicies of domain bounds
     test_landuse["x_start"] = x_start
     test_landuse["x_end"] = x_end
