@@ -135,18 +135,18 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
 
   # Tuned snow surface properties
 
-  if fsm.OSHDTN == 0
+  # if fsm.OSHDTN == 0
 
-    fsm.adm = Tf(100)
-    fsm.adc[:, :] = Tf(1000)
-    fsm.afs[:, :] = fsm.asmx
-    if (fsm.TILE == "glacier" || ((fsm.SNTRAN == 1 || fsm.SNSLID == 1) && fsm.glacierfrac(i, j) > eps(Tf)))
-      fsm.z0_snow[:, :] = Tf(0.0009)
-    else
-      fsm.z0_snow[:, :] = fsm.z0sn
-    end
+  #   fsm.adm = Tf(100)
+  #   fsm.adc[:, :] .= Tf(1000)
+  #   fsm.afs[:, :] .= fsm.asmx
+  #   if (fsm.TILE == "glacier" || ((fsm.SNTRAN == 1 || fsm.SNSLID == 1) && fsm.glacierfrac(i, j) > eps(Tf)))
+  #     fsm.z0_snow[:, :] .= Tf(0.0009)
+  #   else
+  #     fsm.z0_snow[:, :] .= fsm.z0sn
+  #   end
 
-  else
+  # else
 
     fsm.adm = Tf(130)
 
@@ -179,7 +179,9 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
       end
     end
 
-  end
+  # end
+
+  fsm.z0_snow .= Tf(0.01)
 
   return fsm
 
