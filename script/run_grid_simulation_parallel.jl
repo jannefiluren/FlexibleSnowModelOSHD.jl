@@ -83,7 +83,7 @@ Run a grid-based snow model simulation with parallel execution using spatial dom
 """
 function run_grid_simulation_parallel(;
     times::StepRange=DateTime(2024, 9, 1, 6):Hour(1):DateTime(2025, 6, 12, 6),
-    settings::Dict=Dict("tile" => "open", "config" => Dict("SNFRAC" => 0)),
+    settings::Dict=Dict("tile" => "open", "config" => Dict("SNFRAC" => 0), "params" => Dict("wind_scaling" => 0.7)),
     landuse_file::String="K:/OSHD_AUX/DATA_LUS/OSHD_LUS_0250.mat",
     base_folder::String="D:/julia",
     subfolder::String="parallel_$(Dates.format(now(), "yyyymmdd_HHMMSS"))",

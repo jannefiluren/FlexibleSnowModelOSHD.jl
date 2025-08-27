@@ -34,7 +34,7 @@ function run_point_simulation(;
     met_data = load_meteorological_data(times, meteo_base_path, nstat, verbose)
 
     # Setup model
-    fsm = setup(Tf, Ti, landuse_cropped, nstat, 1, Dict("tile" => "open"))
+    fsm = setup(Tf, Ti, landuse_cropped, nstat, 1, Dict("tile" => "open", "params" => Dict("wind_scaling" => 0.7)))
     met = MET{Tf, Ti}(Nx=nstat)
 
     # Run simulation

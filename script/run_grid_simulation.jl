@@ -9,7 +9,7 @@ using FSMOSHD
 Run a grid-based snow model simulation for open or forest tiles.
 """
 function run_grid_simulation(;
-    settings::Dict=Dict("tile" => "open"),
+    settings::Dict=Dict("tile" => "open", "config" => Dict("SNFRAC" => 0), "params" => Dict("wind_scaling" => 0.7)),
     subfolder::String="default",
     base_folder::String="D:/julia",
     times::StepRange=DateTime(2024, 9, 1, 6):Hour(1):DateTime(2025, 6, 12, 6),

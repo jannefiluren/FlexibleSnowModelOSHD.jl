@@ -106,7 +106,7 @@ md"""
 
 # ╔═╡ dffe499f-feec-43ba-83a5-ab9007afd8a1
 begin
-	settings = Dict("tile" => "open")
+	settings = Dict("tile" => "open", "params" => Dict("wind_scaling" => 0.7))
 	fsm = setup(Float32, Int32, landuse, length(landuse["acro"]), 1, settings)
 	fsm.asmn = asmn
 	fsm.afs .= asmx
