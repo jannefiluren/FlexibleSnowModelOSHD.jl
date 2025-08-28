@@ -177,7 +177,7 @@ function run_grid_simulation_parallel(;
             elapsed_loading = @elapsed begin
                 
                 folder_icon = joinpath(icon_base, Dates.format(t, "yyyy.mm"))
-                filename_icon = searchdir(folder_icon, "ICONDATA_" * Dates.format(t, "yyyymmddHHMM") * "_C1EFA_")
+                filename_icon = searchdir(folder_icon, "ICONDATA_" * Dates.format(t, "yyyymmddHHMM"))
                 mat_filepath = joinpath(folder_icon, filename_icon[1])
                 
                 Threads.@threads for met_var in met_var_mapping
