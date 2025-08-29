@@ -336,26 +336,7 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Int
           dSice = Tf(trunc(Ti,dSice * Tf(1000) + Tf(0.5))) / Tf(1000)    # TODO verify against original code
         end
 
-        if (DENSTY == 0)
-          rhonew = rho0
-        else
-          if (OSHDTN == 0)
-            # Initial formulation
-            rhonew = max(rhof + rhob * (Ta[i, j] - Tm) + rhoc * Ua[i, j]^Tf(0.5), Tf(50.0))
-          else # OSHDTN == 1
-            # New formulation with decompaction
-            rhonew = rhof + rhob * (Ta[i, j] - Tm) + rhoc * Ua[i, j]^Tf(0.5)
-            if (dem[i, j] <= Tf(1000))
-              t_decompaction = Tf(24.0)
-            elseif (dem[i, j] > Tf(4000))
-              t_decompaction = Tf(0.0)
-            else
-              t_decompaction = Tf(24) + (dem[i, j] - Tf(1000)) / (Tf(4000) - Tf(1000)) * (Tf(0) - Tf(24))
-            end
-            rhonew = Tf(300) + (rhonew - Tf(300)) * exp(t_decompaction / Tf(100))
-            rhonew = max(rhonew, Tf(50.0))
-          end
-        end
+        rhonew = fresh_snow_density!(fsm, Ta[i, j], Ua[i, j], dem[i, j])
         if (Sice[1, i, j] + dSice > eps(Tf))
           rgrn[1, i, j] = (Sice[1, i, j] * rgrn[1, i, j] + dSice * rgr0) / (Sice[1, i, j] + dSice)
         end
