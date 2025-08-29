@@ -337,24 +337,17 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Int
         end
 
         rhonew = fresh_snow_density!(fsm, Ta[i, j], Ua[i, j], dem[i, j])
+
         if (Sice[1, i, j] + dSice > eps(Tf))
           rgrn[1, i, j] = (Sice[1, i, j] * rgrn[1, i, j] + dSice * rgr0) / (Sice[1, i, j] + dSice)
         end
+
         Sice[1, i, j] = Sice[1, i, j] + dSice
         sumDs = Tf(0.0)
         for si in 1:size(Ds, 1)
           sumDs += Ds[si, i, j]
         end
         snowdepth = sumDs * fsnow[i, j] + dSice / rhonew
-
-
-
-    
-        # Falling snow temperature
-        Tsnow0 = min(Ta[i, j], Tm)
-        if (HN_ON)
-          Tsnow0 = max(Tsnow0, (Tm - Tf(40)))
-        end
 
         # Add canopy unloading to layer 1 with bulk snow density and grain size
         rhos = rhof
@@ -393,6 +386,12 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Int
           for k = 2:Nsnow[i, j]
             Ds[k, i, j] = Ds[k, i, j] * fold / fsnow[i, j]
           end
+        end
+
+        # New snow temperature
+        Tsnow0 = min(Ta[i, j], Tm)
+        if (HN_ON)
+          Tsnow0 = max(Tsnow0, (Tm - Tf(40)))
         end
 
         # New snowpack
