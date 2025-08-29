@@ -317,33 +317,13 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Int
         # Add bare soil runoff to snowmelt runoff for total runoff
         Roff[i, j] = Roff_snow[i, j] + Roff_bare[i, j]
 
-      end
-
-    end
-  end
-
-
-  # Add snow, recalculate layers
-  for j = 1:Ny
-    for i = 1:Nx
-
-      if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
-
-        # Falling snow temperature
-        Tsnow0 = min(Ta[i, j], Tm)
-        if (HN_ON)
-          Tsnow0 = max(Tsnow0, (Tm - Tf(40)))
-        end
-
-
-        # Add snowfall and frost to layer 1 with fresh snow density and grain size
+        # Add snowfall and frost to new snow with fresh snow density and grain size
         Esnow = Tf(0.0)
         if (Esrf[i, j] < Tf(0) && Tsrf[i, j] < Tm)
           Esnow = fsnow[i, j] * Esrf[i, j]
           Sbsrf[i, j] = Esnow * dt
         end
         dSice = (Sf[i, j] - Esnow) * dt  # Think about how to scale for fsnow...
-
 
         # Catch to round infinitesimally small new snow amounts.
         # The small amounts were due to EnKF-assimilated daily precip being downscaled to hourly
@@ -385,6 +365,15 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Int
           sumDs += Ds[si, i, j]
         end
         snowdepth = sumDs * fsnow[i, j] + dSice / rhonew
+
+
+
+    
+        # Falling snow temperature
+        Tsnow0 = min(Ta[i, j], Tm)
+        if (HN_ON)
+          Tsnow0 = max(Tsnow0, (Tm - Tf(40)))
+        end
 
         # Add canopy unloading to layer 1 with bulk snow density and grain size
         rhos = rhof
