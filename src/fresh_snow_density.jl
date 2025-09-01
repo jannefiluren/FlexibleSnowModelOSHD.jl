@@ -23,7 +23,7 @@ function fresh_snow_density!(fsm::FSM{Tf, Ti}, Ta, Ua, dem) where {Tf<:Real, Ti<
         t_decompaction = Tf(24) + (dem - Tf(1000)) / (Tf(4000) - Tf(1000)) * (Tf(0) - Tf(24))
       end
       rhonew = Tf(300) + (rhonew - Tf(300)) * exp(t_decompaction / Tf(100))
-      rhonew = max(rhonew, Tf(50.0))
+      rhonew = max(rhonew, rhos_min)
     end
   end
   

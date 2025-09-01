@@ -105,6 +105,10 @@
   z0sn::Tf = 0.002                                         # Snow roughness length (m)
   Sfmin::Tf = 10                                           # Minimum 24h snowfall to refresh albedo (kg/m^2)
 
+  # Snow layering parameters
+  Ds_min = 0.01                                            # Minimum possible snow layer thickness (m)
+  Ds_surflay = 0.5                                         # Maximum thickness of surface fine snow layering (m)
+
   # Defaults for ground surface parameters
 
   bstb::Tf = 5                                             # Atmospheric stability parameter
