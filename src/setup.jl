@@ -181,6 +181,74 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
 
   end
 
+  # Initialize SnowSlide arrays if enabled    TODO this is computed using Float64 in matlab originally...
+  if fsm.SNSLID == 1
+    # Allocate SnowSlide arrays
+    fsm.slope = zeros(Tf, Nx, Ny)
+    fsm.Shd = zeros(Tf, Nx, Ny)  
+    fsm.dSWE_tot_slide = zeros(Tf, Nx, Ny)
+    fsm.index_sorted_dem = zeros(Ti, Nx*Ny, 2)
+
+    # Sort DEM indices for processing order (highest to lowest elevation)
+    sort_dem_indices!(fsm.index_sorted_dem, fsm.dem)
+    
+    # Load slope data
+    if haskey(landuse, "slope")
+        fsm.slope = Tf.(landuse["slope"]["data"])
+    else
+        error("SNSLID=1 but no 'slope' data found in landuse dictionary.")     # TODO maybe remove, should always be there...
+    end
+    
+    # Calculate snow holding depth from slope
+    slope_thres = copy(fsm.slope)
+    slope_thres[slope_thres .< 10] .= 10  # Limit to >10 degrees to avoid inf
+    
+    # Snow holding depth, normal to the slope
+    shd_norm = 3178.4 .* slope_thres.^(-1.998)
+    
+    # Convert to vertical snow holding depth
+    cos_slope_thres = cosd.(slope_thres)
+    cos_slope_thres[cos_slope_thres .< 0.001] .= 0.001  # Avoid division by zero
+    fsm.Shd = shd_norm .* cos_slope_thres
+    
+  end
+
   return fsm
 
+end
+
+
+"""
+    sort_dem_indices!(index_sorted_dem, dem)
+
+Sort DEM indices from highest to lowest elevation for SnowSlide processing order.
+
+This function sorts a DEM of size N x Ny by decreasing elevation.
+It returns a (Nx*Ny,2) array: dimension 1 is sorted by decreasing
+elevation; dimension 2 contains row and column of the given pixels.
+
+# Arguments
+- `index_sorted_dem::Matrix{Ti}`: Output array for sorted (i,j) indices
+- `dem::Matrix{Tf}`: Digital elevation model
+"""
+function sort_dem_indices!(index_sorted_dem::Matrix{Ti}, dem::Matrix{Tf}) where {Tf<:Real, Ti<:Integer}
+    # Get sorted indices by decreasing elevation
+    ind = sortperm(vec(dem), rev=true)
+    
+    # Get dimensions
+    rows, cols = size(dem)
+    
+    # Create 2D index arrays
+    rows2D = repeat((1:rows)', outer=(1, cols))
+    cols2D = repeat((1:cols)', outer=(rows, 1))
+    
+    # Extract row and column indices for sorted positions
+    ind_rows = rows2D[ind]
+    ind_cols = cols2D[ind]
+    
+    # Fill output array
+    index_sorted_dem[:, 1] = Ti.(ind_rows)
+    index_sorted_dem[:, 2] = Ti.(ind_cols)
+    
+    return nothing
 end

@@ -106,8 +106,15 @@
   Sfmin::Tf = 10                                           # Minimum 24h snowfall to refresh albedo (kg/m^2)
 
   # Snow layering parameters
-  Ds_min = 0.01                                            # Minimum possible snow layer thickness (m)
-  Ds_surflay = 0.5                                         # Maximum thickness of surface fine snow layering (m)
+  Ds_min::Tf = 0.01                                        # Minimum possible snow layer thickness (m)
+  Ds_surflay::Tf = 0.5                                     # Maximum thickness of surface fine snow layering (m)
+
+  # SnowSlide parameters
+  dyn_ratio::Tf = 0.09                                     # Dynamic snow holding depth ratio
+  rho_deposit::Tf = 300.0                                  # Constant snow avalanche deposit density (kg/m³)
+  slope_min::Tf = 30.0                                     # Minimum slope for snow slide occurrence (deg)
+  Shd_min::Tf = 0.01                                       # Minimum snow holding depth (m)
+  rho_snow::Tf = 300.0                                     # Constant snow density for transport (kg/m³)  TODO comes from PARAM_SNOWTRAN3D, should it be here?
 
   # Defaults for ground surface parameters
 
@@ -307,6 +314,12 @@
 
   gammasnow::Vector{Tf} = zeros(Nsmax)
   gammasoil::Vector{Tf} = zeros(Nsoil)
+
+  # SnowSlide variables     TODO where to place these?
+  slope::Matrix{Tf} = Matrix{Tf}(undef, 0, 0)             # Slope angles (deg)    TODO move to terrain params
+  Shd::Matrix{Tf} = Matrix{Tf}(undef, 0, 0)               # Snow holding depth (m)    TODO move to terrain params
+  dSWE_tot_slide::Matrix{Tf} = Matrix{Tf}(undef, 0, 0)    # Cumulated SWE change due to slides    TODO this seems to be some output and not a state
+  index_sorted_dem::Matrix{Ti} = Matrix{Ti}(undef, 0, 0)  # Sorted DEM indices    TODO this seems to be some static input to the algorithm that should be computed in setup
 
 end
 

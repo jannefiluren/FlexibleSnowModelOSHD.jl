@@ -366,4 +366,21 @@ end
 # Accumulation of new snow, calculation of snow cover fraction and relayering
 snow_layering!(fsm, meteo, snowdepth0, Sice0, t)
 
+# Initialize thickness and ice content of future possible surface layer of transported snow     TODO move to snslid block?
+snowdepth0[:,:] .= 0
+Sice0[:,:] .= 0
+
+# Snow slide redistribution (if enabled)
+if fsm.SNSLID == 1
+    # Initialize slide change array    TODO move this to snowslide! routine or add as temporary array to fsm-struct?
+    dSWE_slide = zeros(Tf, Nx, Ny)
+    
+    # Compute snow slide transport
+    snowslide!(fsm, snowdepth0, Sice0, dSWE_slide)
+    
+    # Accumulation of new snow, calculation of snow cover fraction and relayering
+    snow_layering!(fsm, meteo, snowdepth0, Sice0, t)
+end
+
+
 end

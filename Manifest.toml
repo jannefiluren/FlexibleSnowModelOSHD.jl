@@ -2,7 +2,7 @@
 
 julia_version = "1.11.4"
 manifest_format = "2.0"
-project_hash = "9df331bd4e52cc3c0100c80ab850e67c8b6d472f"
+project_hash = "0483afb34d480d3f319f6aa40885d4814b07a69c"
 
 [[deps.AbstractPlutoDingetjes]]
 deps = ["Pkg"]
