@@ -22,7 +22,7 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Int
 
   @unpack a_eta, b_eta, c_eta, eta0, eta1, rgr0, rho0, rhob, rhoc, rhof, rcld, rmlt, snda, trho, Wirr, rhos_max = fsm
 
-  @unpack Ds, Nsnow, fsnow, rgrn, Sice, Sliq, Tsnow, Tsoil, Tsrf = fsm
+  @unpack Ds, Nsnow, fsnow, rgrn, Sice, Sliq, Tsnow, Tsoil, Tsrf, histowet = fsm
   
   @unpack dem, tilefrac = fsm
 
@@ -191,6 +191,7 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Int
               if (Sliq[k, i, j] > SliqMax)       # Liquid capacity exceeded
                 Roff_snow[i, j] = Sliq[k, i, j] - SliqMax   # so drainage to next layer
                 Sliq[k, i, j] = SliqMax
+                histowet[k, i, j] = Tf(1.0)
               end
               # csnow needs to be updated after changing Sliq and Sice
               csnow[k] = (Sice[k,i,j]*hcap_ice + Sliq[k,i,j]*hcap_wat) / fsnow[i,j]
@@ -223,6 +224,7 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Int
               if (Sliq[k, i, j] > SliqMax)       # Liquid capacity exceeded
                 Roff_snow[i, j] = Sliq[k, i, j] - SliqMax   # so drainage to next layer
                 Sliq[k, i, j] = SliqMax
+                histowet[k, i, j] = Tf(1.0)
               end
               # csnow needs to be updated after changing Sliq and Sice
               csnow[k] = (Sice[k,i,j]*hcap_ice + Sliq[k,i,j]*hcap_wat) / fsnow[i,j]
@@ -336,8 +338,8 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Int
         # quite small.  When this occurred on bare ground, Tsnow calculation would blow up,
         # place NaN in Tsnow and snow would never again melt through the season
         # Do we still need this Catch in FSM??
-        if (Nsnow[i, j] <= Tf(1) && dSice < Tf(0.001) && Sice[1, i, j] < Tf(0.001))
-          dSice = Tf(trunc(Ti,dSice * Tf(1000) + Tf(0.5))) / Tf(1000)    # TODO verify against original code
+        if (Nsnow[i, j] <= 1 && dSice < Tf(0.001) && Sice[1, i, j] < Tf(0.001))
+          dSice = Tf(trunc(Ti, dSice * Tf(1000) + Tf(0.5))) / Tf(1000)    # TODO verify against original code
         end
 
         rhonew = fresh_snow_density!(fsm, Ta[i, j], Ua[i, j], dem[i, j])
