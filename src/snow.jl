@@ -386,6 +386,12 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Int
         end
         snowdepth = sumDs * fsnow[i, j] + dSice / rhonew
 
+        mass_tmp = sum(Sice[:, i, j] + Sliq[:, i, j])
+
+        push!(debug_dict["Ds"], Float64(sumDs + dSice / rhonew))
+        push!(debug_dict["rhos"], Float64(mass_tmp/snowdepth))
+
+
         # Add canopy unloading to layer 1 with bulk snow density and grain size
         rhos = rhof
         if (Ta[i, j] < Tm)  # only if it's cold enough

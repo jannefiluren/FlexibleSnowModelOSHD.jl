@@ -93,6 +93,8 @@ begin
   debug_dict["fsnow"] = Float64[]
   debug_dict["dsnowdepth"] = Float64[]
   debug_dict["dsnowdepthmax"] = Float64[]
+  debug_dict["Ds"] = Float64[]
+  debug_dict["rhos"] = Float64[]
 
   # Setup and run model
 
@@ -138,12 +140,13 @@ end
 
 # Plot results
 
-f = Figure(size = (1000, 1200))
+f = Figure(size = (1000, 1500))
 
 ax1 = Axis(f[1, 1])
 lines!(ax1, times, debug_dict["snowdepth"], linestyle = :solid, label = "snowdepth")
 lines!(ax1, times, debug_dict["snowdepthmax"], linestyle = :dash, label = "snowdepthmax")
 lines!(ax1, times, debug_dict["snowdepthmin"], linestyle = :dot, label = "snowdepthmin")
+lines!(ax1, times, debug_dict["Ds"], linestyle = :solid, label = "Ds")
 f[1, 2] = Legend(f, ax1, "Snow Depth", framevisible = false)
 
 ax2 = Axis(f[2, 1])
@@ -159,6 +162,10 @@ lines!(ax3, times, debug_dict["fsnow_nsnow_recent"], linestyle = :dashdot, label
 lines!(ax3, times, debug_dict["fsnow"], linestyle = :dot, label = "fsnow")
 f[3, 2] = Legend(f, ax3, "Fractional Snow Cover", framevisible = false)
 
-linkxaxes!(ax1, ax2, ax3)
+ax4 = Axis(f[4, 1])
+lines!(ax4, times, debug_dict["rhos"], linestyle = :solid, label = "rhos")
+f[4, 2] = Legend(f, ax4, "Misc", framevisible = false)
+
+linkxaxes!(ax1, ax2, ax3, ax4)
 
 f
