@@ -167,11 +167,13 @@
   slopemu::Array{Tf, 2} = -999999*ones(Nx,Ny)              # TODO defaults? Slope parameter
   xi::Array{Tf, 2} = -999999*ones(Nx,Ny)                   # TODO defaults? Terrain correlation length
   Ld::Array{Tf, 2} = -999999*ones(Nx,Ny)                   # TODO defaults? Grid cell size or domain size (m)
+  fsky_terr::Array{Tf, 2} = -999999*ones(Nx,Ny)            # TODO defaults? Sky view fraction terrain
   lat::Array{Tf, 2} = -999999*ones(Nx,Ny)                  # TODO defaults? Latitude of each grid cell (center?)
   lon::Array{Tf, 2} = -999999*ones(Nx,Ny)                  # TODO defaults? Longitude of each grid cell (center?)
   dem::Array{Tf, 2} = -999999*ones(Nx,Ny)                  # TODO defaults? Grid elevation (m)
   tilefrac::Array{Tf,2} = -999999*ones(Nx,Ny)              # TODO defaults? Tile fraction
   glacierfrac::Array{Tf,2} = -999999*ones(Nx,Ny)           # TODO defaults? Glacier flag
+  vegsnowd_xy::Array{Tf,2} = -999999*ones(Nx,Ny)           # TODO defaults? Vegetation snow holding capacity (m)
 
   # Derived soil parameters
 
@@ -189,7 +191,6 @@
   Nsnow::Array{Ti,2} = zeros(Ti,Nx,Ny)                     # Number of snow layers
   Qcan::Array{Tf, 2} = -999999*ones(Nx,Ny)                 # TODO defaults? Canopy air space humidity
   rgrn::Array{Tf,3} = -999999*ones(Nsmax,Nx,Ny)            # TODO defaults? Snow layer grain radius (m)
-  histowet::Array{Tf,3} = -999999*ones(Nsmax,Nx,Ny)        # TODO defaults? Historical variable for past wetting of a layer (0-1)
   Sice::Array{Tf,3} = zeros(Nsmax,Nx,Ny)                   # Ice content of snow layers (kg/m^2)
   Sliq::Array{Tf,3} = zeros(Nsmax,Nx,Ny)                   # Liquid content of snow layers (kg/m^2)
   Sveg::Array{Tf, 2} = -999999*ones(Nx,Ny)                 # TODO defaults? Snow mass on vegetation (kg/m^2)
@@ -206,7 +207,10 @@
   swemin::Array{Tf, 2} = zeros(Nx,Ny)                      # Minimum SWE during the season (m)
   swemax::Array{Tf, 2} = zeros(Nx,Ny)                      # Maximum SWE during the season (m)
   swehist::Array{Tf,3} = zeros(14,Nx,Ny)                   # History of SWE during last 14 days (kg/m^2). Most recent entries first
-  fsky_terr::Array{Tf, 2} = -999999*ones(Nx,Ny)            # TODO defaults? Sky view fraction terrain
+  histowet::Array{Tf,3} = -999999*ones(Nsmax,Nx,Ny)        # TODO defaults? Historical variable for past wetting of a layer (0-1)
+  dSWE_tot_subl::Array{Tf, 2} = zeros(Nx,Ny)               # Cumulated SWE change due to sublimation (kg/m^2)
+  dSWE_tot_salt::Array{Tf, 2} = zeros(Nx,Ny)               # Cumulated SWE change due to saltation (kg/m^2)
+  dSWE_tot_susp::Array{Tf, 2} = zeros(Nx,Ny)               # Cumulated SWE change due to suspension (kg/m^2)
 
   # Radiation - temporary arrays
 

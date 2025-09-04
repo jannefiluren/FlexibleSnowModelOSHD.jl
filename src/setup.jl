@@ -133,6 +133,10 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
   fsm.canh[:, :] = Tf(12500) * fsm.VAI[:, :]
   fsm.scap[:, :] = fsm.cvai * fsm.VAI[:, :]
 
+  if fsm.SNTRAN == 1
+    fsm.vegsnowd_xy[:, :] .= Tf(0.1)
+  end
+
   # Tuned snow surface properties
 
   if fsm.OSHDTN == 0
