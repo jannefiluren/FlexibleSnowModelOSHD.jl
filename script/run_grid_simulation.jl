@@ -68,6 +68,22 @@ function run_grid_simulation(;
             met_curr.Ua[:, :] .= Ua
             met_curr.Ps[:, :] .= Ps
 
+            if fsm.SNTRAN == 1
+                if haskey(met_single,"wnsd")
+                    Ua = met_single["wnsd"]["data"]       # "wind speed"
+                else
+                    Ua = met_single["wnss"]["data"]       # "wind speed"
+                end
+                if haskey(met_single,"wndd")
+                    Udir = met_single["wndd"]["data"]     # "wind direction"
+                else
+                    Udir = met_single["wnds"]["data"]     # "wind direction"
+                end
+                met_curr.Ua[:, :] .= Ua
+                met_curr.Udir[:, :] .= Udir
+                Udir[isnan.(Udir)] .= 0
+            end
+
             curr_hour = Dates.value(Hour(t)) + 1
             Sf24h .+= Sf
             Sf24h .-= Sf_history[:, :, curr_hour]
