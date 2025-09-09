@@ -123,7 +123,7 @@ function load_forcing_data(start_date::Date, end_date::Date, landuse::Dict;
 
         # Load meteorological data
         folder_icon = joinpath(base_path_icon, Dates.format(t, "yyyy.mm"))
-        filename_icon = searchdir(folder_icon, "ICONDATA_" * Dates.format(t, "yyyymmddHHMM") * "_C1EFA_")
+        filename_icon = searchdir(folder_icon, "ICONDATA_" * Dates.format(t, "yyyymmddHHMM"))
         met_raw = matread(joinpath(folder_icon, filename_icon[1]))
 
         met_single = Dict{String, Any}()

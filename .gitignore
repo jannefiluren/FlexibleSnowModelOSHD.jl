@@ -11,4 +11,7 @@ nlst_from_julia.nam
 /.CondaPkg
 /test/test_data
 /hide
-/fortran
+/fortran*
+*.log
+*.dll
+*.so

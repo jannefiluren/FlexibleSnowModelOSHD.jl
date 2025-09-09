@@ -12,7 +12,7 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Int
 
   @unpack_constants(Tf)
 
-  @unpack HYDROL, DENSTY, OSHDTN, HN_ON, SNFRAC = fsm
+  @unpack HYDROL, DENSTY, OSHDTN, HN_ON, SNFRAC, SNTRAN, SNSLID = fsm
 
   @unpack tthresh = fsm
 
@@ -22,7 +22,7 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Int
 
   @unpack a_eta, b_eta, c_eta, eta0, eta1, rgr0, rho0, rhob, rhoc, rhof, rcld, rmlt, snda, trho, Wirr, rhos_max = fsm
 
-  @unpack Ds, Nsnow, fsnow, rgrn, Sice, Sliq, Tsnow, Tsoil, Tsrf = fsm
+  @unpack Ds, Nsnow, fsnow, rgrn, Sice, Sliq, Tsnow, Tsoil, Tsrf, histowet = fsm
   
   @unpack dem, tilefrac = fsm
 
@@ -45,6 +45,10 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Int
   meltflux_out .= Tf(0)
   Roff_bare .= Rf .* dt .* (Tf(1) .- fsnow)
   Roff_snow .= Rf .* dt .* fsnow
+  
+  # Initialize arrays for snow layering
+  snowdepth0 = zeros(Tf, Nx, Ny)
+  Sice0 = zeros(Tf, Nx, Ny)
 
   a .= Tf(0)
   bsnow .= Tf(0)
@@ -187,6 +191,7 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Int
               if (Sliq[k, i, j] > SliqMax)       # Liquid capacity exceeded
                 Roff_snow[i, j] = Sliq[k, i, j] - SliqMax   # so drainage to next layer
                 Sliq[k, i, j] = SliqMax
+                histowet[k, i, j] = Tf(1.0)
               end
               # csnow needs to be updated after changing Sliq and Sice
               csnow[k] = (Sice[k,i,j]*hcap_ice + Sliq[k,i,j]*hcap_wat) / fsnow[i,j]
@@ -219,6 +224,7 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Int
               if (Sliq[k, i, j] > SliqMax)       # Liquid capacity exceeded
                 Roff_snow[i, j] = Sliq[k, i, j] - SliqMax   # so drainage to next layer
                 Sliq[k, i, j] = SliqMax
+                histowet[k, i, j] = Tf(1.0)
               end
               # csnow needs to be updated after changing Sliq and Sice
               csnow[k] = (Sice[k,i,j]*hcap_ice + Sliq[k,i,j]*hcap_wat) / fsnow[i,j]
@@ -317,33 +323,13 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Int
         # Add bare soil runoff to snowmelt runoff for total runoff
         Roff[i, j] = Roff_snow[i, j] + Roff_bare[i, j]
 
-      end
-
-    end
-  end
-
-
-  # Add snow, recalculate layers
-  for j = 1:Ny
-    for i = 1:Nx
-
-      if (tilefrac[i, j] >= tthresh) # exclude points outside tile of interest
-
-        # Falling snow temperature
-        Tsnow0 = min(Ta[i, j], Tm)
-        if (HN_ON)
-          Tsnow0 = max(Tsnow0, (Tm - Tf(40)))
-        end
-
-
-        # Add snowfall and frost to layer 1 with fresh snow density and grain size
+        # Add snowfall and frost to new snow with fresh snow density and grain size
         Esnow = Tf(0.0)
         if (Esrf[i, j] < Tf(0) && Tsrf[i, j] < Tm)
           Esnow = fsnow[i, j] * Esrf[i, j]
           Sbsrf[i, j] = Esnow * dt
         end
         dSice = (Sf[i, j] - Esnow) * dt  # Think about how to scale for fsnow...
-
 
         # Catch to round infinitesimally small new snow amounts.
         # The small amounts were due to EnKF-assimilated daily precip being downscaled to hourly
@@ -352,184 +338,67 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Int
         # quite small.  When this occurred on bare ground, Tsnow calculation would blow up,
         # place NaN in Tsnow and snow would never again melt through the season
         # Do we still need this Catch in FSM??
-        if (Nsnow[i, j] <= Tf(1) && dSice < Tf(0.001) && Sice[1, i, j] < Tf(0.001))
-          dSice = Tf(trunc(Ti,dSice * Tf(1000) + Tf(0.5))) / Tf(1000)    # TODO verify against original code
+        if (Nsnow[i, j] <= 1 && dSice < Tf(0.001) && Sice[1, i, j] < Tf(0.001))
+          dSice = Tf(trunc(Ti, dSice * Tf(1000) + Tf(0.5))) / Tf(1000)    # TODO verify against original code
         end
 
-        if (DENSTY == 0)
-          rhonew = rho0
-        else
-          if (OSHDTN == 0)
-            # Initial formulation
-            rhonew = max(rhof + rhob * (Ta[i, j] - Tm) + rhoc * Ua[i, j]^Tf(0.5), Tf(50.0))
-          else # OSHDTN == 1
-            # New formulation with decompaction
-            rhonew = rhof + rhob * (Ta[i, j] - Tm) + rhoc * Ua[i, j]^Tf(0.5)
-            if (dem[i, j] <= Tf(1000))
-              t_decompaction = Tf(24.0)
-            elseif (dem[i, j] > Tf(4000))
-              t_decompaction = Tf(0.0)
-            else
-              t_decompaction = Tf(24) + (dem[i, j] - Tf(1000)) / (Tf(4000) - Tf(1000)) * (Tf(0) - Tf(24))
-            end
-            rhonew = Tf(300) + (rhonew - Tf(300)) * exp(t_decompaction / Tf(100))
-            rhonew = max(rhonew, Tf(50.0))
-          end
-        end
-        if (Sice[1, i, j] + dSice > eps(Tf))
-          rgrn[1, i, j] = (Sice[1, i, j] * rgrn[1, i, j] + dSice * rgr0) / (Sice[1, i, j] + dSice)
-        end
-        Sice[1, i, j] = Sice[1, i, j] + dSice
-        sumDs = Tf(0.0)
-        for si in 1:size(Ds, 1)
-          sumDs += Ds[si, i, j]
-        end
-        snowdepth = sumDs * fsnow[i, j] + dSice / rhonew
+        rhonew = fresh_snow_density!(fsm, Ta[i, j], Ua[i, j], dem[i, j])
 
-        # Add canopy unloading to layer 1 with bulk snow density and grain size
+        Sice0[i, j] = dSice
+        snowdepth0[i, j] = dSice / rhonew
+        # Add canopy unloading to new snow with bulk snow density
         rhos = rhof
         if (Ta[i, j] < Tm)  # only if it's cold enough
-          mass = Tf(0.0)
-          for si in 1:size(Sice, 1)
-            mass += Sice[si, i, j] + Sliq[si, i, j]
-          end
+          mass = sum(@view Sice[:, i, j]) + sum(@view Sliq[:, i, j])
+          snowdepth = sum(@view Ds[:, i, j]) * fsnow[i, j]
           if (snowdepth > eps(Tf))
             rhos = mass / snowdepth
           end
-          Sice[1, i, j] = Sice[1, i, j] + unload[i, j]
-          snowdepth = snowdepth + unload[i, j] / rhos
+          Sice0[i, j] = Sice0[i, j] + unload[i, j]
+          snowdepth0[i, j] = snowdepth0[i, j] + unload[i, j] / rhos
         end
-
-        # Store previous snow cover fraction
-        fold = fsnow[i, j]
-        # Updated Fractional Snow-Covered Area
-        SWEtmp = Tf(0.0)
-        for si in 1:size(Sice, 1)
-          SWEtmp += Sice[si, i, j] + Sliq[si, i, j]
-        end
-        
-        # Compute snow cover fraction
-        snowcoverfraction!(fsm, snowdepth, SWEtmp, t, i, j, SWEbuffer, snowdepthbuffer, diffSWEbuffer)
-        
-        # Rescale Ds with new snow cover fraction
-        if (fsnow[i, j] > eps(Tf))
-          # Update surface layer thickness based on new fsnow
-          Ds[1, i, j] = Ds[1, i, j] * fold / fsnow[i, j] + dSice / rhonew / fsnow[i, j]
-          if (Ta[i, j] < Tm)
-            Ds[1, i, j] = Ds[1, i, j] + unload[i, j] / rhos / fsnow[i, j]
-          end
-        end
-        if (Nsnow[i, j] > 1)
-          for k = 2:Nsnow[i, j]
-            Ds[k, i, j] = Ds[k, i, j] * fold / fsnow[i, j]
-          end
-        end
-
-        # New snowpack
-        if (Nsnow[i, j] == 0 && Sice[1, i, j] > eps(Tf))
-          Nsnow[i, j] = 1
-          Tsnow[1, i, j] = Tsnow0
-        end
-
-        # Store state of old layers
-        for si in 1:size(Ds, 1)
-          D[si] = Ds[si, i, j]
-          R[si] = rgrn[si, i, j]
-          S[si] = Sice[si, i, j]
-          W[si] = Sliq[si, i, j]
-        end
-        if (fsnow[i, j] > eps(Tf))
-          csnow[1] = (Sice[1, i, j] * hcap_ice + Sliq[1, i, j] * hcap_wat) / fsnow[i, j]
-          E[1] = csnow[1] * (Tsnow[1, i, j] - Tm) + ((dSice + unload[i, j]) * hcap_ice / fsnow[i, j]) * (Tsnow0 - Tsnow[1, i, j]) # Adjustment given that csnow[1] already includes the new snow
-        else
-          E[:] .= Tf(0)
-        end
-        if (Nsnow[i, j] > 1)
-          for k = 2:Nsnow[i, j]
-            csnow[k] = (Sice[k, i, j] * hcap_ice + Sliq[k, i, j] * hcap_wat) / fsnow[i, j]
-            E[k] = csnow[k] * (Tsnow[k, i, j] - Tm)
-          end
-        end
-        Nold = Nsnow[i, j]
-
-        # Initialise new layers
-        Ds[:, i, j] .= Tf(0)
-        rgrn[:, i, j] .= Tf(0)
-        Sice[:, i, j] .= Tf(0)
-        Sliq[:, i, j] .= Tf(0)
-        Tsnow[:, i, j] .= Tm
-        U[:] .= Tf(0)
-        Nsnow[i, j] = Tf(0)
-
-        if (fsnow[i, j] > eps(Tf))  # Existing or new snowpack
-
-          # Re-assign and count snow layers
-          dnew = snowdepth / fsnow[i, j]
-          Ds[1, i, j] = dnew
-          if (Ds[1, i, j] > Dzsnow[1])
-            for k = 1:Nsmax
-              Ds[k, i, j] = Dzsnow[k]
-              dnew = dnew - Dzsnow[k]
-              if (dnew <= Dzsnow[k] || k == Nsmax)
-                Ds[k, i, j] = Ds[k, i, j] + dnew
-                break
-              end
-            end
-          end
-          Nsnow[i, j] = 0
-          for si in 1:size(Ds, 1)
-            if Ds[si, i, j] > Tf(0)
-              Nsnow[i,j] += 1
-            end
-          end
-
-          # Fill new layers from the top downwards
-          knew = 1
-          dnew = Ds[1, i, j]
-          for kold = 1:Nold
-            while true
-              if (D[kold] < dnew)
-                # All snow from old layer partially fills new layer
-                rgrn[knew, i, j] = rgrn[knew, i, j] + S[kold] * R[kold]
-                Sice[knew, i, j] = Sice[knew, i, j] + S[kold]
-                Sliq[knew, i, j] = Sliq[knew, i, j] + W[kold]
-                U[knew] = U[knew] + E[kold]
-                dnew = dnew - D[kold]
-                break
-              else
-                # Some snow from old layer fills new layer
-                wt = dnew / D[kold]
-                rgrn[knew, i, j] = rgrn[knew, i, j] + wt * S[kold] * R[kold]
-                Sice[knew, i, j] = Sice[knew, i, j] + wt * S[kold]
-                Sliq[knew, i, j] = Sliq[knew, i, j] + wt * W[kold]
-                U[knew] = U[knew] + wt * E[kold]
-                D[kold] = (1 - wt) * D[kold]
-                E[kold] = (1 - wt) * E[kold]
-                S[kold] = (1 - wt) * S[kold]
-                W[kold] = (1 - wt) * W[kold]
-                knew = knew + 1
-                if (knew > Nsnow[i, j])
-                  break
-                end
-                dnew = Ds[knew, i, j]
-              end
-            end
-          end
-
-          # Diagnose snow layer temperatures
-          for k = 1:Nsnow[i, j]
-            csnow[k] = (Sice[k, i, j] * hcap_ice + Sliq[k, i, j] * hcap_wat) / fsnow[i, j]
-            Tsnow[k, i, j] = Tm + U[k] / csnow[k]
-            if (HN_ON)
-              Tsnow[k, i, j] = max(Tsnow[k, i, j], (Tm - Tf(40)))
-            end
-            rgrn[k, i, j] = rgrn[k, i, j] / Sice[k, i, j]
-          end
-        end # Existing or new snowpack
-
-      end
 
     end
+
   end
+end
+
+# Accumulation of new snow, calculation of snow cover fraction and relayering
+snow_layering!(fsm, meteo, snowdepth0, Sice0, t)
+
+# Initialize thickness and ice content of future possible surface layer of transported snow
+snowdepth0[:,:] .= 0
+Sice0[:,:] .= 0
+
+# Snow transport by wind (if enabled)
+if SNTRAN == 1
+    # Initialize transport change arrays
+    dSWE_salt = zeros(Tf, Nx, Ny)
+    dSWE_susp = zeros(Tf, Nx, Ny)  
+    dSWE_subl = zeros(Tf, Nx, Ny)
+    
+    # Compute wind-driven snow transport
+    snowtran3d!(fsm, meteo, snowdepth0, Sice0, dSWE_salt, dSWE_susp, dSWE_subl)
+    
+    # Accumulation of transported snow, calculation of snow cover fraction and relayering
+    snow_layering!(fsm, meteo, snowdepth0, Sice0, t)
+end
+
+# Initialize thickness and ice content of future possible surface layer of transported snow
+snowdepth0[:,:] .= 0
+Sice0[:,:] .= 0
+
+# Snow slide redistribution (if enabled)
+if SNSLID == 1
+    # Initialize slide change array    TODO move this to snowslide! routine or add as temporary array to fsm-struct?
+    dSWE_slide = zeros(Tf, Nx, Ny)
+    
+    # Compute snow slide transport
+    snowslide!(fsm, snowdepth0, Sice0, dSWE_slide)
+    
+    # Accumulation of new snow, calculation of snow cover fraction and relayering
+    snow_layering!(fsm, meteo, snowdepth0, Sice0, t)
+end
+
 
 end

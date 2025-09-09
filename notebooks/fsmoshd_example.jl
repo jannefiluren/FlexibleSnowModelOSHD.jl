@@ -80,7 +80,7 @@ begin
 	
 	for (i, t) in enumerate(times)
 		folder = joinpath(meteo_folder, Dates.format(t, "yyyy.mm"))
-		filename = "ICONDATA_" * Dates.format(t, "yyyymmddHHMM") * "_C1EFA_" 
+		filename = "ICONDATA_" * Dates.format(t, "yyyymmddHHMM")
 		file = searchdir(folder, filename)
 	
 		met_single = matread(joinpath(folder, file[1]))

@@ -105,6 +105,17 @@
   z0sn::Tf = 0.002                                         # Snow roughness length (m)
   Sfmin::Tf = 10                                           # Minimum 24h snowfall to refresh albedo (kg/m^2)
 
+  # Snow layering parameters
+  Ds_min::Tf = 0.01                                        # Minimum possible snow layer thickness (m)
+  Ds_surflay::Tf = 0.5                                     # Maximum thickness of surface fine snow layering (m)
+
+  # SnowSlide parameters
+  dyn_ratio::Tf = 0.09                                     # Dynamic snow holding depth ratio
+  rho_deposit::Tf = 300.0                                  # Constant snow avalanche deposit density (kg/m³)
+  slope_min::Tf = 30.0                                     # Minimum slope for snow slide occurrence (deg)
+  Shd_min::Tf = 0.01                                       # Minimum snow holding depth (m)
+  rho_snow::Tf = 300.0                                     # Constant snow density for transport (kg/m³)  TODO comes from PARAM_SNOWTRAN3D, should it be here?
+
   # Defaults for ground surface parameters
 
   bstb::Tf = 5                                             # Atmospheric stability parameter
@@ -156,11 +167,13 @@
   slopemu::Array{Tf, 2} = -999999*ones(Nx,Ny)              # TODO defaults? Slope parameter
   xi::Array{Tf, 2} = -999999*ones(Nx,Ny)                   # TODO defaults? Terrain correlation length
   Ld::Array{Tf, 2} = -999999*ones(Nx,Ny)                   # TODO defaults? Grid cell size or domain size (m)
+  fsky_terr::Array{Tf, 2} = -999999*ones(Nx,Ny)            # TODO defaults? Sky view fraction terrain
   lat::Array{Tf, 2} = -999999*ones(Nx,Ny)                  # TODO defaults? Latitude of each grid cell (center?)
   lon::Array{Tf, 2} = -999999*ones(Nx,Ny)                  # TODO defaults? Longitude of each grid cell (center?)
   dem::Array{Tf, 2} = -999999*ones(Nx,Ny)                  # TODO defaults? Grid elevation (m)
   tilefrac::Array{Tf,2} = -999999*ones(Nx,Ny)              # TODO defaults? Tile fraction
   glacierfrac::Array{Tf,2} = -999999*ones(Nx,Ny)           # TODO defaults? Glacier flag
+  vegsnowd_xy::Array{Tf,2} = -999999*ones(Nx,Ny)           # TODO defaults? Vegetation snow holding capacity (m)
 
   # Derived soil parameters
 
@@ -178,7 +191,6 @@
   Nsnow::Array{Ti,2} = zeros(Ti,Nx,Ny)                     # Number of snow layers
   Qcan::Array{Tf, 2} = -999999*ones(Nx,Ny)                 # TODO defaults? Canopy air space humidity
   rgrn::Array{Tf,3} = -999999*ones(Nsmax,Nx,Ny)            # TODO defaults? Snow layer grain radius (m)
-  histowet::Array{Tf,3} = -999999*ones(Nsmax,Nx,Ny)        # TODO defaults? Historical variable for past wetting of a layer (0-1)
   Sice::Array{Tf,3} = zeros(Nsmax,Nx,Ny)                   # Ice content of snow layers (kg/m^2)
   Sliq::Array{Tf,3} = zeros(Nsmax,Nx,Ny)                   # Liquid content of snow layers (kg/m^2)
   Sveg::Array{Tf, 2} = -999999*ones(Nx,Ny)                 # TODO defaults? Snow mass on vegetation (kg/m^2)
@@ -195,7 +207,10 @@
   swemin::Array{Tf, 2} = zeros(Nx,Ny)                      # Minimum SWE during the season (m)
   swemax::Array{Tf, 2} = zeros(Nx,Ny)                      # Maximum SWE during the season (m)
   swehist::Array{Tf,3} = zeros(14,Nx,Ny)                   # History of SWE during last 14 days (kg/m^2). Most recent entries first
-  fsky_terr::Array{Tf, 2} = -999999*ones(Nx,Ny)            # TODO defaults? Sky view fraction terrain
+  histowet::Array{Tf,3} = -999999*ones(Nsmax,Nx,Ny)        # TODO defaults? Historical variable for past wetting of a layer (0-1)
+  dSWE_tot_subl::Array{Tf, 2} = zeros(Nx,Ny)               # Cumulated SWE change due to sublimation (kg/m^2)
+  dSWE_tot_salt::Array{Tf, 2} = zeros(Nx,Ny)               # Cumulated SWE change due to saltation (kg/m^2)
+  dSWE_tot_susp::Array{Tf, 2} = zeros(Nx,Ny)               # Cumulated SWE change due to suspension (kg/m^2)
 
   # Radiation - temporary arrays
 
@@ -303,6 +318,12 @@
 
   gammasnow::Vector{Tf} = zeros(Nsmax)
   gammasoil::Vector{Tf} = zeros(Nsoil)
+
+  # SnowSlide variables     TODO where to place these?
+  slope::Matrix{Tf} = Matrix{Tf}(undef, 0, 0)             # Slope angles (deg)    TODO move to terrain params
+  Shd::Matrix{Tf} = Matrix{Tf}(undef, 0, 0)               # Snow holding depth (m)    TODO move to terrain params
+  dSWE_tot_slide::Matrix{Tf} = Matrix{Tf}(undef, 0, 0)    # Cumulated SWE change due to slides    TODO this seems to be some output and not a state
+  index_sorted_dem::Matrix{Ti} = Matrix{Ti}(undef, 0, 0)  # Sorted DEM indices    TODO this seems to be some static input to the algorithm that should be computed in setup
 
 end
 

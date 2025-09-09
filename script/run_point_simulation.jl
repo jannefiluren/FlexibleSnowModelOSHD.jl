@@ -81,7 +81,7 @@ function load_meteorological_data(times, base_path, nstat, verbose=true)
 
     for (i, t) in enumerate(times)
         folder = joinpath(base_path, Dates.format(t, "yyyy.mm"))
-        filename = searchdir(folder, "ICONDATA_" * Dates.format(t, "yyyymmddHHMM") * "_C1EFA_")
+        filename = searchdir(folder, "ICONDATA_" * Dates.format(t, "yyyymmddHHMM"))
         
         met_single = matread(joinpath(folder, filename[1]))
 
