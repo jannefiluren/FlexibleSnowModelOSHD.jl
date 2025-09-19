@@ -3,6 +3,7 @@ module FSMOSHD
 using Parameters
 using MAT
 using Dates
+using PrettyTables
 
 include("parameters.jl")
 include("types.jl")
@@ -27,6 +28,7 @@ include("step.jl")
 include("snowcoverfraction.jl")
 include("prepare_landuse.jl")
 include("utils.jl")
+include("output.jl")
 
 export FSM, MET
 export canopy!, radiation!, thermal!, sfexch!, ebalsrf!, ebalfor!, snow!, soil!, snowcoverfraction!, snowslide!, snowtran3d!
@@ -35,5 +37,6 @@ export drive!, step!, setup
 export prepare_landuse, crop_landuse_to_domain
 export searchdir
 export @unpack_constants
+export make_saver, display_available_output_vars
 
 end

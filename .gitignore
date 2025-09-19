@@ -9,7 +9,7 @@ nlst_from_julia.nam
 /scratch
 /FSM*
 /.CondaPkg
-/test/test_data
+/test/test_data*
 /hide
 /fortran*
 *.log

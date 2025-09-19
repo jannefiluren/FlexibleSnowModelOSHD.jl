@@ -8,10 +8,10 @@ time_str1 = datestr(time, "yyyymmddHHMM");
 time_str2 = datestr(time+1, "yyyymmddHHMM");
 
 ref = load("D:\snowinflow_project\snowinflow_data\model_data\fsm_data\FSM_output\FSM_HS\OUTPUT_ULLA_FORRE_0900\RESULTS_24h_opn\MODELDATA_" + time_str1 + "-" + time_str2 + "_FSM22.mat");
-tst = load("D:\snowinflow_project\snowinflow_data\model_data\fsm_data\FSM_julia\" + time_str2 + "_output.mat");
+tst = load("D:\snowinflow_project\snowinflow_data\FSM_HS_julia\model_data\fsm_data\FSM_julia\" + time_str2 + "_output.mat");
 
 figure
-imagesc(tst.hs)
+imagesc(tst.snowdepth.data)
 colorbar()
 title("HS julia")
 
@@ -21,7 +21,7 @@ colorbar()
 title("HS matlab/fortran")
 
 figure
-plot(ref.hsnt.data(:), round(tst.hs(:), 3), '.')
+plot(ref.hsnt.data(:), round(tst.snowdepth.data(:), 3), '.')
 hold on
 refline(1,0)
 xlabel("HS matlab/fortran")
