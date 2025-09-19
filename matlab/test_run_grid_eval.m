@@ -1,10 +1,11 @@
-function test_run_grid_eval(time,tile,snfrac,variable)
+function test_run_grid_eval(time,tile,snfrac,var1,var2)
 
   arguments
-    time = datenum(2025,3,12,6,00,00)
+    time = datenum(2025,03,24,6,00,00)
     tile = "opn"
     snfrac = 0
-    variable = "hs"
+    var1 = "snowdepth"
+    var2 = "fsnow"
   end
 
   % Load data
@@ -28,104 +29,102 @@ function test_run_grid_eval(time,tile,snfrac,variable)
 
   % Prepare data
 
-  hs_mat = mat.hsnt.data;
-  hs_jul = jul.hs;
+  var1_jul = jul.(var1).data;
+  acro = jul.(var1).acronymn;
+  var1_mat = mat.(acro).data;
+  
+  var2_jul = jul.(var2).data;
+  acro = jul.(var2).acronymn;
+  var2_mat = mat.(acro).data;
+  
+  inan = var1_mat<0;
 
-  fsnow_mat = mat.scfe.data;
-  fsnow_jul = jul.fsnow;
+  var1_mat(inan) = NaN;
+  var1_jul(inan) = NaN;
 
-  inan = hs_mat<0;
-
-  hs_mat(inan) = NaN;
-  hs_jul(inan) = NaN;
-
-  fsnow_mat(inan) = NaN;
-  fsnow_jul(inan) = NaN;
+  var2_mat(inan) = NaN;
+  var2_jul(inan) = NaN;
 
   if true
-    hs_mat = flipud(hs_mat);
-    hs_jul = flipud(hs_jul);
-    fsnow_mat = flipud(fsnow_mat);
-    fsnow_jul = flipud(fsnow_jul);
+    var1_mat = flipud(var1_mat);
+    var1_jul = flipud(var1_jul);
+    var2_mat = flipud(var2_mat);
+    var2_jul = flipud(var2_jul);
   end
 
 
-  % Plot snow depth results
+  % Plot variable 1
 
   figure("Position",[100 100 1000 700]);
 
   t = tiledlayout(2,2);
-  title(t, "Snow depth for " + str2)
+  title(t, var1 + " for " + str2)
 
   ax(1) = nexttile();
-  imagesc(hs_mat)
+  imagesc(var1_mat)
   colorbar()
   title("FSM Fortran/Matlab")
   colormap('turbo');
 
   ax(2) = nexttile();
-  imagesc(hs_jul)
+  imagesc(var1_jul)
   colorbar()
   title("FSM Julia")
   colormap('turbo');
 
   ax(3) = nexttile();
-  imagesc(hs_jul-hs_mat)
+  imagesc(var1_jul-var1_mat)
   colorbar()
   title("FSM Julia minus FSM Fortran/Matlab")
   colormap('turbo');
 
   nexttile()
-  plot(hs_mat(:),hs_jul(:),'.')
+  plot(var1_mat(:),var1_jul(:),'.')
   xlabel("Matlab/Fortran")
   ylabel("Julia")
 
   linkaxes(ax)
 
 
-  % Plot fsnow results
+  % Plot variable 2
 
   figure("Position",[100 100 1000 700]);
 
   t = tiledlayout(2,2);
-  title(t, "Snow cover fraction for " + str2)
+  title(t, var2 + " for " + str2)
 
   ax(1) = nexttile();
-  imagesc(fsnow_mat)
+  imagesc(var2_mat)
   colorbar()
   title("FSM Fortran/Matlab")
   colormap('turbo');
 
   ax(2) = nexttile();
-  imagesc(fsnow_jul)
+  imagesc(var2_jul)
   colorbar()
   title("FSM Julia")
   colormap('turbo');
 
   ax(3) = nexttile();
-  imagesc(fsnow_jul-fsnow_mat)
+  imagesc(var2_jul-var2_mat)
   colorbar()
   title("FSM Julia minus FSM Fortran/Matlab")
   colormap('turbo');
 
   nexttile()
-  plot(fsnow_mat(:),fsnow_jul(:),'.')
+  plot(var2_mat(:),var2_jul(:),'.')
   xlabel("Matlab/Fortran")
   ylabel("Julia")
 
   linkaxes(ax)
 
 
-  % Location with largest error
+  % Location with largest error for var 1
 
-  if variable == "hs"
-    diff_abs = abs(hs_jul-hs_mat);
-  else
-    diff_abs = abs(fsnow_jul-fsnow_mat);
-  end
+  diff_abs = abs(var1_jul-var1_mat);
 
   disp("===============================================")
-  disp("Variable: " + variable)
+  disp("Variable: " + var1)
 
   [diff_max, ~] = max(diff_abs,[],"all");
 
@@ -135,7 +134,7 @@ function test_run_grid_eval(time,tile,snfrac,variable)
 
   disp("Row max = " + row_max(1))
 
-  disp("Row max unflipped = " + (size(hs_mat,1) - row_max(1) + 1))
+  disp("Row max unflipped = " + (size(var1_mat,1) - row_max(1) + 1))
 
   disp("Col max = " + col_max(1))
 

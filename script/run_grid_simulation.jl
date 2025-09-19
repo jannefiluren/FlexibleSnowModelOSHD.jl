@@ -7,9 +7,13 @@ using FSMOSHD
     run_grid_simulation(; kwargs...)
 
 Run a grid-based snow model simulation for open or forest tiles.
+
+# Optional Arguments
+- `settings`: Dict containing model configuration including "output_vars" for variables to save
+  Default output_vars: ["snowdepth", "fsnow"]. See `AVAILABLE_OUTPUT_VARS` for all available options.
 """
 function run_grid_simulation(;
-    settings::Dict=Dict("tile" => "open", "config" => Dict("SNFRAC" => 0), "params" => Dict("wind_scaling" => 0.7)),
+    settings::Dict=Dict("tile" => "open", "config" => Dict("SNFRAC" => 0), "params" => Dict("wind_scaling" => 0.7), "output_vars" => ["snowdepth", "fsnow", "Roff", "Roff_snow"]),
     subfolder::String="default",
     base_folder::String="D:/julia",
     times::StepRange=DateTime(2024, 9, 1, 6):Hour(1):DateTime(2025, 6, 12, 6),
@@ -33,8 +37,14 @@ function run_grid_simulation(;
     Sf24h = zeros(size(met_curr.Sf24h))
     Sf_history = zeros(size(met_curr.Sf_history))
 
+    # Get output variables from settings
+    output_vars = get(settings, "output_vars", ["snowdepth", "fsnow", "Roff", "Roff_snow"])
+    
     # Create output directory
     mkpath(joinpath(base_folder, "FSM_HS_julia", subfolder))
+
+    # Create accumulator and saver functions for storing model results
+    accumulator, saver = make_saver(fsm, output_vars)
 
     # Run model
     for (i, t) in enumerate(times)
@@ -101,13 +111,13 @@ function run_grid_simulation(;
             # Run model
             step!(fsm, met_curr, t)
 
-            # Output data at 5 AM
+            # Accumulate data for output
+            accumulator(fsm)
+
             if hour(t) == 5
-                matwrite(joinpath(base_folder, "FSM_HS_julia", subfolder, Dates.format(t + Dates.Hour(1), "yyyymmddHHMM") * "_output.mat"),
-                    Dict(
-                        "hs" => dropdims(sum(fsm.Ds, dims=1), dims=1) .* fsm.fsnow,
-                        "fsnow" => fsm.fsnow
-                    ); compress=true)
+                output_filename = Dates.format(t + Dates.Hour(1), "yyyymmddHHMM") * "_output.mat"
+                output_path = joinpath(base_folder, "FSM_HS_julia", subfolder, output_filename)
+                saver(fsm, t, output_path)
             end
 
         end
