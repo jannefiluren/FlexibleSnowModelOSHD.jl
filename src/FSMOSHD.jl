@@ -3,6 +3,7 @@ module FSMOSHD
 using Parameters
 using MAT
 using Dates
+using PrettyTables
 
 include("parameters.jl")
 include("types.jl")
@@ -36,6 +37,6 @@ export drive!, step!, setup
 export prepare_landuse, crop_landuse_to_domain
 export searchdir
 export @unpack_constants
-export allocate_output_dict, cumulate!, save_model_output!
+export make_saver, display_available_output_vars
 
 end

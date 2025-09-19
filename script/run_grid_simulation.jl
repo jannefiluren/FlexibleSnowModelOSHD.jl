@@ -43,8 +43,8 @@ function run_grid_simulation(;
     # Create output directory
     mkpath(joinpath(base_folder, "FSM_HS_julia", subfolder))
 
-    # Allocate output dictionary
-    output_dict = allocate_output_dict(fsm, times[1], output_vars)
+    # Create accumulator and saver functions for storing model results
+    accumulator, saver = make_saver(fsm, output_vars)
 
     # Run model
     for (i, t) in enumerate(times)
@@ -111,13 +111,13 @@ function run_grid_simulation(;
             # Run model
             step!(fsm, met_curr, t)
 
-            # Handle saving of data
-            cumulate!(output_dict, fsm)
+            # Accumulate data for output
+            accumulator(fsm)
 
             if hour(t) == 5
                 output_filename = Dates.format(t + Dates.Hour(1), "yyyymmddHHMM") * "_output.mat"
                 output_path = joinpath(base_folder, "FSM_HS_julia", subfolder, output_filename)
-                save_model_output!(output_dict, fsm, t, output_path)
+                saver(fsm, t, output_path)
             end
 
         end
