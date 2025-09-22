@@ -362,6 +362,7 @@ end
 
   # Snowfall tracking variable
 
-  Sf_history::Array{Tf, 3} = zeros(Nx, Ny, 24)
+  Sf24h_f64::Array{Float64, 2} = zeros(Nx, Ny)             # TODO use Float64 to better match results from matlab/fortran code base
+  Sf_history_f64::Array{Float64, 3} = zeros(Nx, Ny, 24)    # TODO use Float64 to better match results from matlab/fortran code base
 
 end

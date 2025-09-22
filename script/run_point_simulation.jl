@@ -113,10 +113,7 @@ end
 Execute the main simulation loop with snowfall tracking.
 """
 function run_simulation_loop(fsm, met, met_data, times, verbose=true)
-    # Setup snowfall tracking
-    Sf24h = zeros(size(met.Sf24h))
-    Sf_history = zeros(size(met.Sf_history))
-    
+
     # Pre-allocate results
     snowdepth = zeros(length(times), size(fsm.Ds, 2))
     
@@ -137,10 +134,10 @@ function run_simulation_loop(fsm, met, met_data, times, verbose=true)
 
         # Update 24-hour snowfall tracking
         curr_hour = Dates.value(Hour(t)) + 1
-        Sf24h .+= met_data.Sf[i, :]
-        Sf24h .-= Sf_history[:, :, curr_hour]
-        Sf_history[:, :, curr_hour] = met_data.Sf[i, :]
-        met.Sf24h[:, :] .= Sf24h
+        met.Sf24h_f64 .+= met_data.Sf[i, :]
+        met.Sf24h_f64 .-= met.Sf_history_f64[:, :, curr_hour]
+        met.Sf_history_f64[:, :, curr_hour] = met_data.Sf[i, :]
+        met.Sf24h[:, :] .= met.Sf24h_f64
 
         # Run model step
         step!(fsm, met, t)

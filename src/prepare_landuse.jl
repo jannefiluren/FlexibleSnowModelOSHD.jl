@@ -13,11 +13,21 @@ function prepare_landuse(filename::String)
     
     # Load landuse data
     landuse = matread(filename)
+
+    # Handle old landuse format
+    if haskey(landuse, "landuse")
+        landuse = landuse["landuse"]
+    end
     
     # Get domain dimensions
-    dem_size = size(landuse["dem"]["data"])
+    if !isa(landuse["dem"], Dict)
+        dem_size = size(landuse["dem"])
+    else
+        dem_size = size(landuse["dem"]["data"])
+    end
     
     # Ensure all fields have the ["data"] format or fill missing fields with defaults
+    _ensure_data_field!(landuse, "dem", ones(Bool, dem_size))
     _ensure_data_field!(landuse, "is_domain", ones(Bool, dem_size))
     _ensure_data_field!(landuse, "dhdxdy", ones(dem_size))
     _ensure_data_field!(landuse, "sd", ones(dem_size))

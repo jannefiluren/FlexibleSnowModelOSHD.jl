@@ -28,6 +28,7 @@ include("step.jl")
 include("snowcoverfraction.jl")
 include("prepare_landuse.jl")
 include("utils.jl")
+include("meteo_readers.jl")
 include("output.jl")
 
 export FSM, MET
@@ -38,5 +39,6 @@ export prepare_landuse, crop_landuse_to_domain
 export searchdir
 export @unpack_constants
 export make_saver, display_available_output_vars
+export read_meteo!
 
 end
