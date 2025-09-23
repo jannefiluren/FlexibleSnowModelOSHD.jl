@@ -9,10 +9,10 @@ const settings_default = Dict(
     "config" => Dict("SNFRAC" => 0),
     "params" => Dict("wind_scaling" => 0.7),
     "met_type" => :ICON,
-    "met_folder" => "K:/DATA_ICON/OUTPUT_OSHD_0250/PROCESSED_ANALYSIS/ICON_1EFA",
+    "met_folder" => "W:/DATA_ICON/OUTPUT_OSHD_0100/PROCESSED_ANALYSIS/ICON_1EFA",
     "met_prefix" => "ICON",
     "tvt_folder" => "K:/OSHD_AUX/DATA_CANRAD/OUTPUT_OSHD_0250/CR_2410_static",
-    "lus_file" => "K:/OSHD_AUX/DATA_LUS/OSHD_LUS_0250.mat",
+    "lus_file" => "K:/OSHD_AUX/DATA_LUS/OSHD_LUS_0100.mat",
     "out_folder" => string(@__DIR__, "/../../FSM_HS_julia/default"),
     "output_vars" => ["snowdepth", "fsnow", "Roff", "meltflux_out"],
     )
