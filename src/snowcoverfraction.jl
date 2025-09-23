@@ -20,7 +20,7 @@ function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::Date
     @unpack fsnow, swehist, swemin, swemax = fsm
     @unpack snowdepthhist, snowdepthmin, snowdepthmax = fsm
     @unpack slopemu, xi, Ld = fsm
-    @unpack sca_a = fsm
+    @unpack scf_a = fsm
 
     snowdepth_threshold = Tf(0.005714286)  # Converted from swe_threshold = 2 using density = 350
     
@@ -28,7 +28,7 @@ function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::Date
 
         # calculate topo terms needed for standard deviation of snow depth (done)
         sd_snowdepth1 = exp(Tf(-1) / (Ld[i,j]/xi[i,j])^Tf(2))
-        sd_snowdepth3 = slopemu[i,j]^Tf(sca_a)
+        sd_snowdepth3 = slopemu[i,j]^Tf(scf_a)
 
         # merge current SWEtmp with SWEtmp history from past 14 days
         SWEbuffer[1] = SWEtmp
