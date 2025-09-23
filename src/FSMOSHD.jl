@@ -4,6 +4,7 @@ using Parameters
 using MAT
 using Dates
 using PrettyTables
+using Infiltrator
 
 include("parameters.jl")
 include("types.jl")

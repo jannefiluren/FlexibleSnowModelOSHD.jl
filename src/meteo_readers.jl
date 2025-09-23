@@ -21,6 +21,18 @@ function read_meteo!(met::MET{Tf,Ti}, fsm::FSM{Tf,Ti}, t::DateTime, settings::Di
   Ua = met_single["wnss"]["data"]       # "wind speed"
   Ps = met_single["pail"]["data"]       # "local air pressure"
 
+  # Load oi data if available
+  filename_oi = joinpath("W:/DATA_OI/OI_ICON_SNF/OUTPUT_OSHD_0250", "OIDATA_" * Dates.format(t, "yyyymmddHHMM") * ".mat")
+  if isfile(filename_oi)
+      oi_single = matread(filename_oi)
+      Sf_oi = oi_single["snfx"]["data"]
+      mask = Sf_oi .>= 0
+      Sf[mask] .= Sf_oi[mask]
+  end
+
+  # Apply precipitation multiplier
+  Sf .= Sf .* fsm.prec_multi
+
   met.Sdir[:, :] .= Sdir
   met.Sdif[:, :] .= Sdif
   met.Sdird[:, :] = Sdird
