@@ -107,8 +107,12 @@
 
 
 
-  #hack
+  # HACK FOR TESTING SCF
   scf_a::Tf = 0.309
+  fsnow_season_out::Array{Tf, 2} = zeros(Nx,Ny)
+  fsnow_nsnow_out::Array{Tf, 2} = zeros(Nx,Ny)
+  fsnow_nsnow_recent_out::Array{Tf, 2} = zeros(Nx,Ny)
+  # HACK FOR TESTING SCF
 
 
   # Snow layering parameters
