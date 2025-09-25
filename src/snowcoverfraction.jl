@@ -21,6 +21,7 @@ function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::Date
     @unpack snowdepthhist, snowdepthmin, snowdepthmax = fsm
     @unpack slopemu, xi, Ld = fsm
     @unpack scf_a = fsm
+    @unpack scf_b = fsm
 
     snowdepth_threshold = Tf(0.005714286)  # Converted from swe_threshold = 2 using density = 350
     
@@ -122,7 +123,7 @@ function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::Date
 
         ####### seasonal scf, inserting snow depth in formulas of Helbig et al. and Egli and Jonas
         # calculate standard deviation (done)
-        sd_snowdepth2 = snowdepthmax[i,j]^Tf(0.549)
+        sd_snowdepth2 = snowdepthmax[i,j]^Tf(scf_b)
         sd_snowdepth0 = sd_snowdepth1 * sd_snowdepth2 * sd_snowdepth3
         # set completely flat pixels to values determined by Luca (instead of 1 or 0) 
         if (!(slopemu[i,j] > eps(Tf)))

@@ -109,6 +109,7 @@
 
   #hack
   scf_a::Tf = 0.309
+  scf_b::Tf = 0.549
 
 
   # Snow layering parameters
