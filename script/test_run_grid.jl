@@ -7,7 +7,7 @@ settings_common = Dict(
     "met_prefix" => "ICON",
     "tvt_folder" => "K:/OSHD_AUX/DATA_CANRAD/OUTPUT_OSHD_0250/CR_2410_static",
     "lus_file" => "K:/OSHD_AUX/DATA_LUS/OSHD_LUS_0250.mat",
-    "output_vars" => ["snowdepth", "fsnow", "SWE", "Sliq_out", "Tsrf", "Melt", "Roff", "meltflux_out"],
+    "output_vars" => ["snowdepth", "fsnow", "SWE", "Sliq_out", "Tsrf", "Melt", "Roff", "meltflux_out", "fsnow_season_out", "fsnow_nsnow_out", "fsnow_nsnow_recent_out"],
     )
 
 settings_specific = [

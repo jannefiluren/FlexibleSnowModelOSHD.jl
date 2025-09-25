@@ -308,7 +308,31 @@ const AVAILABLE_OUTPUT_VARS = Dict(
         "acronymn" => "swhs",
         "unit" => "mm",
         "type" => INSTANT
+    ),
+
+
+    # HACK FOR TESTING SCF
+    "fsnow_season_out" => Dict(
+        "longname" => "fsnow_season_out",
+        "acronymn" => "fsnow_season_out",
+        "unit" => "fsnow_season_out",
+        "type" => INSTANT
+    ),
+    "fsnow_nsnow_out" => Dict(
+        "longname" => "fsnow_nsnow_out",
+        "acronymn" => "fsnow_nsnow_out",
+        "unit" => "fsnow_nsnow_out",
+        "type" => INSTANT
+    ),
+    "fsnow_nsnow_recent_out" => Dict(
+        "longname" => "fsnow_nsnow_recent_out",
+        "acronymn" => "fsnow_nsnow_recent_out",
+        "unit" => "fsnow_nsnow_recent_out",
+        "type" => INSTANT
     )
+    # HACK FOR TESTING SCF
+
+
 )
 
 # Variable access functions

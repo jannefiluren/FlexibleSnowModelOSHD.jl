@@ -20,8 +20,7 @@ function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::Date
     @unpack fsnow, swehist, swemin, swemax = fsm
     @unpack snowdepthhist, snowdepthmin, snowdepthmax = fsm
     @unpack slopemu, xi, Ld = fsm
-    @unpack scf_a = fsm
-    @unpack scf_b = fsm
+    @unpack scf_a, scf_b, fsnow_season_out, fsnow_nsnow_out, fsnow_nsnow_recent_out = fsm
 
     snowdepth_threshold = Tf(0.005714286)  # Converted from swe_threshold = 2 using density = 350
     
@@ -213,6 +212,13 @@ function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::Date
         end
         
         fsnow[i,j] = max(fsnow[i,j], Tf(0.01))
+
+
+        # HACK FOR TESTING SCF
+        fsnow_season_out[i,j] = fsnow_season
+        fsnow_nsnow_out[i,j] = fsnow_nsnow
+        fsnow_nsnow_recent_out[i,j] = fsnow_nsnow_recent
+        # HACK FOR TESTING SCF
         
         
         if false
