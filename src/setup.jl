@@ -81,7 +81,13 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
   fsm.lat .= Tf.(landuse["y"]["data"])  # TODO remove
   fsm.lon .= Tf.(landuse["x"]["data"])  # TODO remove
   fsm.dem .= Tf.(landuse["dem"]["data"])
-  fsm.prec_multi .= Tf.(landuse["prec_multi"]["data"])
+
+
+
+  fsm.prec_multi .= landuse["prec_multi"]["data"]   # TODO hack float64
+
+
+
 
   # Cap surface temperatures for glacier 
   if (fsm.TILE == "glacier")

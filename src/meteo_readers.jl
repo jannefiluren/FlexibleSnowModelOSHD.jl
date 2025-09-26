@@ -33,6 +33,10 @@ function read_meteo!(met::MET{Tf,Ti}, fsm::FSM{Tf,Ti}, t::DateTime, settings::Di
   # Apply precipitation multiplier
   Sf .= Sf .* fsm.prec_multi
 
+  # Round input data to align with matlab/fortran version    TODO remove or add for all variables
+  Sf = round.(Sf, digits=2)
+
+
   met.Sdir[:, :] .= Sdir
   met.Sdif[:, :] .= Sdif
   met.Sdird[:, :] = Sdird
