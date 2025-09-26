@@ -15,13 +15,19 @@ settings_specific = [
         "tile" => "open",
         "config" => Dict("SNFRAC" => 0),
         "params" => Dict("wind_scaling" => 0.7),
-        "out_folder" => "D:/MODEL_DATA_FSM/FSM_HS_julia/OPEN_SNFRAC_1",
+        "out_folder" => "D:/MODEL_DATA_FSM/FSM_HS_julia/OPEN_SNFRAC_3",
     ),
     Dict(
         "tile" => "open",
         "config" => Dict("SNFRAC" => 0),
-        "params" => Dict("wind_scaling" => 0.7, "scf_a" => 0.3193*250^0.103),
-        "out_folder" => "D:/MODEL_DATA_FSM/FSM_HS_julia/OPEN_SNFRAC_2",
+        "params" => Dict("wind_scaling" => 0.7, "scf_a" => 0.3193*250^0.103, "scf_b"=>0.5333*250^0.0389),
+        "out_folder" => "D:/MODEL_DATA_FSM/FSM_HS_julia/OPEN_SNFRAC_4",
+    ),
+    Dict(
+        "tile" => "open",
+        "config" => Dict("SNFRAC" => 0),
+        "params" => Dict("wind_scaling" => 0.7, "scf_a" => 0.3193*100^0.103, "scf_b"=>0.5333*100^0.0389),
+        "out_folder" => "D:/MODEL_DATA_FSM/FSM_HS_julia/OPEN_SNFRAC_5",
     ),
 ]
 
