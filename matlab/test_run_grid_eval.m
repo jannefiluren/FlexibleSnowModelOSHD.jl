@@ -1,151 +1,148 @@
 function test_run_grid_eval(time,tile,snfrac,var1,var2)
 
-  arguments
-    time = datenum(2025,03,24,6,00,00)
-    tile = "opn"
-    snfrac = 0
-    var1 = "snowdepth"
-    var2 = "fsnow"
-  end
+arguments
+  time = datenum(2025,03,24,6,00,00)
+  tile = "opn"
+  snfrac = 0
+  var1 = "snowdepth"
+  var2 = "fsnow"
+end
 
-  % Load data
+% Load data
 
-  str1 = datestr(time-1,"yyyymmddHHMM");
-  str2 = datestr(time,"yyyymmddHHMM");
+str1 = datestr(time-1,"yyyymmddHHMM");
+str2 = datestr(time,"yyyymmddHHMM");
 
-  subfolder_matlab = "SNFRAC_" + snfrac;
+if tile == "opn"
+  subfolder_julia = "OPEN_SNFRAC_" + snfrac;
+elseif tile == "for"
+  subfolder_julia = "FOREST_SNFRAC_" + snfrac;
+elseif tile == "glc"
+  subfolder_julia = "GLACIER_SNFRAC_" + snfrac;
+end
 
-  if tile == "opn"
-    subfolder_julia = "OPEN_SNFRAC_" + snfrac;
-  elseif tile == "for"
-    subfolder_julia = "FOREST_SNFRAC_" + snfrac;
-  elseif tile == "glc"
-    subfolder_julia = "GLACIER_SNFRAC_" + snfrac;
-  end
-
-  mat = load("D:\julia\FSM_HS_matlab\LATEST_00h_RUN\"+ subfolder_matlab + "\OUTPUT_OSHD_0250\RESULTS_24h_" + tile + "\MODELDATA_" + str1 + "-" + str2 + "_FSM22.mat");
-  jul = load("D:\julia\FSM_HS_julia\"+ subfolder_julia + "\" + str2 + "_output.mat");
+mat = load("D:\julia\FSM_HS\LATEST_00h_RUN\OUTPUT_OSHD_0250\RESULTS_24h_" + tile + "\MODELDATA_" + str1 + "-" + str2 + "_FSM22.mat");
+jul = load("D:\julia\FSM_HS_julia\"+ subfolder_julia + "\" + str2 + "_output.mat");
 
 
-  % Prepare data
+% Prepare data
 
-  var1_jul = jul.(var1).data;
-  acro = jul.(var1).acronymn;
-  var1_mat = mat.(acro).data;
-  
-  var2_jul = jul.(var2).data;
-  acro = jul.(var2).acronymn;
-  var2_mat = mat.(acro).data;
-  
-  inan = var1_mat<0;
+var1_jul = jul.(var1).data;
+acro = jul.(var1).acronymn;
+var1_mat = mat.(acro).data;
 
-  var1_mat(inan) = NaN;
-  var1_jul(inan) = NaN;
+var2_jul = jul.(var2).data;
+acro = jul.(var2).acronymn;
+var2_mat = mat.(acro).data;
 
-  var2_mat(inan) = NaN;
-  var2_jul(inan) = NaN;
+inan = var1_mat<0;
 
-  if true
-    var1_mat = flipud(var1_mat);
-    var1_jul = flipud(var1_jul);
-    var2_mat = flipud(var2_mat);
-    var2_jul = flipud(var2_jul);
-  end
+var1_mat(inan) = NaN;
+var1_jul(inan) = NaN;
 
+var2_mat(inan) = NaN;
+var2_jul(inan) = NaN;
 
-  % Plot variable 1
+if true
+  var1_mat = flipud(var1_mat);
+  var1_jul = flipud(var1_jul);
+  var2_mat = flipud(var2_mat);
+  var2_jul = flipud(var2_jul);
+end
 
-  figure("Position",[100 100 1000 700]);
+% Get errors for variable 1 and variable 2
 
-  t = tiledlayout(2,2);
-  title(t, var1 + " for " + str2)
-
-  ax(1) = nexttile();
-  imagesc(var1_mat)
-  colorbar()
-  title("FSM Fortran/Matlab")
-  colormap('turbo');
-
-  ax(2) = nexttile();
-  imagesc(var1_jul)
-  colorbar()
-  title("FSM Julia")
-  colormap('turbo');
-
-  ax(3) = nexttile();
-  imagesc(var1_jul-var1_mat)
-  colorbar()
-  title("FSM Julia minus FSM Fortran/Matlab")
-  colormap('turbo');
-
-  nexttile()
-  plot(var1_mat(:),var1_jul(:),'.')
-  xlabel("Matlab/Fortran")
-  ylabel("Julia")
-
-  linkaxes(ax)
+diff_var1 = find_max_error(var1, var1_jul, var1_mat);
+diff_var2 = find_max_error(var2, var2_jul, var2_mat);
 
 
-  % Plot variable 2
+% Plot variable 1
 
-  figure("Position",[100 100 1000 700]);
+figure("Position",[100 100 800 600]);
 
-  t = tiledlayout(2,2);
-  title(t, var2 + " for " + str2)
+t = tiledlayout(2,2);
+title(t, var1 + " for " + str2 + " (tile=" + tile + " , snfrac=" + snfrac + ")")
 
-  ax(1) = nexttile();
-  imagesc(var2_mat)
-  colorbar()
-  title("FSM Fortran/Matlab")
-  colormap('turbo');
+ax(1) = nexttile();
+imagesc(var1_mat)
+colorbar()
+title("FSM Fortran/Matlab")
+colormap('turbo');
 
-  ax(2) = nexttile();
-  imagesc(var2_jul)
-  colorbar()
-  title("FSM Julia")
-  colormap('turbo');
+ax(2) = nexttile();
+imagesc(var1_jul)
+colorbar()
+title("FSM Julia")
+colormap('turbo');
 
-  ax(3) = nexttile();
-  imagesc(var2_jul-var2_mat)
-  colorbar()
-  title("FSM Julia minus FSM Fortran/Matlab")
-  colormap('turbo');
+ax(3) = nexttile();
+imagesc(var1_jul-var1_mat)
+colorbar()
+title("FSM Julia minus FSM Fortran/Matlab")
+colormap('turbo');
 
-  nexttile()
-  plot(var2_mat(:),var2_jul(:),'.')
-  xlabel("Matlab/Fortran")
-  ylabel("Julia")
+nexttile()
+plot(var1_mat(:),var1_jul(:),'.')
+xlabel("Matlab/Fortran")
+ylabel("Julia")
+title("Max diff = " + diff_var1)
 
-  linkaxes(ax)
+linkaxes(ax)
 
 
-  % Location with largest error for var 1
+% Plot variable 2
 
-  diff_abs = abs(var1_jul-var1_mat);
+figure("Position",[1000 100 800 600]);
 
-  disp("===============================================")
-  disp("Variable: " + var1)
+t = tiledlayout(2,2);
+title(t, var2 + " for " + str2 + " (tile=" + tile + " , snfrac=" + snfrac + ")")
 
-  [diff_max, ~] = max(diff_abs,[],"all");
+ax(1) = nexttile();
+imagesc(var2_mat)
+colorbar()
+title("FSM Fortran/Matlab")
+colormap('turbo');
 
-  [row_max, col_max] = find(diff_abs == diff_max);
+ax(2) = nexttile();
+imagesc(var2_jul)
+colorbar()
+title("FSM Julia")
+colormap('turbo');
 
-  disp("Max diff = " + diff_max(1))
+ax(3) = nexttile();
+imagesc(var2_jul-var2_mat)
+colorbar()
+title("FSM Julia minus FSM Fortran/Matlab")
+colormap('turbo');
 
-  disp("Row max = " + row_max(1))
+nexttile()
+plot(var2_mat(:),var2_jul(:),'.')
+xlabel("Matlab/Fortran")
+ylabel("Julia")
+title("Max diff = " + diff_var2)
 
-  disp("Row max unflipped = " + (size(var1_mat,1) - row_max(1) + 1))
+linkaxes(ax)
 
-  disp("Col max = " + col_max(1))
+end
 
-  % Find linear index of cell with largest error
 
-  domain = load("K:\OSHD_AUX\MODEL_SETTINGS\FSM\OSHD_DOMAIN_FSM_0250.mat");
+function diff_max = find_max_error(var, var_jul, var_mat)
 
-  linear_index = zeros(domain.grid.nrows,domain.grid.ncols);
-  linear_index(domain.grid.data) = 1:sum(domain.grid.data(:));
-  linear_index = flipud(linear_index);
+diff_abs = abs(var_jul-var_mat);
 
-  disp("Linear index = " + linear_index(row_max(1),col_max(1)))
+disp("===============================================")
+disp("Variable: " + var)
+
+[diff_max, ~] = max(diff_abs,[],"all");
+
+[row_max, col_max] = find(diff_abs == diff_max);
+
+disp("Max diff = " + diff_max(1))
+
+disp("Row max = " + row_max(1))
+
+disp("Row max unflipped = " + (size(var_mat,1) - row_max(1) + 1))
+
+disp("Col max = " + col_max(1))
 
 end

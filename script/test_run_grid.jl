@@ -18,34 +18,16 @@ settings_specific = [
         "out_folder" => string(@__DIR__, "/../../FSM_HS_julia/OPEN_SNFRAC_0"),
     ),
     Dict(
-        "tile" => "open",
-        "config" => Dict("SNFRAC" => 3),
-        "params" => Dict("wind_scaling" => 0.7),
-        "out_folder" => string(@__DIR__, "/../../FSM_HS_julia/OPEN_SNFRAC_3"),
-    ),
-    Dict(
-        "tile" => "open",
-        "config" => Dict("SNFRAC" => 4),
-        "params" => Dict("wind_scaling" => 0.7),
-        "out_folder" => string(@__DIR__, "/../../FSM_HS_julia/OPEN_SNFRAC_4"),
-    ),
-    Dict(
-        "tile" => "forest",
-        "config" => Dict("CANMOD" => 1, "EXCHNG" => 2, "SNFRAC" => 4, "ZOFFST" => 1),
-        "params" => Dict("hfsn" => 0.3, "z0sn" => 0.01, "wind_scaling" => 0.7),
-        "out_folder" => string(@__DIR__, "/../../FSM_HS_julia/FOREST_SNFRAC_4"),
-    ),
-    Dict(
         "tile" => "glacier",
         "config" => Dict("SNFRAC" => 0),
         "params" => Dict("wind_scaling" => 0.7),
         "out_folder" => string(@__DIR__, "/../../FSM_HS_julia/GLACIER_SNFRAC_0"),
     ),
     Dict(
-        "tile" => "glacier",
-        "config" => Dict("SNFRAC" => 4),
-        "params" => Dict("wind_scaling" => 0.7),
-        "out_folder" => string(@__DIR__, "/../../FSM_HS_julia/GLACIER_SNFRAC_4"),
+        "tile" => "forest",
+        "config" => Dict("CANMOD" => 1, "EXCHNG" => 2, "SNFRAC" => 4, "ZOFFST" => 1),
+        "params" => Dict("hfsn" => 0.3, "z0sn" => 0.01, "wind_scaling" => 0.7),
+        "out_folder" => string(@__DIR__, "/../../FSM_HS_julia/FOREST_SNFRAC_4"),
     ),
 ]
 

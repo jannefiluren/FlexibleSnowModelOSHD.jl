@@ -81,6 +81,7 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
   fsm.lat .= Tf.(landuse["y"]["data"])  # TODO remove
   fsm.lon .= Tf.(landuse["x"]["data"])  # TODO remove
   fsm.dem .= Tf.(landuse["dem"]["data"])
+  fsm.prec_multi .= landuse["prec_multi"]["data"]   # TODO hack float64
 
   # Cap surface temperatures for glacier 
   if (fsm.TILE == "glacier")
@@ -119,7 +120,8 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
     fsm.lai .= Tf.(landuse["lai"]["data"])
     fsm.vfhp .= Tf.(landuse["vfhp"]["data"])
     fsm.fves .= Tf.(landuse["fves"]["data"])
-    fsm.pmultf .= Tf.(landuse["prec_multi"]["data"])
+
+    fsm.pmultf .= Tf.((1 .- (1 .- landuse["prec_multi"]["data"]) .* (1 .- landuse["forest"]["data"] * fsm.pmultf_for)) ./ landuse["prec_multi"]["data"])   # TODO if this works, integrate with prec_multi instead...
 
     fsm.VAI[:, :] = fsm.lai[:, :]
     fsm.trcn[:, :] = Tf(1) .- Tf(0.9) .* fsm.fveg[:, :]

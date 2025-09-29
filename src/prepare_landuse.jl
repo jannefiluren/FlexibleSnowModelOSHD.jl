@@ -51,9 +51,6 @@ function prepare_landuse(filename::String)
     _ensure_data_field!(landuse, "fves", nothing)
     _ensure_data_field!(landuse, "forest", nothing)
     
-    # Set precipitation multiplier to one    TODO handle this later, in particular for the forest case...
-    landuse["prec_multi"]["data"] .= 1
-    
     # Compute derived fields using the data arrays
     landuse["slopemu"] = Dict("data" => sqrt.((landuse["dhdxdy"]["data"] ./ 2)))
     landuse["xi"] = Dict("data" => (sqrt(2) * landuse["sd"]["data"]) ./ landuse["slopemu"]["data"])
