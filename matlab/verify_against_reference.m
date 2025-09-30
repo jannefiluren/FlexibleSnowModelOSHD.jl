@@ -1,8 +1,8 @@
 clear; clc
 
-experiment_paths = ["OPEN_SNFRAC_0", "GLACIER_SNFRAC_0", "OPEN_SNFRAC_3", "GLACIER_SNFRAC_3", "OPEN_SNFRAC_4", "FOREST_SNFRAC_4"];
+experiment_paths = ["OPEN_SNFRAC_0", "GLACIER_SNFRAC_0", "FOREST_SNFRAC_4"];
 base_path = "D:\julia\FSM_HS_julia";
-archive_path = "ARCHIVE_20250814";
+archive_path = "ARCHIVE_20250929";
 
 for experiment_path = experiment_paths
 

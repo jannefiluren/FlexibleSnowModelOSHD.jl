@@ -1,38 +1,37 @@
 using Distributed
 
 # Configure simulations
-settings = [
+settings_common = Dict(
+    "met_type" => :ICON,
+    "met_folder" => "K:/DATA_ICON/OUTPUT_OSHD_0250/PROCESSED_ANALYSIS/ICON_1EFA",
+    "met_prefix" => "ICON",
+    "tvt_folder" => "K:/OSHD_AUX/DATA_CANRAD/OUTPUT_OSHD_0250/CR_2410_static",
+    "lus_file" => "K:/OSHD_AUX/DATA_LUS/OSHD_LUS_0250.mat",
+    "output_vars" => ["snowdepth", "fsnow", "SWE", "Sliq_out", "Tsrf", "Melt", "Roff", "meltflux_out"],
+    )
+
+settings_specific = [
     Dict(
         "tile" => "open",
         "config" => Dict("SNFRAC" => 0),
-        "params" => Dict("wind_scaling" => 0.7)
+        "params" => Dict("wind_scaling" => 0.7),
+        "out_folder" => string(@__DIR__, "/../../FSM_HS_julia/OPEN_SNFRAC_0"),
     ),
     Dict(
-        "tile" => "open",
-        "config" => Dict("SNFRAC" => 3),
-        "params" => Dict("wind_scaling" => 0.7)
-    ),
-    Dict(
-        "tile" => "open",
-        "config" => Dict("SNFRAC" => 4),
-        "params" => Dict("wind_scaling" => 0.7)
+        "tile" => "glacier",
+        "config" => Dict("SNFRAC" => 0),
+        "params" => Dict("wind_scaling" => 0.7),
+        "out_folder" => string(@__DIR__, "/../../FSM_HS_julia/GLACIER_SNFRAC_0"),
     ),
     Dict(
         "tile" => "forest",
         "config" => Dict("CANMOD" => 1, "EXCHNG" => 2, "SNFRAC" => 4, "ZOFFST" => 1),
-        "params" => Dict("hfsn" => 0.3, "z0sn" => 0.01, "wind_scaling" => 0.7)
-    ),
-    Dict(
-        "tile" => "glacier",
-        "config" => Dict("SNFRAC" => 0),
-        "params" => Dict("wind_scaling" => 0.7)
-    ),
-    Dict(
-        "tile" => "glacier",
-        "config" => Dict("SNFRAC" => 4),
-        "params" => Dict("wind_scaling" => 0.7)
+        "params" => Dict("hfsn" => 0.3, "z0sn" => 0.01, "wind_scaling" => 0.7),
+        "out_folder" => string(@__DIR__, "/../../FSM_HS_julia/FOREST_SNFRAC_4"),
     ),
 ]
+
+settings = [merge(settings_common, settings) for settings in settings_specific]
 
 # Add worker processes (adjust based on available cores)
 # Use nprocs() - 1 to leave one core for the main process
@@ -56,12 +55,12 @@ pmap(settings) do (setting)
     
     tile = setting["tile"]
     snfrac = setting["config"]["SNFRAC"]
-    subfolder = uppercase(tile) * "_SNFRAC_" * string(snfrac)
+    subfolder = splitpath(setting["out_folder"])[end]
 
     println("Worker $worker_id: Starting $tile SNFRAC=$snfrac -> $subfolder")
 
     start_time = time()
-    run_grid_simulation(settings=setting, subfolder=subfolder, verbose=false)
+    run_grid_simulation(settings=setting, verbose=false)
     elapsed = time() - start_time
 
     println("Worker $worker_id: Completed $tile SNFRAC=$snfrac in $(round(elapsed/60, digits=1)) minutes")

@@ -15,7 +15,7 @@ function run_point_simulation(;
     landuse_file::String = "K:/OSHD_AUX/DATA_LUS/OSHD_LUS_STAT.mat",
     meteo_base_path::String = "K:/DATA_ICON/OUTPUT_OSHD_STAT/PROCESSED_ANALYSIS/ICON_1EFA",
     base_folder::String = "D:/julia",
-    reference_path::String = "FSM_HS_matlab/LATEST_00h_RUN/OUTPUT_OSHD_STAT/RESULTS_01h_opn",
+    reference_path::String = "FSM_HS/LATEST_00h_RUN/OUTPUT_OSHD_STAT/RESULTS_01h_opn",
     write_outputs::Bool = true,
     Tf::Type=Float32,
     Ti::Type=Int32,
@@ -113,10 +113,7 @@ end
 Execute the main simulation loop with snowfall tracking.
 """
 function run_simulation_loop(fsm, met, met_data, times, verbose=true)
-    # Setup snowfall tracking
-    Sf24h = zeros(size(met.Sf24h))
-    Sf_history = zeros(size(met.Sf_history))
-    
+
     # Pre-allocate results
     snowdepth = zeros(length(times), size(fsm.Ds, 2))
     
@@ -137,10 +134,10 @@ function run_simulation_loop(fsm, met, met_data, times, verbose=true)
 
         # Update 24-hour snowfall tracking
         curr_hour = Dates.value(Hour(t)) + 1
-        Sf24h .+= met_data.Sf[i, :]
-        Sf24h .-= Sf_history[:, :, curr_hour]
-        Sf_history[:, :, curr_hour] = met_data.Sf[i, :]
-        met.Sf24h[:, :] .= Sf24h
+        met.Sf24h_f64 .+= met_data.Sf[i, :]
+        met.Sf24h_f64 .-= met.Sf_history_f64[:, :, curr_hour]
+        met.Sf_history_f64[:, :, curr_hour] = met_data.Sf[i, :]
+        met.Sf24h[:, :] .= met.Sf24h_f64
 
         # Run model step
         step!(fsm, met, t)
@@ -189,7 +186,7 @@ end
 Write simulation results to CSV files.
 """
 function write_simulation_outputs(snowdepth, snowdepth_ref, base_folder)
-    output_dir = joinpath(base_folder, "FSM_HS_matlab")
+    output_dir = joinpath(base_folder, "FSM_HS")
     mkpath(output_dir)
 
     CSV.write(joinpath(output_dir, "snowdepth_julia.csv"), Tables.table(snowdepth))

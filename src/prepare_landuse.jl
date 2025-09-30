@@ -13,11 +13,21 @@ function prepare_landuse(filename::String)
     
     # Load landuse data
     landuse = matread(filename)
+
+    # Handle old landuse format
+    if haskey(landuse, "landuse")
+        landuse = landuse["landuse"]
+    end
     
     # Get domain dimensions
-    dem_size = size(landuse["dem"]["data"])
+    if !isa(landuse["dem"], Dict)
+        dem_size = size(landuse["dem"])
+    else
+        dem_size = size(landuse["dem"]["data"])
+    end
     
     # Ensure all fields have the ["data"] format or fill missing fields with defaults
+    _ensure_data_field!(landuse, "dem", ones(Bool, dem_size))
     _ensure_data_field!(landuse, "is_domain", ones(Bool, dem_size))
     _ensure_data_field!(landuse, "dhdxdy", ones(dem_size))
     _ensure_data_field!(landuse, "sd", ones(dem_size))
@@ -40,9 +50,6 @@ function prepare_landuse(filename::String)
     _ensure_data_field!(landuse, "vfhp", nothing)
     _ensure_data_field!(landuse, "fves", nothing)
     _ensure_data_field!(landuse, "forest", nothing)
-    
-    # Set precipitation multiplier to one    TODO handle this later, in particular for the forest case...
-    landuse["prec_multi"]["data"] .= 1
     
     # Compute derived fields using the data arrays
     landuse["slopemu"] = Dict("data" => sqrt.((landuse["dhdxdy"]["data"] ./ 2)))

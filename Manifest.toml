@@ -2,6 +2,7 @@
 
 julia_version = "1.11.6"
 manifest_format = "2.0"
+
 project_hash = "5bae6c9168c3da5c6a40c2141966d3ba83670e3a"
 
 [[deps.AbstractPlutoDingetjes]]
@@ -375,6 +376,12 @@ deps = ["Logging", "Random"]
 git-tree-sha1 = "b6d6bfdd7ce25b0f9b2f6b3dd56b2673a66c8770"
 uuid = "b5f81e59-6552-4d32-b1f0-c071b021bf89"
 version = "0.2.5"
+
+[[deps.Infiltrator]]
+deps = ["InteractiveUtils", "Markdown", "REPL", "UUIDs"]
+git-tree-sha1 = "5c248f54dd39381e320f63363e1fbd12f8a5a822"
+uuid = "5903a43b-9cc3-4c30-8d17-598619ec4e9b"
+version = "1.9.3"
 
 [[deps.InlineStrings]]
 git-tree-sha1 = "8594fac023c5ce1ef78260f24d1ad18b4327b420"

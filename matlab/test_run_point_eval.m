@@ -2,8 +2,8 @@ clear; close all; clc
 
 % Read data
 
-hs_matlab = readtable("D:\julia\FSM_HS_matlab\snowdepth_matlab.csv");
-hs_julia = readtable("D:\julia\FSM_HS_matlab\snowdepth_julia.csv");
+hs_matlab = readtable("D:\julia\FSM_HS\snowdepth_matlab.csv");
+hs_julia = readtable("D:\julia\FSM_HS\snowdepth_julia.csv");
 hs_matlab = table2array(hs_matlab);
 hs_julia = table2array(hs_julia);
 
