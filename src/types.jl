@@ -73,6 +73,7 @@
   rchz::Tf = 0.2                                           # Ratio of roughness length to canopy height
   tcnc::Tf = 3600*240                                      # Canopy unloading time scale for cold snow (s)
   tcnm::Tf = 3600*48                                       # Canopy unloading time scale for melting snow (s)
+  pmultf_for::Tf = 0.5                                         # TODO add description what this is...
 
   # Defaults for snow parameters
 
@@ -174,6 +175,8 @@
   tilefrac::Array{Tf,2} = -999999*ones(Nx,Ny)              # TODO defaults? Tile fraction
   glacierfrac::Array{Tf,2} = -999999*ones(Nx,Ny)           # TODO defaults? Glacier flag
   vegsnowd_xy::Array{Tf,2} = -999999*ones(Nx,Ny)           # TODO defaults? Vegetation snow holding capacity (m)
+
+  prec_multi::Array{Float64,2} = -999999*ones(Nx,Ny)       # TODO defaults? Precipitation multiplier (-)    TODO HACK FLOAT64
 
   # Derived soil parameters
 
@@ -362,6 +365,7 @@ end
 
   # Snowfall tracking variable
 
-  Sf_history::Array{Tf, 3} = zeros(Nx, Ny, 24)
+  Sf24h_f64::Array{Float64, 2} = zeros(Nx, Ny)             # TODO use Float64 to better match results from matlab/fortran code base
+  Sf_history_f64::Array{Float64, 3} = zeros(Nx, Ny, 24)    # TODO use Float64 to better match results from matlab/fortran code base
 
 end
