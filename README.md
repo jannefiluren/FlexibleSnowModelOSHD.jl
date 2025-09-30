@@ -43,7 +43,7 @@ The model is designed for operational snow forecasting applications and supports
 
 ## Examples
 
-See the `notebooks/` directory for interactive examples and the `script/` directory for complete simulation workflows.
+See the `script/` directory for complete simulation workflows.
 
 ## Package Structure
 
@@ -60,7 +60,6 @@ FSMOSHD.jl/
 │   ├── thermal.jl         # Thermal properties
 │   └── ...                # Additional physics modules
 ├── script/                # Simulation scripts
-├── notebooks/             # Example Pluto.jl notebooks
 └── test/                  # Unit tests and regression tests
 ```
 

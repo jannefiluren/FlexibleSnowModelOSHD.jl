@@ -17,6 +17,7 @@ function setup_example()
     lus["slopemu"] = Dict("data" => [1.0;;])
     lus["xi"] = Dict("data" => [1.0;;])
     lus["Ld"] = Dict("data" => [1.0;;])
+    lus["prec_multi"] = Dict("data" => [1.0;;])
     
     # define custom settings
     settings = Dict("tile" => "open", "params" => Dict("wind_scaling" => 0.7))
