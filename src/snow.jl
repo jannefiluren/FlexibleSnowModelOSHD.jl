@@ -38,6 +38,8 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Int
 
   @unpack gammasnow = fsm
 
+  @unpack snowdepth0, Sice0 = fsm
+
   @unpack Rf, Sf, Ta, Ua = meteo
 
   Gsoil .= G
@@ -45,10 +47,10 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Int
   meltflux_out .= Tf(0)
   Roff_bare .= Rf .* dt .* (Tf(1) .- fsnow)
   Roff_snow .= Rf .* dt .* fsnow
-  
+
   # Initialize arrays for snow layering
-  snowdepth0 = zeros(Tf, Nx, Ny)
-  Sice0 = zeros(Tf, Nx, Ny)
+  snowdepth0 .= Tf(0)
+  Sice0 .= Tf(0)
 
   a .= Tf(0)
   bsnow .= Tf(0)

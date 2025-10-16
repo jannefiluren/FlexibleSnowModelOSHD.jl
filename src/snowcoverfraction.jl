@@ -31,9 +31,9 @@ function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::Date
 
         # merge current SWEtmp with SWEtmp history from past 14 days
         SWEbuffer[1] = SWEtmp
-        SWEbuffer[2:15] .= swehist[:,i,j]
+        SWEbuffer[2:15] .= @view swehist[:,i,j]
         snowdepthbuffer[1] = snowdepth
-        snowdepthbuffer[2:15] .= snowdepthhist[:,i,j]
+        snowdepthbuffer[2:15] .= @view snowdepthhist[:,i,j]
 
         # calculate snowdepthmin_buffer, snowdepthmax_buffer, snowdepthmin_recent 
         # find indices of global min and max in SWEbuffer
@@ -52,7 +52,7 @@ function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::Date
                 ifinal = iloop + 1
             end
         end
-        irecentmin = argmin(SWEbuffer[1:ifinal])
+        irecentmin = argmin(@view SWEbuffer[1:ifinal])
 
         # use indices to determine snowdepth amounts
         snowdepthmin_buffer = snowdepthbuffer[iabsmin]
