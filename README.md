@@ -23,13 +23,13 @@ The model is designed for operational snow forecasting applications and supports
 
 ### Installation Steps
 
-1. **Clone the repository:**
+1. **Clone the repository (in git bash):**
    ```bash
    git clone https://github.com/jannefiluren/FSMOSHD
    cd FSMOSHD
    ```
 
-2. **Activate the package environment:**
+2. **Activate the package environment (in terminal enter julia):**
    ```julia
    using Pkg
    Pkg.activate(".")
@@ -39,6 +39,11 @@ The model is designed for operational snow forecasting applications and supports
 3. **Load the package:**
    ```julia
    using FSMOSHD
+   ```
+
+4. **Run test script:**
+   ```julia
+   include("script\run_station_example.jl")
    ```
 
 ## Examples
