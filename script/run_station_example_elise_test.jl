@@ -91,7 +91,7 @@ function run_fsm(fsm, met, df_meteo)
 end
 
 #####################################################################################
-function run_fsm_lautaret(fsm, met, laut_meteo)
+function run_fsm_laut(fsm, met, laut_meteo)
 
     # allocate output variable-wise
     hs = zeros(nrow(laut_meteo))
@@ -103,7 +103,10 @@ function run_fsm_lautaret(fsm, met, laut_meteo)
     for (i, row) in zip(1:nrow(laut_meteo), eachrow(laut_meteo))
     
         # assign input
-        met.datetime .= row[""]
+        met.year .= year(Date.(row["Date"], "yyyy-mm-dd HH:MM:S+HH:MM"))
+        met.month .= month(Date.(row["Date"], "yyyy-mm-dd HH:MM:S+HH:MM"))
+        met.day .= day(Date.(row["Date"], "yyyy-mm-dd HH:MM:S+HH:MM"))
+        met.hour .= hour(DateTime.(row["Date"], "yyyy-mm-dd HH:MM:S+HH:MM"))
         met.Sdir .= row["Rs_net_Avg"]
         met.Sdif .= row["Null"]
         met.Sdird .= row["Null"]
@@ -117,7 +120,7 @@ function run_fsm_lautaret(fsm, met, laut_meteo)
         met.Sf24h .= row["Null"]
     
         # set time 
-        t = met.datetime
+        t = DateTime.(row["Date"], "yyyy-mm-dd HH:MM:S+HH:MM")
     
         # run model and update states
         step!(fsm, met, t)
@@ -130,7 +133,7 @@ function run_fsm_lautaret(fsm, met, laut_meteo)
     end
 
     # write results to dataframe
-    time = t
+    time = DateTime.(laut_meteo[!, "Date"], "yyyy-mm-dd HH:MM:S+HH:MM")
     df_results = DataFrame(time=time, hs=hs, Tsnow=T_snow, albedo=alb)
 
     return df_results
@@ -139,12 +142,11 @@ end
 #####################################################################################
 
 fsm, met, df_meteo, laut_meteo = setup_example()
+laut_meteo = coalesce.(laut_meteo, 0)
 
-println(laut_meteo)
 
 df_results = run_fsm(fsm, met, df_meteo)
-
 CSV.write("../data/output_SLF_5WJ.txt", df_results)
-df_results_laut = run_fsm_laut(fsm, met, laut_meteo)
 
+df_results_laut = run_fsm_laut(fsm, met, laut_meteo)
 CSV.write("../output_lautaret.txt", df_results_laut)
