@@ -4,43 +4,43 @@
 
 import csv
 import numpy as np
+import pandas as pd
 
-with open('2223_Lautaret_halfhour.csv', newline='') as datacsv:
-    file = csv.reader(datacsv)
-    data = np.array(list(file))
+with open('lautaret/2223_Lautaret_halfhour.csv', newline='') as file:
+    data = pd.read_csv(file)
 
-print(data[0])
+(row,col)=data.shape
+print(row,col)
 
-i=0
-while data[0][i] != 'Snow_Depth':
-    i+=1
-print(i)
-print(data[1:,i])
+data.rename(columns={"Unnamed: 0": "DateTime"}, inplace=True)
+data['Sf']=np.zeros(row)
+data['Rf']=np.zeros(row)
+data['Sf24h']=np.zeros(row)
+data['Null']=np.zeros(row)
 
-j=0
-while data[0][j] != 'Quantity_klok':
-    j+=1
-print(j)
-print(data[1:,j])
+data.interpolate(method='linear', inplace=True)  # interpolation linéaire des données manquantes
+data.fillna(method='bfill', inplace=True)        # gap fill propagation backward pour les données manquantes restantes
 
-row = np.shape(data)[0]
-col = np.shape(data)[1]
-
-data_input=np.append(data, np.zeros((row,3)), axis=1)
-data_input[0, 49:]=['Sf', 'Rf', 'Null']
-data_input[0,0]='Date'
-
-snow_depth=data_input[1,i]
-for r in range(2,row):
-    if data_input[r,i]!=snow_depth:
-        snow_depth=data_input[r,i]
-        data_input[r, 49:-1]=[data_input[r,j],'0.0']
+is_rain=1
+init=0
+for r in range(row):
+    data.loc[r,'AirTC_Avg']+=273.15              # K
+    data.loc[r,'Patm_Avg']*=100                  # Pa
+    data.loc[r,'Quantity_klok']*=0.001           # m
+    if data['is_rain_klok'][r]==is_rain:
+        data.loc[r,'Rf']=data.loc[r,'Quantity_klok']
     else:
-        data_input[r, 49:-1]=['0.0', data_input[r,j]]
+        data.loc[r,'Sf']=data.loc[r,'Quantity_klok']
 
-print(data_input)
-print(np.shape(data_input))
+init=sum(data['Sf'].iloc[0:47])
+for r in range(48,row):
+    data.loc[r,'Sf24h']=sum(data['Sf'].iloc[r-47:r])
 
-with open("2223_Lautaret_halfhour_input.csv", mode="w", newline="") as csvfile:
-    file = csv.writer(csvfile)
-    file.writerows(data_input)
+print(data.loc[:,['DateTime','Sf','Sf24h']])
+print(init)
+
+data_input=data[['DateTime', 'AirTC_Avg', 'HRair_Avg', 'Patm_Avg', 'WindSpeed_Low_Avg', 
+                 'WindSpeed_Avg', 'short_up_Avg', 'short_dn_Avg', 'long_up_cor_Avg',
+                 'long_dn_cor_Avg', 'Rs_net_Avg', 'Rl_net_Avg', 'Sf', 'Rf', 'Sf24h', 'Null']]
+
+data_input.to_csv("lautaret/2223_Lautaret_halfhour_input.csv")
