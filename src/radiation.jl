@@ -20,7 +20,7 @@ function radiation!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti
 
   @unpack alb0,fsky,scap, trcn = fsm
 
-  @unpack albs, Sice, Sliq, fsnow,Sveg, Tsnow, Tsrf = fsm
+  @unpack albs, Sice, Sliq, fsnow, Sveg, Tsnow, Tsrf = fsm
 
   @unpack ALBEDO, OSHDTN, RADSBG, CANMOD, ALRADT, ALPERT = fsm
 
@@ -69,7 +69,7 @@ function radiation!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti
             tau = tau / (Tf(2.0) - trcn[i, j] * fsky[i, j])
           end
 
-          rt = Tf(1) / tau + Sf[i, j] / Sfmin
+          rt = Tf(1) / tau + Sf[i, j] / Sfmin                                
           alim = (asmn / tau + Sf[i, j] * afs_loc / Sfmin) / rt
           albs[i, j] = alim + (albs[i, j] - alim) * exp(-rt * dt)
           if (albs[i, j] < min(afs_loc, asmn))
@@ -160,7 +160,7 @@ function radiation!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti
           Sdift[i, j] = Sdif[i, j]
         end
 
-        # Solar radiation trasmission 
+        # Solar radiation transmission 
         if (CANMOD == 0)
           SWveg[i, j] = Tf(0)
           SWsrf[i, j] = (Tf(1) - alb[i, j]) * (Sdir[i, j] + Sdif[i, j])

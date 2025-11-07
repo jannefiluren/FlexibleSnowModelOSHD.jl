@@ -335,7 +335,7 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti<:Int
         # The small amounts were due to EnKF-assimilated daily precip being downscaled to hourly
         # based on the hourly (COSMO) to daily (COSMO) mass ratio.  Since min daily EnKF was 1mm,
         # when 1mm was downscaled to hourly this mass could become
-        # quite small.  When this occurred on bare ground, Tsnow calculation would blow up,
+        # quite small. When this occurred on bare ground, Tsnow calculation would blow up,
         # place NaN in Tsnow and snow would never again melt through the season
         # Do we still need this Catch in FSM??
         if (Nsnow[i, j] <= 1 && dSice < Tf(0.001) && Sice[1, i, j] < Tf(0.001))

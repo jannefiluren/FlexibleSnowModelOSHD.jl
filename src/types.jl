@@ -17,11 +17,11 @@
 
   # Driving data
 #####################################################################################
-  dt::Tf = 1800                                            # Time step (s)
+  dt::Tf = 3600 # 1800                                            # Time step (s)
 #####################################################################################
-  zT::Tf = 2 #10                                           # Temperature measurement height (m)
+  zT::Tf = 10 # 10 , 2                                     # Temperature measurement height (m)
   zU::Tf = 10                                              # Wind speed measurement height (m)
-  zRH::Tf = 10                                             # Relative humidity measurement height (m)
+  zRH::Tf = 10 # 10 , 2                                    # Relative humidity measurement height (m)
   wind_scaling = 1                                         # Wind speed scaling factor (-)
 #####################################################################################
 
@@ -207,7 +207,7 @@
   fsnow::Array{Tf, 2} = zeros(Nx,Ny)                       # Snow cover fraction terrain
   Tveg::Array{Tf, 2} = -999999*ones(Nx,Ny)                 # TODO defaults? Vegetation temperature (K)
   snowdepthmin::Array{Tf, 2} = zeros(Nx,Ny)                # Minimum snow depth at time step of swemin (m)
-  snowdepthmax::Array{Tf, 2} = zeros(Nx,Ny)                # Maximum snow depth at time stemp of swemax (m)
+  snowdepthmax::Array{Tf, 2} = zeros(Nx,Ny)                # Maximum snow depth at time step of swemax (m)
   snowdepthhist::Array{Tf,3} = zeros(14,Nx,Ny)             # History of snow depth during last 14 days (m). Most recent entries first
   swemin::Array{Tf, 2} = zeros(Nx,Ny)                      # Minimum SWE during the season (m)
   swemax::Array{Tf, 2} = zeros(Nx,Ny)                      # Maximum SWE during the season (m)
@@ -346,7 +346,7 @@ end
   day::Array{Ti, 2} = -999999*ones(1, 1)                   # TODO defaults?
   hour::Array{Tf, 2} = -999999*ones(1, 1)                  # TODO defaults?
 #####################################################################################
-  minute::Array{Tf, 2} = -999999*ones(1, 1)                # Test Lautaret
+  # minute::Array{Tf, 2} = -999999*ones(1, 1)                # Test Lautaret
 #####################################################################################
 
   # Meteorological variables
