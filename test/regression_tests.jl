@@ -5,30 +5,15 @@ using Infiltrator
 
 function load_domain_data()
 
-    var_mapping = [
-        ("easting", "x"),
-        ("northing", "y"),
-        ("elevation", "dem"),
-        ("Ld", "Ld"),
-        ("dhdxdy", "dhdxdy"),
-        ("sd", "sd"),
-        ("prec_multi", "prec_multi"),
-        ("skyvf", "skyvf"),
-        ("fveg", "fveg"),
-        ("hcan", "hcan"),
-        ("lai", "lai"),
-        ("vfhp", "vfhp"),
-        ("fves", "fves"),
-        ("forest", "forest"),
-        ("glacier", "glacier"),
-    ]
-
+    variables = ["easting", "northing", "elevation", "Ld", "dhdxdy", "sd", "prec_multi", "skyvf",
+                 "fveg", "hcan", "lai", "vfhp", "fves", "forest", "glacier"]
+    
     # Read domain data
     landuse = Dict()
     NCDataset(joinpath(pkgdir(FSMOSHD), "data/domain_data.nc")) do ds
-        for (var_source, var_target) in var_mapping
-            landuse[var_target] = Dict(
-                "data" => ds[var_source][:, :]
+        for variable in variables
+            landuse[variable] = Dict(
+                "data" => ds[variable][:, :]
             )
         end
     end
@@ -59,10 +44,10 @@ function interpolate_meteo(Tf, landuse)
 
     times, data_meteo = NCDataset(joinpath(pkgdir(FSMOSHD), "data/meteo_data.nc")) do ds
         z_stat = ds["elevation"][:]
-        dz = landuse["dem"]["data"] .- z_stat[1]
+        dz = landuse["elevation"]["data"] .- z_stat[1]
         times_local = ds["time"][:]
 
-        Nx, Ny = size(landuse["dem"]["data"])
+        Nx, Ny = size(landuse["elevation"]["data"])
         Nt = length(times_local)
 
         data_meteo_local = Dict()
@@ -100,8 +85,8 @@ function run_simulations(settings, Tf=Float32, Ti=Int32)
     times, data_meteo = interpolate_meteo(Tf, landuse)
 
     # Setup
-    Nx = size(landuse["dem"]["data"], 1)
-    Ny = size(landuse["dem"]["data"], 2)
+    Nx = size(landuse["elevation"]["data"], 1)
+    Ny = size(landuse["elevation"]["data"], 2)
     Nt = length(times)
 
     fsm = setup(Tf, Ti, landuse, Nx, Ny, settings)
