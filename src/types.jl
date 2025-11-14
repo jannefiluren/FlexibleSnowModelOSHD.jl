@@ -289,6 +289,8 @@
   Roff_bare::Array{Tf, 2} = zeros(Nx, Ny)
   Roff_snow::Array{Tf, 2} = zeros(Nx, Ny)
   fsnow_thres::Array{Tf, 2} = zeros(Nx, Ny)
+  snowdepth0::Array{Tf, 2} = zeros(Nx, Ny)
+  Sice0::Array{Tf, 2} = zeros(Nx, Ny)
 
   a::Vector{Tf} = zeros(Nsmax)
   bsnow::Vector{Tf} = zeros(Nsmax)
@@ -307,6 +309,20 @@
   SWEbuffer::Vector{Tf} = zeros(15)
   snowdepthbuffer::Vector{Tf} = zeros(15)
   diffSWEbuffer::Vector{Tf} = zeros(14)
+
+  # Snow layering - temporary arrays
+
+  Ds0::Array{Tf, 2} = zeros(Nx, Ny)
+  hw::Vector{Tf} = zeros(Nsmax)
+  rho::Vector{Tf} = zeros(Nsmax + 1)
+  diff_rho::Vector{Tf} = zeros(Nsmax)
+  csnow_loc::Vector{Tf} = zeros(Nsmax + 1)
+  Sice_loc::Vector{Tf} = zeros(Nsmax + 1)
+  Sliq_loc::Vector{Tf} = zeros(Nsmax + 1)
+  Ds_loc::Vector{Tf} = zeros(Nsmax + 1)
+  histowet_loc::Vector{Tf} = zeros(Nsmax + 1)
+  U_loc::Vector{Tf} = zeros(Nsmax + 1)
+  Tsnow_loc::Vector{Tf} = zeros(Nsmax + 1)
 
   # Soil - temporary vectors
 

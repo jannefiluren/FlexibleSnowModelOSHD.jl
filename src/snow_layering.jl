@@ -10,29 +10,11 @@ function snow_layering!(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}, snowdepth0, Sice0, t
     @unpack dem, tilefrac = fsm
     @unpack Ta = meteo
     @unpack SWEbuffer, snowdepthbuffer, diffSWEbuffer = fsm
+    @unpack Ds0, hw, rho, diff_rho, csnow_loc, Sice_loc, Sliq_loc, Ds_loc, histowet_loc, U_loc, Tsnow_loc = fsm
+    @unpack csnow, D, E, S, U, W = fsm
 
     # Initialize Ds0
-    Ds0 = zeros(Tf, Nx, Ny)
-
-    # For original layering
-    csnow = zeros(Tf, Nsmax)
-    D = zeros(Tf, Nsmax)
-    E = zeros(Tf, Nsmax)
-    hw = zeros(Tf, Nsmax)
-    S = zeros(Tf, Nsmax)
-    U = zeros(Tf, Nsmax)
-    W = zeros(Tf, Nsmax)
-
-    # For density-dependent layering
-    rho = zeros(Tf, Nsmax + 1)
-    diff_rho = zeros(Tf, Nsmax)
-    csnow_loc = zeros(Tf, Nsmax + 1)
-    Sice_loc = zeros(Tf, Nsmax + 1)
-    Sliq_loc = zeros(Tf, Nsmax + 1)
-    Ds_loc = zeros(Tf, Nsmax + 1)
-    histowet_loc = zeros(Tf, Nsmax + 1)
-    U_loc = zeros(Tf, Nsmax + 1)
-    Tsnow_loc = zeros(Tf, Nsmax + 1)
+    Ds0 .= Tf(0)
 
     for j in 1:Ny
         for i in 1:Nx
@@ -61,12 +43,12 @@ function snow_layering!(fsm::FSM{Tf,Ti}, meteo::MET{Tf,Ti}, snowdepth0, Sice0, t
                 if SNOLAY == 0
                     Sice[1, i, j] = Sice[1, i, j] + Sice0[i, j]
                 end
-                snowdepth = sum(Ds[:, i, j]) * fsnow[i, j] + snowdepth0[i, j]
+                snowdepth = sum(@view Ds[:, i, j]) * fsnow[i, j] + snowdepth0[i, j]
 
                 # Store previous snow cover fraction
                 fold = fsnow[i, j]
                 # Updated Fractional Snow-Covered Area
-                SWEtmp = sum(Sice[:, i, j]) + sum(Sliq[:, i, j])
+                SWEtmp = sum(@view Sice[:, i, j]) + sum(@view Sliq[:, i, j])
                 if SNOLAY == 1
                     SWEtmp = SWEtmp + Sice0[i, j]
                 end
