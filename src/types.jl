@@ -17,11 +17,11 @@
 
   # Driving data
 #####################################################################################
-  dt::Tf = 3600 # 1800                                            # Time step (s)
+  dt::Tf = 3600                                            # Time step (s)
 #####################################################################################
-  zT::Tf = 10 # 10 , 2                                     # Temperature measurement height (m)
+  zT::Tf = 10                                              # Temperature measurement height (m)
   zU::Tf = 10                                              # Wind speed measurement height (m)
-  zRH::Tf = 10 # 10 , 2                                    # Relative humidity measurement height (m)
+  zRH::Tf = 10                                             # Relative humidity measurement height (m)
   wind_scaling = 1                                         # Wind speed scaling factor (-)
 #####################################################################################
 
@@ -345,9 +345,6 @@ end
   month::Array{Ti, 2} = -999999*ones(1, 1)                 # TODO defaults?
   day::Array{Ti, 2} = -999999*ones(1, 1)                   # TODO defaults?
   hour::Array{Tf, 2} = -999999*ones(1, 1)                  # TODO defaults?
-#####################################################################################
-  # minute::Array{Tf, 2} = -999999*ones(1, 1)                # Test Lautaret
-#####################################################################################
 
   # Meteorological variables
 

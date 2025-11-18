@@ -12,17 +12,16 @@ function drive!(fsm::FSM, meteo::MET{Tf,Ti}) where {Tf<:Real,Ti<:Integer}
   @unpack_constants(Tf)
 
 #####################################################################################
-  @unpack dt, rhof, wind_scaling = fsm   # ajout rhof
+  @unpack dt, wind_scaling = fsm  
 
-  @unpack Tc, es, Qa, Ua, Ta, Sf, Rf, Sf24h, RH, Ps = meteo  # ajout Sf24h 
+  @unpack Tc, es, Qa, Ua, Ta, Sf, Rf, RH, Ps = meteo 
 
   Ua .= wind_scaling .* Ua
   Ua .= max.(Ua, Tf(0.1))
 
 #####################################################################################
-  Sf .= Sf ./ dt # Sf .* rhof ./ dt       # Lautaret : quantité de précipitation déjà indepente du temps
-  Sf24h .= Sf24h # Sf24h .*rhof 
-  Rf .= Rf ./ dt # Rf .*1000 ./ dt  
+  Sf .= Sf ./ dt # Sf ./ dt      
+  Rf .= Rf ./ dt # Rf ./ dt  
 #####################################################################################
   Tc .= Ta .- Tm
   es .= e0 .* exp.(Tf(17.5043) .* Tc ./ (Tf(241.3) .+ Tc))

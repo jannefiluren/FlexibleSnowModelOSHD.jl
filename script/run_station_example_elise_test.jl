@@ -16,7 +16,7 @@ function setup_example()
     lus["skyvf"] = Dict("data" => [1.0;;])           
     lus["x"] = Dict("data" => [1.0;;])
     lus["y"] = Dict("data" => [1.0;;])
-    lus["dem"] = Dict("data" => [2540.0;;])          # [2057.0;;] au Lautaret , [2540.0;;] SLF
+    lus["dem"] = Dict("data" => [2057.0;;])          # [2057.0;;] au Lautaret , [2540.0;;] SLF
     lus["slopemu"] = Dict("data" => [1.0;;])
     lus["xi"] = Dict("data" => [1.0;;])
     lus["Ld"] = Dict("data" => [1.0;;])
@@ -86,7 +86,6 @@ function run_fsm(fsm, met, df_meteo)
     
         # write output
         hs[i] = dropdims(sum(fsm.Ds, dims=1), dims=1)[1, 1]
-        println(hs)
         if fsm.Nsnow[1, 1] == 1
             Tsnow1[i] = fsm.Tsnow[1, 1, 1]
         elseif fsm.Nsnow[1, 1] == 2
@@ -151,11 +150,7 @@ function run_fsm_laut(fsm, met, laut_meteo)
         met.Sf24h .= row["Sf24h"]
     
         # set time 
-        # t = DateTime.(row["DateTime"], "yyyy-mm-dd HH:MM:S+00:00")
-        t = DateTime(year(Date.(row["DateTime"], "yyyy-mm-dd HH:MM:S+00:00")), 
-        month(Date.(row["DateTime"], "yyyy-mm-dd HH:MM:S+00:00")), 
-        day(Date.(row["DateTime"], "yyyy-mm-dd HH:MM:S+00:00")), 
-        hour(DateTime.(row["DateTime"], "yyyy-mm-dd HH:MM:S+00:00")) .+ minute(DateTime.(row["DateTime"], "yyyy-mm-dd HH:MM:S+00:00"))./60)
+        t = DateTime.(row["DateTime"], "yyyy-mm-dd HH:MM:S+00:00")
     
         # run model and update states
         step!(fsm, met, t)
@@ -194,12 +189,12 @@ end
 
 fsm, met, df_meteo, laut_meteo = setup_example()
 # laut_meteo = coalesce.(laut_meteo, 0)
-println(laut_meteo)
+# println(laut_meteo)
 
-df_results = run_fsm(fsm, met, df_meteo)
+# df_results = run_fsm(fsm, met, df_meteo)
 # CSV.write("../data/output_SLF_5WJ_corr-dt.txt", df_results)
 
-# df_results_laut = run_fsm_laut(fsm, met, laut_meteo)
-# # println(met)
-# # println(fsm)
-# CSV.write("../lautaret/output_2017-2024_lautaret_halfhour_corr.txt", df_results_laut)
+df_results_laut = run_fsm_laut(fsm, met, laut_meteo)
+# println(met)
+# println(fsm)
+CSV.write("../lautaret/output_2017-2024_lautaret_halfhour_corr-rhodt.txt", df_results_laut)
