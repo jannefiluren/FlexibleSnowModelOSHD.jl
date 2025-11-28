@@ -33,7 +33,10 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
   # Apply model configuration
   if haskey(settings, "config")
     for (key, value) in settings["config"]
-      setfield!(fsm, Symbol(key), Int32(value))
+      if value isa Int
+        value = Ti(value)
+      end
+      setfield!(fsm, Symbol(key), value)
     end
   end
 
