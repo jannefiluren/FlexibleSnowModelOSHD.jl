@@ -1,13 +1,13 @@
-using FSMOSHD
+# Regression tests comparing current simulation results against reference data
+
 using NCDatasets
 using Dates
-using Infiltrator
 
 function load_domain_data()
 
     variables = ["easting", "northing", "elevation", "Ld", "dhdxdy", "sd", "prec_multi", "skyvf",
                  "fveg", "hcan", "lai", "vfhp", "fves", "forest", "glacier"]
-    
+
     # Read domain data
     landuse = Dict()
     NCDataset(joinpath(pkgdir(FSMOSHD), "data/domain_data.nc")) do ds
@@ -128,24 +128,24 @@ function run_simulations(settings, Tf=Float32, Ti=Int32)
         met.Sf24h_f64 .-= met.Sf_history_f64[:, :, curr_hour]
         met.Sf_history_f64[:, :, curr_hour] = met.Sf
         met.Sf24h[:, :] .= met.Sf24h_f64
-        
+
         # Run model
         step!(fsm, met, t)
 
         # Store results
         simulation_results["timestamps"][timestep] = string(t)
-            
+
         # Store state variables
         simulation_results["Tsrf"][:, :, timestep] .= fsm.Tsrf
         simulation_results["Tsnow"][:, :, timestep] .= fsm.Tsnow[1,:,:]  # First snow layer
         simulation_results["Sice"][:, :, timestep] .= dropdims(sum(fsm.Sice, dims=1), dims=1)  # Total snow ice
-        simulation_results["Sliq"][:, :, timestep] .= dropdims(sum(fsm.Sliq, dims=1), dims=1)  # Total snow liquid  
+        simulation_results["Sliq"][:, :, timestep] .= dropdims(sum(fsm.Sliq, dims=1), dims=1)  # Total snow liquid
         simulation_results["fsnow"][:, :, timestep] .= fsm.fsnow
         simulation_results["albs"][:, :, timestep] .= fsm.albs
         simulation_results["Sveg"][:, :, timestep] .= fsm.Sveg
         simulation_results["Tveg"][:, :, timestep] .= fsm.Tveg
         simulation_results["Tcan"][:, :, timestep] .= fsm.Tcan
-        
+
         # Store flux variables
         simulation_results["SWsrf"][:, :, timestep] .= fsm.SWsrf
         simulation_results["H"][:, :, timestep] .= fsm.H
@@ -157,11 +157,68 @@ function run_simulations(settings, Tf=Float32, Ti=Int32)
         simulation_results["Rnet"][:, :, timestep] .= fsm.Rnet
 
         # Store diagnostic variables
-        simulation_results["Ds"][:, :, timestep] .= dropdims(sum(fsm.Ds, dims=1), dims=1)  # Total snow depth  
+        simulation_results["Ds"][:, :, timestep] .= dropdims(sum(fsm.Ds, dims=1), dims=1)  # Total snow depth
         simulation_results["snowdepth"][:, :, timestep] .= simulation_results["Ds"][:, :, timestep] .* simulation_results["fsnow"][:, :, timestep]
-            
+
     end
 
     return simulation_results
+
+end
+
+# Test data paths
+ref_file = joinpath(projdir, "test", "simulation_results.jls")
+
+# Configuration matrix
+settings = [
+    Dict(
+        "tile" => "open",
+        "config" => Dict("SNFRAC" => 0),
+        "params" => Dict("wind_scaling" => 0.7)
+        ),
+    Dict(
+        "tile" => "forest",
+        "config" => Dict("CANMOD" => 1, "EXCHNG" => 2, "SNFRAC" => 4, "ZOFFST" => 1),
+        "params" => Dict("hfsn" => 0.3, "z0sn" => 0.01, "wind_scaling" => 0.7)
+        ),
+    Dict(
+        "tile" => "glacier",
+        "config" => Dict("SNFRAC" => 0),
+        "params" => Dict("wind_scaling" => 0.7)
+    )
+]
+
+# Load or create reference data
+if !isfile(ref_file)
+    simulation_refs = []
+    for setting in settings
+        push!(simulation_refs, run_simulations(setting))
+    end
+    serialize(ref_file, simulation_refs)
+end
+
+simulation_refs = deserialize(ref_file)
+
+# Run regression tests for each configuration
+tolerance = 1e-10
+
+for (setting, simulation_ref) in zip(settings, simulation_refs)
+
+    tile = setting["tile"]
+
+    @testset "Tile: $tile" begin
+        simulation_tst = run_simulations(setting)
+
+        # Get list of variables to compare (exclude metadata)
+        variables_to_compare = filter(k -> !(k in ["timestamps", "filenames"]), keys(simulation_tst))
+
+        for variable in variables_to_compare
+            @testset "$variable" begin
+                @test size(simulation_tst[variable]) == size(simulation_ref[variable])
+                max_diff = maximum(abs.(simulation_tst[variable] - simulation_ref[variable]))
+                @test max_diff <= tolerance
+            end
+        end
+    end
 
 end
