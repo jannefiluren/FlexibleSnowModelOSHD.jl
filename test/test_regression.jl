@@ -1,7 +1,10 @@
 # Regression tests comparing current simulation results against reference data
 
+using FSMOSHD
+using Test
 using NCDatasets
 using Dates
+using Serialization
 
 function load_domain_data()
 
@@ -167,6 +170,7 @@ function run_simulations(settings, Tf=Float32, Ti=Int32)
 end
 
 # Test data paths
+projdir = dirname(dirname(@__FILE__))
 ref_file = joinpath(projdir, "test", "simulation_results.jls")
 
 # Configuration matrix

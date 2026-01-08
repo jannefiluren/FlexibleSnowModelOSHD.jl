@@ -1,5 +1,8 @@
 # Idealized energy balance tests for the soil thermal routine
 
+using FSMOSHD
+using Test
+
 """
     create_minimal_fsm(Tf, Ti)
 
@@ -136,22 +139,12 @@ end
         Gsoil_in = 0.0  # W/m²
         fsm.Gsoil[1, 1] = Gsoil_in
 
-        # Calculate initial energy
-        E_initial = compute_soil_energy(fsm)
-
         # Run soil routine
         soil!(fsm)
 
-        # Calculate final energy
-        E_final = compute_soil_energy(fsm)
-
-        # With uniform temperature, bottom flux still exists but temperatures
-        # should remain nearly constant
-        E_actual_change = E_final - E_initial
-
         # Check that temperatures didn't change much (isothermal should stay isothermal)
         for k in 1:fsm.Nsoil
-            @test isapprox(fsm.Tsoil[k, 1, 1], T_init, rtol=1e-2)
+            @test isapprox(fsm.Tsoil[k, 1, 1], T_init, atol=1e-4)
         end
     end
 
@@ -253,4 +246,24 @@ end
         @test gradient_after < 15.0  # Was 15 K initially
     end
 
+    # Test 7: Set zero conductivity and only warm the top soil layer
+    @testset "Warming of top layer" begin
+        fsm = create_minimal_fsm(Tf, Ti)
+
+        # Set uniform initial temperature
+        T_init = 280.0  # K
+        fsm.Tsoil[:, 1, 1] .= T_init
+
+        # Set zero conductivity
+        fsm.ksoil[:, 1, 1] .= 0.0  # W/m/K
+
+        # Add a heat flux to increase the top layer soil temperature by one degree
+        fsm.Gsoil[1, 1] = 2e5 / fsm.dt
+
+        # Run soil routine
+        soil!(fsm)
+
+        # Top soil layer temperature should have increased by one degree
+        @test isapprox(fsm.Tsoil[1, 1, 1], T_init + 1, atol=1e-4)
+    end
 end
