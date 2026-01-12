@@ -66,6 +66,7 @@ function run_fsm(fsm, met, df_meteo)
         met.Ua .= row["Ua"]
         met.Ps .= row["Ps"]
         met.Sf24h .= row["Sf24h"]
+        met.Tv .= row["Tv"]
     
         # set time 
         t = DateTime(row["year"], row["month"], row["day"], row["hour"])
