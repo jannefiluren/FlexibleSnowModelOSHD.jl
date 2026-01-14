@@ -274,7 +274,7 @@
   vv_ebal::Vector{Tf} = zeros(4)
   indx_ebal::Vector{Ti} = zeros(4)
 
-  # Canpopy - temporary arrays
+  # Canopy - temporary arrays
 
   intcpt::Array{Tf,2} = zeros(Nx, Ny)
   Sbveg::Array{Tf,2} = zeros(Nx, Ny)
