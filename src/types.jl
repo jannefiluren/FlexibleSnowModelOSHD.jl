@@ -73,7 +73,7 @@
   rchz::Tf = 0.2                                           # Ratio of roughness length to canopy height
   tcnc::Tf = 3600*240                                      # Canopy unloading time scale for cold snow (s)
   tcnm::Tf = 3600*48                                       # Canopy unloading time scale for melting snow (s)
-  pmultf_for::Tf = 0.5                                         # TODO add description what this is...
+  pmultf_for::Tf = 0.5                                     # TODO add description what this is... 
 
   # Defaults for snow parameters
 
@@ -94,8 +94,8 @@
   rhos_min::Tf = 50                                        # Minimum snow density (kg/m^3)
   rhos_max::Tf = 750                                       # Maximum snow density (kg/m^3)
   rcld::Tf = 300                                           # Maximum density for cold snow (kg/m^3)
-  rgr0::Tf = 5e-5                                          # Fresh snow grain radius (m)
-  rmlt::Tf = 500                                           # Maximum density for melting snow (kg/m^3)
+- rgr0::Tf = 5e-5                                          # Fresh snow grain radius (m)
+- rmlt::Tf = 500                                           # Maximum density for melting snow (kg/m^3)
   Salb::Tf = 10                                            # Albedo decay constant (kg/m^2)
   snda::Tf = 2.8e-6                                        # Thermal metamorphism parameter (1/s)
   Talb::Tf = -2                                            # Albedo decay temperature threshold (C)
@@ -271,6 +271,7 @@
   Melt::Array{Tf,2} = zeros(Nx,Ny)
   Rnet::Array{Tf,2} = zeros(Nx,Ny)
   Rsrf::Array{Tf,2} = zeros(Nx,Ny)
+  Icemlt::Array{Tf,2} = zeros(Nx,Ny)                              # Ice melt rate (kg/m^2/s)
   Ssub::Tf = zero(Tf)
 
   # Ebalfor - temporary arrays
