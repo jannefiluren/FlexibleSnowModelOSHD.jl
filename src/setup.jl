@@ -52,10 +52,13 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
     fsm.rhof = fsm.rho0
   end
 
-  # Initialize surface properties for non-default tiles
+  # Initialize surface properties for glacier tile or grid cells 
   if (fsm.TILE == "glacier")
-    fsm.alb0[:, :] .= Tf(0.3)
-    fsm.z0sf[:, :] .= Tf(0.04)
+    fsm.alb0 .= fsm.albi
+    fsm.z0sf .= fsm.z0i
+  else
+    fsm.alb0[fsm.landcover .== Ti(2)] .= fsm.albi
+    fsm.z0sf[fsm.landcover .== Ti(2)] .= fsm.z0i
   end
 
   # Derived soil parameters
@@ -84,11 +87,16 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
   fsm.dem .= Tf.(landuse["elevation"]["data"])
   fsm.prec_multi .= landuse["prec_multi"]["data"]   # TODO hack float64
 
-  # Cap surface temperatures for glacier 
+  # Cap surface and soil temperatures for glacier 
   if (fsm.TILE == "glacier")
     fsm.Tsrf .= min.(fsm.Tsrf, Tm)
     fsm.Tsoil .= min.(fsm.Tsoil, Tm)
-  end
+  else 
+    fsm.Tsrf[fsm.landcover .== Ti(2)] .= min.(fsm.Tsrf[fsm.landcover .== Ti(2)], Tm)
+    for k = 1:fsm.Nsoil
+      fsm.Tsoilf[k, fsm.landcover .== Ti(2)] .= min.(fsm.Tsoil[k, fsm.landcover .== Ti(2)], Tm)  # TODO check if this really works
+    end 
+  end  
 
   # Model tile fractions 
   if (fsm.TILE == "open")
@@ -147,10 +155,12 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
     fsm.adm = Tf(100)
     fsm.adc[:, :] .= Tf(1000)
     fsm.afs[:, :] .= fsm.asmx
-    if (fsm.TILE == "glacier" || ((fsm.SNTRAN == 1 || fsm.SNSLID == 1) && fsm.glacierfrac(i, j) > eps(Tf)))
-      fsm.z0_snow[:, :] .= Tf(0.0009)
+
+    if (fsm.TILE == "glacier") 
+      fsm.z0_snow .= fsm.z0gsn
     else
-      fsm.z0_snow[:, :] .= fsm.z0sn
+      fsm.z0_snow[fsm.landcover .== Ti(1)] .= fsm.z0sn
+      fsm.z0_snow[fsm.landcover .== Ti(2)] .= fsm.z0gsn
     end
 
   else
@@ -161,29 +171,19 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
     fsm.adc .= Tf(6000) .+ (Tf(2300) .- fsm.dem) ./ (Tf(2300) .- Tf(1500)) .* (Tf(3000) .- Tf(6000))
     fsm.adc[fsm.dem .>= Tf(2300)] .= Tf(6000)
     fsm.adc[fsm.dem .<= Tf(1500)] .= Tf(3000)
+    
+    # Constant fresh snow albedo 
+    fsm.afs .= fsm.asmx
 
-    for j = 1:fsm.Ny
-      for i = 1:fsm.Nx
-
-        # Fresh snow albedo is now constant (previously elevation-dependent)
-        fsm.afs[i, j] = fsm.asmx
-
-        # Elevation-dependent tuning of snow roughness length
-        if (fsm.TILE == "glacier" || ((fsm.SNTRAN == 1 || fsm.SNSLID == 1) && fsm.glacierfrac[i, j] > eps(Tf)))
-          fsm.z0_snow[i, j] = Tf(0.0009)
-        elseif (fsm.TILE == "forest")
-          fsm.z0_snow[i, j] = fsm.z0sn
-        else
-          if (fsm.dem[i, j] >= Tf(2300))
-            fsm.z0_snow[i, j] = Tf(0.01)
-          elseif (fsm.dem[i, j] >= Tf(1500))
-            fsm.z0_snow[i, j] = Tf(0.2) + (fsm.dem[i, j] - Tf(1500)) / (Tf(2300) - Tf(1500)) * (Tf(0.01) - Tf(0.2))
-          else
-            fsm.z0_snow[i, j] = Tf(0.2)
-          end
-        end
-
-      end
+    if (fsm.TILE == "glacier")
+      fsm.z0_snow .= fsm.z0gsn
+    elseif (fsm.TILE == "forest")
+      fsm.z0_snow .= fsm.z0sn
+    else
+      fsm.z0_snow[fsm.landcover .== Ti(1)] .= Tf(0.2)
+      fsm.z0_snow[fsm.landcover .== Ti(1) & fsm.dem .>= Tf(1500)] .= Tf(0.2) + (fsm.dem[fsm.landcover .== Ti(1) & fsm.dem .>= Tf(1500)]  - Tf(1500)) / (Tf(2300) - Tf(1500)) * (Tf(0.01) - Tf(0.2))
+      fsm.z0_snow[fsm.landcover .== Ti(1) & fsm.dem .>= Tf(2300)] .= Tf(0.01)
+      fsm.z0_snow[fsm.landcover .== Ti(2)] .= fsm.z0gsn
     end
 
   end

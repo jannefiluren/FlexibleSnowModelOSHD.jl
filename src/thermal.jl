@@ -18,7 +18,7 @@ function thermal!(fsm::FSM{Tf, Ti}) where {Tf<:Real, Ti<:Integer}
 
   @unpack Ds, Nsnow, fsnow, Sice, Sliq, theta, Tsnow, Tsoil, Tveg = fsm
 
-  @unpack tilefrac, glacierfrac, tthresh = fsm
+  @unpack tilefrac, tthresh, landcover = fsm
 
   @unpack CONDCT, DENSTY, TILE, SNTRAN, SNSLID = fsm
 
@@ -58,7 +58,7 @@ function thermal!(fsm::FSM{Tf, Ti}) where {Tf<:Real, Ti<:Integer}
 
         for k = 1:Nsoil
 
-          if (TILE == "glacier" || ((SNTRAN == 1 || SNSLID == 1) && glacierfrac[i,j] > eps(Tf))) # Glacier soil properties
+          if (TILE == "glacier" || landcover[i,j] == Ti(2)) # Glacier soil properties
 
             # Note that hcap_ice is specific heat capacity and has to be converted to volumetric heat capacity
             csoil[k, i, j] = hcap_ice * rho_ice * Dzsoil[k]
