@@ -94,7 +94,7 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
   else 
     fsm.Tsrf[fsm.landcover .== Ti(2)] .= min.(fsm.Tsrf[fsm.landcover .== Ti(2)], Tm)
     for k = 1:fsm.Nsoil
-      fsm.Tsoilf[k, fsm.landcover .== Ti(2)] .= min.(fsm.Tsoil[k, fsm.landcover .== Ti(2)], Tm)  # TODO check if this really works
+      fsm.Tsoil[k, fsm.landcover .== Ti(2)] .= min.(fsm.Tsoil[k, fsm.landcover .== Ti(2)], Tm)  # TODO check if this really works
     end 
   end  
 
