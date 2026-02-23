@@ -94,8 +94,8 @@
   rhos_min::Tf = 50                                        # Minimum snow density (kg/m^3)
   rhos_max::Tf = 750                                       # Maximum snow density (kg/m^3)
   rcld::Tf = 300                                           # Maximum density for cold snow (kg/m^3)
-- rgr0::Tf = 5e-5                                          # Fresh snow grain radius (m)
-- rmlt::Tf = 500                                           # Maximum density for melting snow (kg/m^3)
+  rgr0::Tf = 5e-5                                          # Fresh snow grain radius (m)
+  rmlt::Tf = 500                                           # Maximum density for melting snow (kg/m^3)
   Salb::Tf = 10                                            # Albedo decay constant (kg/m^2)
   snda::Tf = 2.8e-6                                        # Thermal metamorphism parameter (1/s)
   Talb::Tf = -2                                            # Albedo decay temperature threshold (C)
@@ -143,7 +143,7 @@
   # Grid cell/ pixel properties 
 
   tilefrac::Array{Tf,2} = ones(Nx,Ny)                      # Tile fraction  
-  landcover::Array{Ti,2} = ones(Nx,Ny)                     # Land cover type grid. 1 = open, 2 = glacier, 3 = forest, 0 = exclude
+  landcover::Array{Ti,2} = ones(Ti,Nx,Ny)                   # Land cover type grid. 1 = open, 2 = glacier, 3 = forest, 0 = exclude
     
   # Surface parameters
   

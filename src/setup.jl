@@ -181,8 +181,8 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
       fsm.z0_snow .= fsm.z0sn
     else
       fsm.z0_snow[fsm.landcover .== Ti(1)] .= Tf(0.2)
-      fsm.z0_snow[fsm.landcover .== Ti(1) & fsm.dem .>= Tf(1500)] .= Tf(0.2) + (fsm.dem[fsm.landcover .== Ti(1) & fsm.dem .>= Tf(1500)]  - Tf(1500)) / (Tf(2300) - Tf(1500)) * (Tf(0.01) - Tf(0.2))
-      fsm.z0_snow[fsm.landcover .== Ti(1) & fsm.dem .>= Tf(2300)] .= Tf(0.01)
+      fsm.z0_snow[fsm.landcover .== Ti(1) .&& fsm.dem .>= Tf(1500)] .= Tf(0.2) .+ (fsm.dem[fsm.landcover .== Ti(1) .&& fsm.dem .>= Tf(1500)]  .- Tf(1500)) ./ (Tf(2300) .- Tf(1500)) .* (Tf(0.01) .- Tf(0.2))
+      fsm.z0_snow[fsm.landcover .== Ti(1) .&& fsm.dem .>= Tf(2300)] .= Tf(0.01)
       fsm.z0_snow[fsm.landcover .== Ti(2)] .= fsm.z0gsn
     end
 
