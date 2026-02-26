@@ -1,10 +1,9 @@
-cd(@__DIR__)
-
 using Dates
 using CSV
 using DataFrames
 using FSMOSHD
 
+const path = dirname(@__FILE__)
 
 function setup_example()
 
@@ -21,8 +20,8 @@ function setup_example()
     lus["forest"] = Dict("data" => [1;;]) # Forest cover fraction
     lus["fveg"] = Dict("data" => [0.6;;]) # Canopy cover fraction 
     lus["fves"] = Dict("data" => [0.6;;]) # Stand-scale canopy cover fraction
-    lus["hcan"] = Dict("data" => [20;;]) # Canopy height (m)
-    lus["lai"] = Dict("data" => [2.5;;]) # Leaf area index
+    lus["hcan"] = Dict("data" => [20;;])  # Canopy height (m)
+    lus["lai"] = Dict("data" => [2.5;;])  # Leaf area index
     lus["vfhp"] = Dict("data" => [0.5;;]) # Hemispherical sky-view fraction including canopy
 
     # define custom settings
@@ -35,7 +34,7 @@ function setup_example()
     met = MET{Float32,Int32}()
     
     # read meteo file
-    df_meteo = CSV.read("../data/input_SLF_5WJ.txt", DataFrame)
+    df_meteo = CSV.read(joinpath(path, "../data/input_SLF_5WJ.txt"), DataFrame)
 
     return fsm, met, df_meteo
 
@@ -91,4 +90,4 @@ fsm, met, df_meteo = setup_example()
 
 df_results = run_fsm(fsm, met, df_meteo)
 
-CSV.write("../data/output_SLF_5WJ_forest.txt", df_results)
+CSV.write(joinpath(path, "../data/output_SLF_5WJ_forest.txt"), df_results)

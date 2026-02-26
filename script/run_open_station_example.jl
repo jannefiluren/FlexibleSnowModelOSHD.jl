@@ -1,10 +1,9 @@
-cd(@__DIR__)
-
 using Dates
 using CSV
 using DataFrames
 using FSMOSHD
 
+const path = dirname(@__FILE__)
 
 function setup_example()
 
@@ -27,7 +26,7 @@ function setup_example()
     met = MET{Float32,Int32}()
     
     # read meteo file
-    df_meteo = CSV.read("../data/input_SLF_5WJ.txt", DataFrame)
+    df_meteo = CSV.read(joinpath(path, "../data/input_SLF_5WJ.txt"), DataFrame)
 
     return fsm, met, df_meteo
 
@@ -82,4 +81,4 @@ fsm, met, df_meteo = setup_example()
 
 df_results = run_fsm(fsm, met, df_meteo)
 
-CSV.write("../data/output_SLF_5WJ.txt", df_results)
+CSV.write(joinpath(path, "../data/output_SLF_5WJ_open.txt"), df_results)
