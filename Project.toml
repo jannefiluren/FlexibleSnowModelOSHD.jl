@@ -1,7 +1,8 @@
 name = "FSMOSHD"
 uuid = "5919be0d-1d81-4a5b-ac5f-ee56392bdbf1"
-authors = ["jannefiluren <magnusson@slf.ch>"]
 version = "0.1.0"
+license = "MIT"
+authors = ["jannefiluren <jan.magnusson@slf.ch>"]
 
 [deps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
@@ -16,9 +17,9 @@ Serialization = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
-CSV = "0.10.15"
-DataFrames = "1.8.0"
-Infiltrator = "1.9.3"
-Libdl = "1.11.0"
-NCDatasets = "0.14.10"
-Serialization = "1.11.0"
+julia = "1.10"
+CSV = "0.10"
+DataFrames = "1"
+Infiltrator = "1"
+NCDatasets = "0.14"
+Parameters = "0.12"
