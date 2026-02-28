@@ -43,7 +43,20 @@ The model is designed for operational snow forecasting applications and supports
 
 ## Examples
 
-See the `script/` directory for complete simulation workflows.
+A simulation representing an open site can be run from the terminal by:
+
+```julia
+include("script\\run_open_station_example.jl")
+```
+
+while a corresponding simulation for a forested site can be run by:
+
+```julia
+include("script\\run_forest_station_example.jl")
+```
+
+The results from the simulations are stored in the `data/` folder.
+
 
 ## Package Structure
 
@@ -60,6 +73,8 @@ FSMOSHD.jl/
 │   ├── thermal.jl         # Thermal properties
 │   └── ...                # Additional physics modules
 ├── script/                # Simulation scripts
-└── test/                  # Unit tests and regression tests
+├── test/                  # Unit tests and regression tests
+├── deps/                  # Fortran code dependencies (SnowTrand3D and SnowSlide)
+└── data/                  # Example model input data
 ```
 
