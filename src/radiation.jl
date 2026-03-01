@@ -24,7 +24,7 @@ function radiation!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti
 
   @unpack ALBEDO, OSHDTN, RADSBG, CANMOD, ALRADT, ALPERT = fsm
 
-  @unpack alb, asrf_out, Sdirt, Sdift, SWveg, SWsrf, SWsci, LWt, SWtopo_out = fsm
+  @unpack alb, asrf_out, SWveg, SWsrf, SWsci, LWt = fsm
 
   @unpack adm, adc, afs = fsm
 
@@ -154,32 +154,26 @@ function radiation!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf<:Real, Ti
         # Surface albedo is stored in asurf_out to write in results
         asrf_out[i, j] = alb[i, j]
 
-        if (RADSBG == 0)
-          SWtopo_out[i,j] = alb[i, j] * (Sdir[i, j] + Sdif[i, j])
-          Sdirt[i, j] = Sdir[i, j]
-          Sdift[i, j] = Sdif[i, j]
-        end
-
-        # Solar radiation trasmission 
+        # Solar radiation trasmission
         if (CANMOD == 0)
           SWveg[i, j] = Tf(0)
           SWsrf[i, j] = (Tf(1) - alb[i, j]) * (Sdir[i, j] + Sdif[i, j])
-          SWsci[i, j] = Sdift[i, j] + Sdir[i, j]
+          SWsci[i, j] = Sdif[i, j] + Sdir[i, j]
         end
 
         if (CANMOD == 1)
-          Sdif_aux = fsky[i, j] / fsky_terr[i, j] * Sdift[i, j]
+          Sdif_aux = fsky[i, j] / fsky_terr[i, j] * Sdif[i, j]
           tdif = trcn[i, j]
           tdir = Tv[i, j]
 
           # Effective albedo and net radiation
           alb[i, j] = acan + (Tf(1) - acan) * asrf * tdif^Tf(2)
-          if (Sdif_aux + Sdirt[i, j] > eps(Tf))
-            alb[i, j] = (acan * (Sdif_aux + tdir * Sdirt[i, j]) + asrf * tdif * (tdif * Sdif_aux + tdir * Sdirt[i, j])) / (Sdif_aux + Sdirt[i, j])
+          if (Sdif_aux + Sdir[i, j] > eps(Tf))
+            alb[i, j] = (acan * (Sdif_aux + tdir * Sdir[i, j]) + asrf * tdif * (tdif * Sdif_aux + tdir * Sdir[i, j])) / (Sdif_aux + Sdir[i, j])
           end
-          SWsrf[i, j] = (Tf(1) - asrf) * (tdif * Sdif_aux + tdir * Sdirt[i, j])
-          SWveg[i, j] = ((Tf(1) - tdif) * (Tf(1) - aveg) + tdif * asrf * (Tf(1) - tdif)) * Sdif_aux + (tdir * fveg[i, j] * (Tf(1) - aveg) + tdir * asrf * (Tf(1) - tdif)) * Sdirt[i, j]   # local SWR absorption by vegetation correlates with local tdir  
-          SWsci[i, j] = tdif * Sdif_aux + tdir * Sdirt[i, j]
+          SWsrf[i, j] = (Tf(1) - asrf) * (tdif * Sdif_aux + tdir * Sdir[i, j])
+          SWveg[i, j] = ((Tf(1) - tdif) * (Tf(1) - aveg) + tdif * asrf * (Tf(1) - tdif)) * Sdif_aux + (tdir * fveg[i, j] * (Tf(1) - aveg) + tdir * asrf * (Tf(1) - tdif)) * Sdir[i, j]   # local SWR absorption by vegetation correlates with local tdir
+          SWsci[i, j] = tdif * Sdif_aux + tdir * Sdir[i, j]
         end
 
         # Thermal emissions from surroundings 

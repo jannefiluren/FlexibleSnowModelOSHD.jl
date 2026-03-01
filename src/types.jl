@@ -219,13 +219,10 @@
 
   alb::Array{Tf,2} = zeros(Nx,Ny)
   asrf_out::Array{Tf,2} = zeros(Nx,Ny)
-  Sdirt::Array{Tf,2} = zeros(Nx,Ny)
-  Sdift::Array{Tf,2} = zeros(Nx,Ny)
   SWveg::Array{Tf,2} = zeros(Nx,Ny)
   SWsrf::Array{Tf,2} = zeros(Nx,Ny)
   SWsci::Array{Tf,2} = zeros(Nx,Ny)
   LWt::Array{Tf,2} = zeros(Nx,Ny)
-  SWtopo_out::Array{Tf,2} = zeros(Nx,Ny)
 
   # Thermal - temporary arrays
 
@@ -250,7 +247,6 @@
 
   # Ebalsrf - temporary arrays
 
-  dTs::Array{Tf, 2} = zeros(Nx,Ny)
   Esrf::Array{Tf,2} = zeros(Nx,Ny)
   Eveg::Array{Tf,2} = zeros(Nx,Ny)
   G::Array{Tf,2} = zeros(Nx,Ny)
@@ -288,7 +284,6 @@
   Sbsrf::Array{Tf,2} = zeros(Nx, Ny)
   Roff_bare::Array{Tf, 2} = zeros(Nx, Ny)
   Roff_snow::Array{Tf, 2} = zeros(Nx, Ny)
-  fsnow_thres::Array{Tf, 2} = zeros(Nx, Ny)
   snowdepth0::Array{Tf, 2} = zeros(Nx, Ny)
   Sice0::Array{Tf, 2} = zeros(Nx, Ny)
 
@@ -374,7 +369,6 @@ end
   Udir::Array{Tf, 2} = zeros(Nx, Ny)                       # Wind direction (degrees, clockwise from N)
   Ps::Array{Tf, 2} = zeros(Nx, Ny)                         # Surface pressure (Pa)
   Sf24h::Array{Tf, 2} = zeros(Nx, Ny)                      # Snowfall 24hr (kg/m^2)
-  Tc::Array{Tf, 2} = zeros(Nx, Ny)                         # Canopy temperature (K)
   es::Array{Tf, 2} = zeros(Nx, Ny)                         # Saturation vapour pressure (Pa)
   Qa::Array{Tf, 2} = zeros(Nx, Ny)                         # Specific humidity (kg/kg)
   Tv::Array{Tf, 2} = ones(Nx, Ny)                          # Time-varying transmissivity for direct SWR (-)
