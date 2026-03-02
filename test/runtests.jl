@@ -1,5 +1,5 @@
 using Test
-using FSMOSHD
+using FlexibleSnowModelOSHD
 
 @testset "Soil Energy Balance" begin
     include("test_soil_energy_balance.jl")

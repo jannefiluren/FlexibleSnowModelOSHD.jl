@@ -1,4 +1,4 @@
-module FSMOSHD
+module FlexibleSnowModelOSHD
 
 using Parameters
 using Dates

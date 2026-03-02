@@ -1,6 +1,6 @@
 # Regression tests comparing current simulation results against reference data
 
-using FSMOSHD
+using FlexibleSnowModelOSHD
 using Test
 using NCDatasets
 using Dates
@@ -13,7 +13,7 @@ function load_domain_data()
 
     # Read domain data
     landuse = Dict()
-    NCDataset(joinpath(pkgdir(FSMOSHD), "data/domain_data.nc")) do ds
+    NCDataset(joinpath(pkgdir(FlexibleSnowModelOSHD), "data/domain_data.nc")) do ds
         for variable in variables
             landuse[variable] = Dict(
                 "data" => ds[variable][:, :]
@@ -45,7 +45,7 @@ function interpolate_meteo(Tf, landuse)
         ("Ps", 0.0, 150000.0),
     ]
 
-    times, data_meteo = NCDataset(joinpath(pkgdir(FSMOSHD), "data/meteo_data.nc")) do ds
+    times, data_meteo = NCDataset(joinpath(pkgdir(FlexibleSnowModelOSHD), "data/meteo_data.nc")) do ds
         z_stat = ds["elevation"][:]
         dz = landuse["elevation"]["data"] .- z_stat[1]
         times_local = ds["time"][:]

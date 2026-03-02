@@ -1,6 +1,6 @@
 # Idealized energy balance tests for the soil thermal routine
 
-using FSMOSHD
+using FlexibleSnowModelOSHD
 using Test
 
 """
