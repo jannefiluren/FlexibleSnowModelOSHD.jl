@@ -73,7 +73,7 @@
   rchz::Tf = 0.2                                           # Ratio of roughness length to canopy height
   tcnc::Tf = 3600*240                                      # Canopy unloading time scale for cold snow (s)
   tcnm::Tf = 3600*48                                       # Canopy unloading time scale for melting snow (s)
-  pmultf_for::Tf = 0.5                                         # TODO add description what this is...
+  pmultf_for::Tf = 0.5                                     # TODO add description what this is... 
 
   # Defaults for snow parameters
 
@@ -104,6 +104,7 @@
   trho::Tf = 3600*200                                      # Snow compaction time scale (s)
   Wirr::Tf = 0.03                                          # Irreducible liquid water content of snow
   z0sn::Tf = 0.002                                         # Snow roughness length (m)
+  z0gsn::Tf = 0.0009                                       # Roughness length of glacier snow (m)
   Sfmin::Tf = 10                                           # Minimum 24h snowfall to refresh albedo (kg/m^2)
 
   # Snow layering parameters
@@ -135,8 +136,17 @@
   zgr::Tf = 0                                              # Roughness length adjustment range depending on vegetation fraction
   khcf::Tf = 3                                             # Diffusivity adjustment for canopy effects (Finnigan 2000)
 
-  # Surface parameters
+  # Defaults for bare ice surface properties
+  albi::Tf = 0.3                                           # Ice albedo (snow free)
+  z0i::Tf = 0.04                                           # Ice roughness length (m) 
 
+  # Grid cell/ pixel properties 
+
+  tilefrac::Array{Tf,2} = ones(Nx,Ny)                      # Tile fraction  
+  landcover::Array{Ti,2} = ones(Ti,Nx,Ny)                   # Land cover type grid. 1 = open, 2 = glacier, 3 = forest, 0 = exclude
+    
+  # Surface parameters
+  
   adm::Tf = -999999                                        # TODO defaults? Melting snow albedo decay time (h)
   adc::Array{Tf,2} = -999999*ones(Nx,Ny)                   # TODO defaults? Cold snow albedo decay time (h)
   afs::Array{Tf,2} = -999999*ones(Nx,Ny)                   # TODO defaults? Maximum albedo for fresh snow
@@ -172,8 +182,6 @@
   lat::Array{Tf, 2} = -999999*ones(Nx,Ny)                  # TODO defaults? Latitude of each grid cell (center?)
   lon::Array{Tf, 2} = -999999*ones(Nx,Ny)                  # TODO defaults? Longitude of each grid cell (center?)
   dem::Array{Tf, 2} = -999999*ones(Nx,Ny)                  # TODO defaults? Grid elevation (m)
-  tilefrac::Array{Tf,2} = -999999*ones(Nx,Ny)              # TODO defaults? Tile fraction
-  glacierfrac::Array{Tf,2} = -999999*ones(Nx,Ny)           # TODO defaults? Glacier flag
   vegsnowd_xy::Array{Tf,2} = -999999*ones(Nx,Ny)           # TODO defaults? Vegetation snow holding capacity (m)
 
   prec_multi::Array{Float64,2} = -999999*ones(Nx,Ny)       # TODO defaults? Precipitation multiplier (-)    TODO HACK FLOAT64
@@ -263,6 +271,7 @@
   Melt::Array{Tf,2} = zeros(Nx,Ny)
   Rnet::Array{Tf,2} = zeros(Nx,Ny)
   Rsrf::Array{Tf,2} = zeros(Nx,Ny)
+  Icemlt::Array{Tf,2} = zeros(Nx,Ny)                              # Ice melt rate (kg/m^2/s)
   Ssub::Tf = zero(Tf)
 
   # Ebalfor - temporary arrays

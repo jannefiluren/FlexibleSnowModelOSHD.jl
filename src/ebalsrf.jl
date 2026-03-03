@@ -23,13 +23,13 @@ function ebalsrf!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Int
 
   @unpack Sice, Tcan, Tsrf, Tveg = fsm
 
-  @unpack fveg, tilefrac, glacierfrac = fsm
+  @unpack fveg, tilefrac, landcover = fsm
 
   @unpack SWsrf = fsm
 
   @unpack Ds1, Ts1, ks1 = fsm
 
-  @unpack dTs, Esrf, Eveg, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Rnet, Rsrf = fsm
+  @unpack dTs, Esrf, Eveg, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Icemlt, Rnet, Rsrf = fsm
 
   @unpack KH, KWg, KHa, KHv, KWv, SWveg = fsm
 
@@ -48,7 +48,7 @@ function ebalsrf!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Int
           # Saturation humidity and density of air
           Qs = qsat(Ps[i, j], Tsrf[i, j])
           Lh = Lv
-          if (Tsrf[i, j] < Tm || Sice[1, i, j] > eps(Tf))
+          if (Tsrf[i, j] < Tm || Sice[1, i, j] > eps(Tf)) # TODO maybe need to add case with glacier tile 
             Lh = Ls
           end
           D = Lh * Qs / (Rwat * Tsrf[i, j]^Tf(2))
@@ -60,6 +60,7 @@ function ebalsrf!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Int
           H[i, j] = cp * rho * KH[i, j] * (Tsrf[i, j] - Ta[i, j])
           LE[i, j] = Lh * Esrf[i, j]
           Melt[i, j] = Tf(0)
+          Icemlt[i, j] = Tf(0)
           Rnet[i, j] = SWsrf[i, j] + trcn[i, j] * LW[i, j] - sb * Tsrf[i, j]^Tf(4) + (Tf(1) - trcn[i, j]) * sb * Tveg[i, j]^Tf(4)
 
           # Surface energy balance increments without melt
@@ -94,12 +95,8 @@ function ebalsrf!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Int
             end
           end
 
-          # In case of glacier without snow, cap Tsrf to 0°C
-          # This adjustment:
-          #     - assumes the glacier is an infinite heat reservoir.
-          #     - does not conserve energy.
-          # The excess energy would correspond to glacier melting, which we don't track.
-          if (TILE == "glacier" || ((SNTRAN == 1 || SNSLID == 1) && glacierfrac[i,j] > eps(Tf)))
+          # Surface melt / temperature capping on glacier 
+          if (TILE == "glacier" || landcover[i,j] == Ti(2))
             if (Tsrf[i, j] + dTs[i, j] > Tm && Sice[1, i, j] <= eps(Tf))
               Qs = qsat(Ps[i, j], Tm)
               Esrf[i, j] = rho * KWg[i, j] * (Qs - Qa[i, j])
@@ -107,6 +104,8 @@ function ebalsrf!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Int
               H[i, j] = cp * rho * KH[i, j] * (Tm - Ta[i, j])
               LE[i, j] = Ls * Esrf[i, j]
               Rnet[i, j] = SWsrf[i, j] + trcn[i, j] * LW[i, j] - sb * Tm^Tf(4) + (Tf(1) - trcn[i, j]) * sb * Tveg[i, j]^Tf(4)
+              Icemlt[i, j] = (Rnet[i, j] - H[i, j] - LE[i, j] - G[i, j]) / Lf
+              Icemlt[i, j] = max(Icemlt[i, j], Tf(0.0))
               dE = Tf(0.0)
               dG = Tf(0.0)
               dH = Tf(0.0)
@@ -154,7 +153,6 @@ function ebalsrf!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}) where {Tf<:Real, Ti<:Int
             end
           end
         end
-
       end
 
     end
