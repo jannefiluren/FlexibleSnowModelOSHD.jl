@@ -3,7 +3,7 @@ cd(@__DIR__)
 using Dates
 using CSV
 using DataFrames
-using FSMOSHD
+using FlexibleSnowModelOSHD
 
 
 function setup_example()

@@ -1,10 +1,10 @@
-# FSMOSHD.jl
+# FlexibleSnowModelOSHD.jl
 
-A Julia implementation of the **Factorial Snow Model (FSM)** for the **Operational Snow Hydrological Service (OSHD)** at SLF. This package provides a comprehensive snow physics model for simulating snow accumulation and melt processes in complex terrain.
+A Julia implementation of the **Flexible Snow Model (FSM)** for the **Operational Snow Hydrological Service (OSHD)** at SLF. This package provides a comprehensive snow physics model for simulating snow accumulation and melt processes in complex terrain.
 
 ## Overview
 
-FSMOSHD is a multi-layer snow model that simulates:
+FlexibleSnowModelOSHD is a multi-layer snow model that simulates:
 
 - **Snow accumulation and ablation** with detailed physics-based processes
 - **Multi-layer snow structure** with dynamic layer evolution 
@@ -25,8 +25,8 @@ The model is designed for operational snow forecasting applications and supports
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/jannefiluren/FSMOSHD
-   cd FSMOSHD
+   git clone https://github.com/jannefiluren/FlexibleSnowModelOSHD
+   cd FlexibleSnowModelOSHD
    ```
 
 2. **Activate the package environment:**
@@ -38,7 +38,7 @@ The model is designed for operational snow forecasting applications and supports
 
 3. **Load the package:**
    ```julia
-   using FSMOSHD
+   using FlexibleSnowModelOSHD
    ```
 
 ## Examples
@@ -48,18 +48,18 @@ See the `script/` directory for complete simulation workflows.
 ## Package Structure
 
 ```
-FSMOSHD.jl/
-├── src/                   # Source code
-│   ├── FSMOSHD.jl         # Main module
-│   ├── types.jl           # Model data structures  
-│   ├── parameters.jl      # Physical constants
-│   ├── setup.jl           # Model initialization
-│   ├── step.jl            # Main physics time step
-│   ├── snow.jl            # Snow physics processes
-│   ├── radiation.jl       # Radiation calculations
-│   ├── thermal.jl         # Thermal properties
-│   └── ...                # Additional physics modules
-├── script/                # Simulation scripts
-└── test/                  # Unit tests and regression tests
+FlexibleSnowModelOSHD.jl/
+├── src/                            # Source code
+│   ├── FlexibleSnowModelOSHD.jl    # Main module
+│   ├── types.jl                    # Model data structures  
+│   ├── parameters.jl               # Physical constants
+│   ├── setup.jl                    # Model initialization
+│   ├── step.jl                     # Main physics time step
+│   ├── snow.jl                     # Snow physics processes
+│   ├── radiation.jl                # Radiation calculations
+│   ├── thermal.jl                  # Thermal properties
+│   └── ...                         # Additional physics modules
+├── script/                         # Simulation scripts
+└── test/                           # Unit tests and regression tests
 ```
 
