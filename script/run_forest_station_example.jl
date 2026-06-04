@@ -1,10 +1,9 @@
-cd(@__DIR__)
-
 using Dates
 using CSV
 using DataFrames
 using FlexibleSnowModelOSHD
 
+const path = dirname(@__FILE__)
 
 function setup_example()
 
@@ -21,12 +20,12 @@ function setup_example()
     lus["forest"] = Dict("data" => [1;;]) # Forest cover fraction
     lus["fveg"] = Dict("data" => [0.6;;]) # Canopy cover fraction 
     lus["fves"] = Dict("data" => [0.6;;]) # Stand-scale canopy cover fraction
-    lus["hcan"] = Dict("data" => [20;;]) # Canopy height (m)
-    lus["lai"] = Dict("data" => [2.5;;]) # Leaf area index
+    lus["hcan"] = Dict("data" => [20;;])  # Canopy height (m)
+    lus["lai"] = Dict("data" => [2.5;;])  # Leaf area index
     lus["vfhp"] = Dict("data" => [0.5;;]) # Hemispherical sky-view fraction including canopy
 
     # define custom settings
-    settings = Dict("tile" => "forest", "config" => Dict("CANMOD" => 1,"EXCHNG" => 2, "ZOFFST" => 1), "params" => Dict("wind_scaling" => 0.7))
+    settings = Dict("tile" => "forest", "config" => Dict("CANMOD" => 1,"EXCHNG" => 2, "ZOFFST" => 1))
     
     # create fsm struct
     fsm = setup(Float32, Int32, lus, 1, 1, settings)
@@ -35,7 +34,7 @@ function setup_example()
     met = MET{Float32,Int32}()
     
     # read meteo file
-    df_meteo = CSV.read("../data/input_SLF_5WJ.txt", DataFrame)
+    df_meteo = CSV.read(joinpath(path, "../data/input_SLF_5WJ.txt"), DataFrame)
 
     return fsm, met, df_meteo
 
@@ -51,16 +50,12 @@ function run_fsm(fsm, met, df_meteo)
     for (i, row) in zip(1:nrow(df_meteo), eachrow(df_meteo))
     
         # assign input
-        met.year .= row["year"]
-        met.month .= row["month"]
-        met.day .= row["day"]
-        met.hour .= row["hour"]
         met.Sdir .= row["Sdir"]
         met.Sdif .= row["Sdif"]
         met.Sdird .= row["Sdir"]
         met.LW .= row["LW"]
-        met.Sf .= row["Sf"]
-        met.Rf .= row["Rf"]
+        met.Sf .= row["Sf"] / fsm.dt  # Convert accumulation (kg/m^2) to rate (kg/m^2/s)
+        met.Rf .= row["Rf"] / fsm.dt  # Convert accumulation (kg/m^2) to rate (kg/m^2/s)
         met.Ta .= row["Ta"]
         met.RH .= row["RH"]
         met.Ua .= row["Ua"]
@@ -91,4 +86,4 @@ fsm, met, df_meteo = setup_example()
 
 df_results = run_fsm(fsm, met, df_meteo)
 
-CSV.write("../data/output_SLF_5WJ_forest.txt", df_results)
+describe(df_results)

@@ -1,10 +1,9 @@
-cd(@__DIR__)
-
 using Dates
 using CSV
 using DataFrames
 using FlexibleSnowModelOSHD
 
+const path = dirname(@__FILE__)
 
 function setup_example()
 
@@ -18,7 +17,7 @@ function setup_example()
     lus["prec_multi"] = Dict("data" => [1.0;;])
     
     # define custom settings
-    settings = Dict("tile" => "open", "params" => Dict("wind_scaling" => 0.7))
+    settings = Dict("tile" => "open")
     
     # create fsm struct
     fsm = setup(Float32, Int32, lus, 1, 1, settings)
@@ -27,7 +26,7 @@ function setup_example()
     met = MET{Float32,Int32}()
     
     # read meteo file
-    df_meteo = CSV.read("../data/input_SLF_5WJ.txt", DataFrame)
+    df_meteo = CSV.read(joinpath(path, "../data/input_SLF_5WJ.txt"), DataFrame)
 
     return fsm, met, df_meteo
 
@@ -43,16 +42,12 @@ function run_fsm(fsm, met, df_meteo)
     for (i, row) in zip(1:nrow(df_meteo), eachrow(df_meteo))
     
         # assign input
-        met.year .= row["year"]
-        met.month .= row["month"]
-        met.day .= row["day"]
-        met.hour .= row["hour"]
         met.Sdir .= row["Sdir"]
         met.Sdif .= row["Sdif"]
         met.Sdird .= row["Sdir"]
         met.LW .= row["LW"]
-        met.Sf .= row["Sf"]
-        met.Rf .= row["Rf"]
+        met.Sf .= row["Sf"] / fsm.dt  # Convert accumulation (kg/m^2) to rate (kg/m^2/s)
+        met.Rf .= row["Rf"] / fsm.dt  # Convert accumulation (kg/m^2) to rate (kg/m^2/s)
         met.Ta .= row["Ta"]
         met.RH .= row["RH"]
         met.Ua .= row["Ua"]
@@ -82,4 +77,4 @@ fsm, met, df_meteo = setup_example()
 
 df_results = run_fsm(fsm, met, df_meteo)
 
-CSV.write("../data/output_SLF_5WJ.txt", df_results)
+describe(df_results)
