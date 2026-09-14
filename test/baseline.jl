@@ -40,7 +40,7 @@ const TILE_SETTINGS = [
     (
         "forest", Dict(
             "tile" => "forest",
-            "physics" => Dict("canopy" => OneLayerCanopy, "snow_fraction" => TanhSnowFraction{Float32}(; hfsn = 0.3), "reference_height" => AboveCanopy),
+            "physics" => Dict("canopy" => OneLayerCanopy, "snow_fraction" => TanhSnowFraction{Float32}(; hfsn = 0.3)),
             "params" => Dict("z0_snow" => 0.01),
         ),
     ),
@@ -60,7 +60,6 @@ const SCHEME_MATRIX = Pair{String, Vector{Any}}[
     "compaction" => [AgeCompaction, OverburdenCompaction, CrocusCompaction],
     "hydrology" => [FreeDrainingHydrology, BucketHydrology, DensityBucketHydrology],
     "snow_fraction" => [SeasonalSnowFraction, HelbigSnowFraction, HelbigMaxSnowFraction, PointSnowFraction, TanhSnowFraction],
-    "reference_height" => [AboveGround, AboveCanopy],
     "new_snow_density" => [FixedFreshSnowDensity, ClimateFreshSnowDensity, ElevationFreshSnowDensity],
     "layering" => [OriginalLayering, DensityLayering],
 ]

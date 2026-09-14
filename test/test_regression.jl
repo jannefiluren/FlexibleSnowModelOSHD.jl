@@ -186,7 +186,7 @@ settings = [
     ),
     Dict(
         "tile" => "forest",
-        "physics" => Dict("canopy" => OneLayerCanopy, "snow_fraction" => TanhSnowFraction{Float32}(; hfsn = 0.3), "reference_height" => AboveCanopy),
+        "physics" => Dict("canopy" => OneLayerCanopy, "snow_fraction" => TanhSnowFraction{Float32}(; hfsn = 0.3)),
         "params" => Dict("z0_snow" => 0.01)
     ),
     Dict(

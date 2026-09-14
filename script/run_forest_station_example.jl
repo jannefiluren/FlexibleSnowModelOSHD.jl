@@ -25,7 +25,7 @@ function setup_example()
     lus["vfhp"] = Dict("data" => [0.5;;]) # Hemispherical sky-view fraction including canopy
 
     # define custom settings
-    settings = Dict("tile" => "forest", "physics" => Dict("reference_height" => AboveCanopy))
+    settings = Dict("tile" => "forest")
 
     # create fsm struct
     fsm = setup(Grid(Float32; Nx = 1, Ny = 1), lus, settings)

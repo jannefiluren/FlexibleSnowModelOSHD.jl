@@ -21,7 +21,7 @@ taken from `grid` (`eltype(grid)`, `grid.Nx`, `grid.Ny`).
 - `physics::Dict` (optional): scheme selection, mapping a physics name to a scheme type or
   instance, e.g. `Dict("snow_fraction" => TanhSnowFraction, "canopy" => OneLayerCanopy)`. Keys:
   `snow_albedo`, `canopy`, `substrate`, `conductivity`, `compaction`, `hydrology`,
-  `new_snow_density`, `layering`, `snow_fraction`, `reference_height`, `surface_layer`.
+  `new_snow_density`, `layering`, `snow_fraction`, `surface_layer`.
   Unspecified schemes use defaults; `canopy`/`surface_layer`/`substrate` default from `tile`.
 - `params::Dict` (optional): parameter overrides routed by field name to `Parameters` (scalars)
   or `Surface` (per-cell fields), e.g. `dt`, `z0_snow`. Scheme parameters are set at construction
@@ -50,7 +50,7 @@ setup(grid::Grid, landuse::Dict, settings::AbstractDict) = setup(CPU(), grid, la
 
 const PHYSICS_KEYS = (
     "snow_albedo", "canopy", "substrate", "conductivity", "compaction", "hydrology",
-    "new_snow_density", "layering", "snow_fraction", "reference_height", "surface_layer",
+    "new_snow_density", "layering", "snow_fraction", "surface_layer",
 )
 
 function setup(
@@ -94,7 +94,6 @@ function setup(
         new_snow_density   = instantiate(get(physics, "new_snow_density", ElevationFreshSnowDensity), grid),
         layering           = instantiate(get(physics, "layering", OriginalLayering), grid),
         snow_fraction      = instantiate(get(physics, "snow_fraction", PointSnowFraction), grid),
-        reference_height   = instantiate(get(physics, "reference_height", AboveGround), grid),
         surface_layer      = instantiate(get(physics, "surface_layer", default_surface_layer), grid),
     )
     # runic: on
@@ -155,17 +154,33 @@ function setup(
     sf.xi .= Tf.(landuse["xi"]["data"])
     sf.Ld .= Tf.(landuse["Ld"]["data"])
 
-    # Canopy properties
+    # Load canopy properties
     if tile == "forest"
-
         sf.fveg .= Tf.(landuse["fveg"]["data"])
         sf.hcan .= Tf.(landuse["hcan"]["data"])
         sf.lai .= Tf.(landuse["lai"]["data"])
         sf.vfhp .= Tf.(landuse["vfhp"]["data"])
         sf.fves .= Tf.(landuse["fves"]["data"])
+    end
 
+    # Validate forest inputs on active cells
+    if tile == "forest"
+        active = sf.tilefrac .>= fsm.params.tthresh
+        for (name, field, lo, hi) in (
+                ("fveg", sf.fveg, Tf(0.02), Tf(0.99)),
+                ("fves", sf.fves, Tf(0.02), Tf(0.99)),
+                ("vfhp", sf.vfhp, Tf(0.02), Tf(0.99)),
+                ("hcan", sf.hcan, Tf(1.0), Tf(100.0)),
+                ("lai", sf.lai, Tf(0.05), Tf(10.0)),
+            )
+            bad = count(active .& ((field .< lo) .| (field .> hi)))
+            bad == 0 || error("forest tile: $bad active cell(s) have $name outside [$lo, $hi]")
+        end
+    end
+
+    # Derived canopy properties
+    if tile == "forest"
         sf.pmultf .= Tf.((1 .- (1 .- landuse["prec_multi"]["data"]) .* (1 .- landuse["forest"]["data"] * fsm.params.pmultf_for)) ./ landuse["prec_multi"]["data"])
-
         sf.VAI[:, :] = sf.lai[:, :]
         sf.trcn[:, :] = Tf(1) .- Tf(0.9) .* sf.fveg[:, :]
         sf.fsky .= sf.vfhp ./ sf.trcn
@@ -173,31 +188,9 @@ function setup(
         mask = sf.fsky .> Tf(1)
         sf.trcn[mask] .= sf.vfhp[mask]
         sf.fsky[mask] .= Tf(1)
+        sf.canh[:, :] = Tf(12500) * sf.VAI[:, :]
+        sf.scap[:, :] = fsm.params.cvai * sf.VAI[:, :]
     end
-
-    # Narrow the tile mask by the configuration's data requirement (canopy tile: fveg > 0), then
-    # validate the remaining forest inputs.
-    if tile == "forest"
-        canopy_free = (sf.tilefrac .>= fsm.params.tthresh) .& (sf.fveg .<= 0)
-        dropped = count(canopy_free)
-        if dropped > 0
-            @warn "forest tile: $dropped active cell(s) have fveg == 0 and are excluded from the tile"
-            sf.tilefrac[canopy_free] .= Tf(0)
-        end
-
-        # Forest inputs must be > 0 on active cells: the canopy physics divides by VAI/scap/trcn, so bad input silently gives Inf/NaN.
-        active = sf.tilefrac .>= fsm.params.tthresh
-        for (name, field) in (
-                ("fveg", sf.fveg), ("hcan", sf.hcan), ("lai", sf.lai),
-                ("vfhp", sf.vfhp), ("fves", sf.fves), ("trcn", sf.trcn),
-            )
-            bad = count(active .& .!(field .> Tf(0)))
-            bad == 0 || error("forest tile: $bad active cell(s) have non-positive $name; forest landuse inputs (fveg, hcan, lai, vfhp, fves) must be strictly positive")
-        end
-    end
-
-    sf.canh[:, :] = Tf(12500) * sf.VAI[:, :]
-    sf.scap[:, :] = fsm.params.cvai * sf.VAI[:, :]
 
     if !(arch isa CPU)
         fsm = on_architecture(arch, fsm)

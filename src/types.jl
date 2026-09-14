@@ -127,8 +127,6 @@ end
     Sfeff::MF = zeros(grid.Nx, grid.Ny)              # Snowfall reaching the surface (kg/m^2/s)
 
     # radiation
-    alb::MF = zeros(grid.Nx, grid.Ny)                # Albedo (-)
-    asrf_out::MF = zeros(grid.Nx, grid.Ny)           # Surface albedo (-)
     SWveg::MF = zeros(grid.Nx, grid.Ny)              # Net shortwave absorbed by vegetation (W/m^2)
     SWsrf::MF = zeros(grid.Nx, grid.Ny)              # Net shortwave absorbed by the surface (W/m^2)
     SWsci::MF = zeros(grid.Nx, grid.Ny)              # Subcanopy incoming shortwave (W/m^2)
@@ -212,7 +210,6 @@ function FSM(
         canopy = NoCanopy{Tf}(),
         substrate = SoilSubstrate{Tf}(),
         conductivity = DensityConductivity{Tf}(),
-        reference_height = AboveGround{Tf}(),
         surface_layer = OpenSurfaceLayer{Tf}(),
         new_snow_density = ElevationFreshSnowDensity{Tf}(),
         compaction = CrocusCompaction{Tf}(),
@@ -232,7 +229,6 @@ function FSM(
         canopy,
         substrate,
         conductivity,
-        reference_height,
         surface_layer,
         new_snow_density,
         compaction,

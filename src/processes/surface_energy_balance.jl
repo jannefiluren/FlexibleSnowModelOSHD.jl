@@ -167,10 +167,10 @@ end
     @unpack_constants(Tf)
 
     (; dt) = params
-    (; canh, fsky, trcn) = surface
+    (; canh, trcn) = surface
     (; Qcan, Sice, Tcan, Tsrf, Tveg) = state
     (; Esrf, Eveg, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Rnet, Rsrf, Ds1, KHa, KHg, KHv, KWg, KWv, ks1, SWsrf, SWveg, Ts1, Tveg0, Qa, LWeff) = diag
-    (; Ps, Ta) = meteo
+    (; Ps, Ta, LW) = meteo
 
     # Kernel-local scratch variables
     A = zero(MMatrix{4, 4, Tf})
@@ -202,8 +202,8 @@ end
     Hveg = rho * cp * KHv[i, j] * (Tveg[i, j] - Tcan[i, j])
     LE[i, j] = Lsrf * Esrf[i, j] + Lveg * Eveg[i, j]
     Melt[i, j] = Tf(0)
-    Rsrf[i, j] = SWsrf[i, j] + trcn[i, j] * (fsky[i, j] * LWeff[i, j] + (Tf(1) - fsky[i, j]) * sb * Ta[i, j]^Tf(4)) - sb * Tsrf[i, j]^Tf(4) + (Tf(1) - trcn[i, j]) * sb * Tveg[i, j]^Tf(4)        # with near and distant canopy contributions
-    Rveg = SWveg[i, j] + (Tf(1) - trcn[i, j]) * (LWeff[i, j] + sb * Tsrf[i, j]^Tf(4) - Tf(2) * sb * Tveg[i, j]^Tf(4))
+    Rsrf[i, j] = SWsrf[i, j] + trcn[i, j] * LWeff[i, j] - sb * Tsrf[i, j]^Tf(4) + (Tf(1) - trcn[i, j]) * sb * Tveg[i, j]^Tf(4)        # with near and distant canopy contributions
+    Rveg = SWveg[i, j] + (Tf(1) - trcn[i, j]) * (LW[i, j] + sb * Tsrf[i, j]^Tf(4) - Tf(2) * sb * Tveg[i, j]^Tf(4))
 
     # Surface energy balance increments without melt
     A[1, 1] = Tf(0)
@@ -256,8 +256,8 @@ end
             Esrf[i, j] = rho * KWg[i, j] * (Qsrf - Qcan[i, j])
             G[i, j] = Tf(2) * ks1[i, j] * (Tm - Ts1[i, j]) / Ds1[i, j]
             Hsrf[i, j] = rho * cp * KHg[i, j] * (Tm - Tcan[i, j])
-            Rsrf[i, j] = SWsrf[i, j] + trcn[i, j] * (fsky[i, j] * LWeff[i, j] + (Tf(1) - fsky[i, j]) * sb * Ta[i, j]^Tf(4)) - sb * Tm^Tf(4) + (Tf(1) - trcn[i, j]) * sb * Tveg[i, j]^Tf(4)
-            Rveg = SWveg[i, j] + (Tf(1) - trcn[i, j]) * (LWeff[i, j] + sb * Tm^Tf(4) - Tf(2) * sb * Tveg[i, j]^Tf(4))
+            Rsrf[i, j] = SWsrf[i, j] + trcn[i, j] * LWeff[i, j] - sb * Tm^Tf(4) + (Tf(1) - trcn[i, j]) * sb * Tveg[i, j]^Tf(4)
+            Rveg = SWveg[i, j] + (Tf(1) - trcn[i, j]) * (LW[i, j] + sb * Tm^Tf(4) - Tf(2) * sb * Tveg[i, j]^Tf(4))
             A[1, 3] = Tf(0)
             b[1] = (H[i, j] - Hveg - Hsrf[i, j]) / (rho * cp)
             A[2, 3] = Tf(0)
@@ -293,9 +293,9 @@ end
     H[i, j] = Hsrf[i, j] + Hveg
     LE[i, j] = Lsrf * Esrf[i, j] + Lveg * Eveg[i, j]
     LEsrf[i, j] = Lsrf * Esrf[i, j]
-    Rnet[i, j] = SWsrf[i, j] + SWveg[i, j] + LWeff[i, j] - trcn[i, j] * sb * Tsrf[i, j]^Tf(4) - (Tf(1) - trcn[i, j]) * sb * Tveg[i, j]^Tf(4)
-    LWsci[i, j] = trcn[i, j] * (fsky[i, j] * LWeff[i, j] + (Tf(1) - fsky[i, j]) * sb * Ta[i, j]^Tf(4)) + (Tf(1) - trcn[i, j]) * sb * Tveg[i, j]^Tf(4)
-    LWveg[i, j] = (Tf(1) - trcn[i, j]) * (LWeff[i, j] + sb * Tsrf[i, j]^Tf(4) - Tf(2) * sb * Tveg[i, j]^Tf(4))
+    Rnet[i, j] = SWsrf[i, j] + SWveg[i, j] + LW[i, j] - trcn[i, j] * sb * Tsrf[i, j]^Tf(4) - (Tf(1) - trcn[i, j]) * sb * Tveg[i, j]^Tf(4)
+    LWsci[i, j] = trcn[i, j] * LWeff[i, j] + (Tf(1) - trcn[i, j]) * sb * Tveg[i, j]^Tf(4)
+    LWveg[i, j] = (Tf(1) - trcn[i, j]) * (LW[i, j] + sb * Tsrf[i, j]^Tf(4) - Tf(2) * sb * Tveg[i, j]^Tf(4))
 
     # Sublimation limited by amount of snow after melt
     Ssub = column_sum(Sice, i, j) - Melt[i, j] * dt

@@ -56,7 +56,6 @@ function setup_forest_example(snow_fraction)
     settings = Dict(
         "tile" => "forest",
         "physics" => Dict(
-            "reference_height" => AboveCanopy,
             "snow_fraction" => snow_fraction,
             # No preferential deposition in canopy gaps
             "canopy" => OneLayerCanopy{Float32}(psr = 0, psf = 1),

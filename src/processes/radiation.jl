@@ -62,20 +62,18 @@ end
 """
     solar_radiation!(canopy, i, j, state, diag, surface, meteo)
 
-Surface albedo and shortwave transmission for cell `(i, j)`: fills `diag.alb`,
-`diag.asrf_out`, `diag.SWsrf`, `diag.SWveg` and `diag.SWsci`. Expects `state.albs`
+Surface albedo and shortwave transmission for cell `(i, j)`: fills
+`diag.SWsrf`, `diag.SWveg` and `diag.SWsci`. Expects `state.albs`
 to already hold the bare-ground albedo where the snow has gone.
 """
 function solar_radiation! end
 
 @inline function solar_radiation!(c::NoCanopy{Tf}, i, j, state, diag, surface, meteo) where {Tf}
     (; albs) = state
-    (; alb, asrf_out, SWveg, SWsrf, SWsci) = diag
+    (; SWveg, SWsrf, SWsci) = diag
     (; Sdif, Sdir) = meteo
 
     asrf = albs[i, j]
-    alb[i, j] = asrf
-    asrf_out[i, j] = asrf
     SWveg[i, j] = Tf(0)
     SWsrf[i, j] = (Tf(1) - asrf) * (Sdir[i, j] + Sdif[i, j])
     SWsci[i, j] = Sdif[i, j] + Sdir[i, j]
@@ -84,7 +82,7 @@ end
 
 @inline function solar_radiation!(c::OneLayerCanopy{Tf}, i, j, state, diag, surface, meteo) where {Tf}
     (; albs, fsnow, Sveg) = state
-    (; alb, asrf_out, SWveg, SWsrf, SWsci) = diag
+    (; SWveg, SWsrf, SWsci) = diag
     (; fveg, fsky, fsky_terr, scap, trcn) = surface
     (; Sdif, Sdir, Tv) = meteo
 
@@ -98,19 +96,12 @@ end
         fcans = Sveg[i, j] / scap[i, j]
     end
     aveg = (Tf(1) - fcans) * canopy_avg0(c) + fcans * canopy_avgs(c)
-    acan = fveg[i, j] * aveg
-
-    asrf_out[i, j] = fveg[i, j] * aveg + (Tf(1) - fveg[i, j]) * asrf
 
     Sdif_aux = fsky[i, j] / fsky_terr[i, j] * Sdif[i, j]
     tdif = trcn[i, j]
     tdir = Tv[i, j]
-    alb[i, j] = acan + (Tf(1) - acan) * asrf * tdif^Tf(2)
-    if (Sdif_aux + Sdir[i, j] > eps(Tf))
-        alb[i, j] = (acan * (Sdif_aux + tdir * Sdir[i, j]) + asrf * tdif * (tdif * Sdif_aux + tdir * Sdir[i, j])) / (Sdif_aux + Sdir[i, j])
-    end
     SWsrf[i, j] = (Tf(1) - asrf) * (tdif * Sdif_aux + tdir * Sdir[i, j])
-    SWveg[i, j] = ((Tf(1) - tdif) * (Tf(1) - aveg) + tdif * asrf * (Tf(1) - tdif)) * Sdif_aux + (tdir * fveg[i, j] * (Tf(1) - aveg) + tdir * asrf * (Tf(1) - tdif)) * Sdir[i, j]   # local SWR absorption by vegetation correlates with local tdir
+    SWveg[i, j] = ((Tf(1) - tdif) * (Tf(1) - aveg) + tdif * asrf * (Tf(1) - tdif)) * Sdif_aux + (tdir * fveg[i, j] * (Tf(1) - aveg) + tdir * asrf * (Tf(1) - tdif)) * Sdir[i, j]
     SWsci[i, j] = tdif * Sdif_aux + tdir * Sdir[i, j]
     return nothing
 end
@@ -134,9 +125,11 @@ function thermal_radiation! end
 end
 
 @inline function thermal_radiation!(c::OneLayerCanopy{Tf}, i, j, diag, surface, meteo) where {Tf}
+    @unpack_constants(Tf)
     (; LWeff) = diag
-    (; LW) = meteo
+    (; fsky) = surface
+    (; Ta, LW) = meteo
 
-    LWeff[i, j] = LW[i, j]
+    LWeff[i, j] = fsky[i, j] * LW[i, j] + (Tf(1) - fsky[i, j]) * sb * Ta[i, j]^Tf(4)
     return nothing
 end

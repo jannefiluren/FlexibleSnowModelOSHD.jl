@@ -26,19 +26,21 @@ OpenSurfaceLayer{Tf}(grid::Grid; kwargs...) where {Tf} = OpenSurfaceLayer{Tf}(; 
 ForestSurfaceLayer{Tf}(grid::Grid; kwargs...) where {Tf} = ForestSurfaceLayer{Tf}(; kwargs...)
 
 """
-    exchange_coefficients!(surface_layer, i, j, state, diag, surface, params, meteo, zU1, zT1, z0g)
+    exchange_coefficients!(surface_layer, i, j, state, diag, surface, params, meteo, z0g)
 
 Eddy diffusivities for turbulent heat and moisture transfer at cell `(i, j)`, implemented
 for every `AbstractSurfaceLayer`: `diag.KH` and `diag.KWg` over open terrain, and
-`diag.KHa`, `diag.KHg`, `diag.KHv`, `diag.KWg`, `diag.KWv` under a canopy. The wind and
-temperature reference heights `zU1`, `zT1` and the ground roughness length `z0g` are
-resolved by the caller.
+`diag.KHa`, `diag.KHg`, `diag.KHv`, `diag.KWg`, `diag.KWv` under a canopy. The ground
+roughness length `z0g` is resolved by the caller; the wind and temperature reference
+heights are derived from the measurement heights in `params` inside each method — open
+terrain uses them directly, a canopy offsets them by the canopy height.
 """
 function exchange_coefficients! end
 
 # Open/glacier terrain
-@inline function exchange_coefficients!(sl::OpenSurfaceLayer{Tf}, i, j, state, diag, surface, params, meteo, zU1, zT1, z0g) where {Tf}
+@inline function exchange_coefficients!(sl::OpenSurfaceLayer{Tf}, i, j, state, diag, surface, params, meteo, z0g) where {Tf}
     @unpack_constants(Tf)
+    (; zU, zT) = params
     (; Sice, Tsrf) = state
     (; KH, KWg, gs1, Qa, Uaeff) = diag
     (; Ta, Ps) = meteo
@@ -46,13 +48,13 @@ function exchange_coefficients! end
     # Roughness lengths and friction velocity
     z0 = z0g
     z0h = Tf(0.1) * z0
-    CD = (vkman / log(zU1 / z0))^Tf(2)
+    CD = (vkman / log(zU / z0))^Tf(2)
     ustar = sqrt(CD) * Uaeff[i, j]
 
-    fh = stability_factor(sl.stability, CD, z0, Ta[i, j], Tsrf[i, j], Uaeff[i, j], zU1, zT1)
+    fh = stability_factor(sl.stability, CD, z0, Ta[i, j], Tsrf[i, j], Uaeff[i, j], zU, zT)
 
     # Eddy diffusivities
-    KH[i, j] = fh * vkman * ustar / log(zT1 / z0h)
+    KH[i, j] = fh * vkman * ustar / log(zT / z0h)
     Qs = qsat(Ps[i, j], Tsrf[i, j])
     if (Sice[1, i, j] > eps(Tf) || Qa[i, j] > Qs)
         KWg[i, j] = KH[i, j]
@@ -63,14 +65,18 @@ function exchange_coefficients! end
 end
 
 # Forest terrain
-@inline function exchange_coefficients!(sl::ForestSurfaceLayer{Tf}, i, j, state, diag, surface, params, meteo, zU1, zT1, z0g) where {Tf}
+@inline function exchange_coefficients!(sl::ForestSurfaceLayer{Tf}, i, j, state, diag, surface, params, meteo, z0g) where {Tf}
     @unpack_constants(Tf)
-    (; zU) = params
+    (; zU, zT) = params
     (; zsub, gsnf) = sl
     (; fveg, fves, VAI, hcan) = surface
     (; Sveg, Tsrf, Tveg, Qcan) = state
     (; KHa, KHg, KHv, KWg, KWv, Usc, gs1, Uaeff) = diag
     (; Ps) = meteo
+
+    # Reference heights measured above the canopy
+    zU1 = zU + hcan[i, j]
+    zT1 = zT + hcan[i, j]
 
     # Roughness lengths, friction velocity and canopy wind profile
     z0g = (sl.zgf + sl.zgr * fveg[i, j]) * z0g

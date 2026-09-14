@@ -8,7 +8,6 @@ abstract type AbstractConductivity{Tf} <: AbstractParameterization{Tf} end
 abstract type AbstractAlbedo{Tf} <: AbstractParameterization{Tf} end
 abstract type AbstractCanopy{Tf} <: AbstractParameterization{Tf} end
 abstract type AbstractSubstrate{Tf} <: AbstractParameterization{Tf} end
-abstract type AbstractReferenceHeight{Tf} <: AbstractParameterization{Tf} end
 abstract type AbstractSurfaceLayer{Tf} <: AbstractParameterization{Tf} end
 abstract type AbstractStabilityCorrection{Tf} <: AbstractParameterization{Tf} end
 abstract type AbstractFreshSnowDensity{Tf} <: AbstractParameterization{Tf} end
@@ -39,7 +38,6 @@ include("parameterizations/albedo.jl")
 include("parameterizations/conductivity.jl")
 include("parameterizations/canopy.jl")
 include("parameterizations/substrate.jl")
-include("parameterizations/reference_height.jl")
 include("parameterizations/stability.jl")
 include("parameterizations/surface_layer.jl")
 include("parameterizations/fresh_snow_density.jl")
@@ -76,7 +74,6 @@ export AbstractAlbedo, DiagnosticAlbedo, DecayAlbedo, PrognosticAlbedo, snow_alb
 export AbstractCanopy, NoCanopy, OneLayerCanopy, surface_energy_balance!, energy_balance!, canopy_snow!
 export solar_radiation!, thermal_radiation!
 export AbstractSubstrate, SoilSubstrate, IceSubstrate, soil_properties!
-export AbstractReferenceHeight, AboveGround, AboveCanopy
 export AbstractSurfaceLayer, OpenSurfaceLayer, ForestSurfaceLayer
 export AbstractStabilityCorrection, NoStabilityCorrection, LouisStabilityCorrection
 export AbstractFreshSnowDensity, FixedFreshSnowDensity, ClimateFreshSnowDensity, ElevationFreshSnowDensity, fresh_snow_density
