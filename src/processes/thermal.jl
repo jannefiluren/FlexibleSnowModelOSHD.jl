@@ -54,7 +54,7 @@ Thickness, temperature and thermal conductivity of the layer the surface energy 
 sees (`diag.Ds1`, `diag.Ts1`, `diag.ks1`) for cell `(i, j)`. The layer is always at least
 as thick as the top soil layer and mixes in soil properties for thin snowpacks, so it
 requires `Dzsnow[1] >= Dzsoil[1]` (checked in types.jl) - a thinner first snow layer
-leaves `Ts1` blended with `Tsoil` even under a deep snowpack.
+would leave `Ts1` blended with `Tsoil` even under a deep snowpack.
 """
 @inline function surface_layer_properties!(i, j, state, diag, grid)
     (; Dzsoil) = grid

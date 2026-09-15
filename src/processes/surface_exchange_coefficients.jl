@@ -12,13 +12,13 @@ the canopy and the atmosphere.
 """
 function surface_exchange_coefficients!(fsm::FSM{Tf}, meteo::MET{Tf}) where {Tf <: Real}
 
-    (; surface_layer, snow_fraction) = fsm.physics
+    (; land_cover, snow_fraction) = fsm.physics
 
     backend = get_backend(fsm.state.Tsrf)
     kernel! = surface_exchange_coefficients_kernel!(backend)
     kernel!(
         fsm.state, fsm.diag, fsm.surface, fsm.params, meteo,
-        surface_layer, snow_fraction;
+        land_cover, snow_fraction;
         ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
     KernelAbstractions.synchronize(backend)
@@ -28,7 +28,7 @@ end
 
 @kernel function surface_exchange_coefficients_kernel!(
         state, diag, surface, params::Parameters{Tf}, meteo,
-        surface_layer::AbstractSurfaceLayer{Tf},
+        land_cover::AbstractLandCover{Tf},
         snow_fraction::AbstractSnowFraction{Tf},
     ) where {Tf}
 
@@ -41,7 +41,7 @@ end
 
         z0g = ground_roughness(snow_fraction, i, j, state, surface)
 
-        exchange_coefficients!(surface_layer, i, j, state, diag, surface, params, meteo, z0g)
+        exchange_coefficients!(land_cover, i, j, state, diag, surface, params, meteo, z0g)
 
     end
 end

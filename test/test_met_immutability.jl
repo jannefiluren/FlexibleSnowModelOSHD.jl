@@ -23,7 +23,7 @@ function setup_immutability_example(tile)
         lus["hcan"] = Dict("data" => [20;;])
         lus["lai"] = Dict("data" => [2.5;;])
         lus["vfhp"] = Dict("data" => [0.5;;])
-        settings = Dict("tile" => "forest", "physics" => Dict("canopy" => OneLayerCanopy))
+        settings = Dict("tile" => "forest", "physics" => Dict("land_cover" => ForestCover))
     else
         if tile == "glacier"
             lus["glacier"] = Dict("data" => [1;;])

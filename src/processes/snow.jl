@@ -19,7 +19,7 @@ function snow!(fsm::FSM{Tf}, meteo::MET{Tf}, t) where {Tf <: Real}
     kernel! = snow_kernel!(backend)
     kernel!(
         fsm.state, fsm.diag, fsm.surface, fsm.grid, fsm.params, meteo,
-        fsm.physics.new_snow_density, fsm.physics.compaction, fsm.physics.hydrology, fsm.physics.snow_fraction,
+        fsm.physics.fresh_snow_density, fsm.physics.compaction, fsm.physics.hydrology, fsm.physics.snow_fraction,
         fsm.physics.layering, update_hist, Val(Int(Nsmax));
         ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
@@ -31,7 +31,7 @@ end
 
 @kernel inbounds = true function snow_kernel!(
         state, diag, surface, grid, params::Parameters{Tf}, meteo,
-        new_snow_density::AbstractFreshSnowDensity{Tf}, compaction::AbstractCompaction{Tf},
+        fresh_snow_density::AbstractFreshSnowDensity{Tf}, compaction::AbstractCompaction{Tf},
         hydrology::AbstractHydrology{Tf}, snow_fraction::AbstractSnowFraction{Tf},
         layering::AbstractLayering{Tf}, update_hist::Bool, ::Val{Nsmax},
     ) where {Tf, Nsmax}
@@ -191,7 +191,7 @@ end
             dSice = Tf(trunc(Int, dSice * Tf(1000) + Tf(0.5))) / Tf(1000)
         end
 
-        rhonew = fresh_snow_density(new_snow_density, rho0, rhob, rhoc, rhof, rhos_min, Ta[i, j], Uaeff[i, j], dem[i, j])
+        rhonew = snowfall_density(fresh_snow_density, rho0, rhob, rhoc, rhof, rhos_min, Ta[i, j], Uaeff[i, j], dem[i, j])
 
         Sice0[i, j] = dSice
         snowdepth0[i, j] = dSice / rhonew

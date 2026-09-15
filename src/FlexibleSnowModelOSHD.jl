@@ -6,9 +6,8 @@ using Adapt: Adapt, @adapt_structure
 abstract type AbstractParameterization{Tf <: Real} end
 abstract type AbstractConductivity{Tf} <: AbstractParameterization{Tf} end
 abstract type AbstractAlbedo{Tf} <: AbstractParameterization{Tf} end
-abstract type AbstractCanopy{Tf} <: AbstractParameterization{Tf} end
+abstract type AbstractLandCover{Tf} <: AbstractParameterization{Tf} end
 abstract type AbstractSubstrate{Tf} <: AbstractParameterization{Tf} end
-abstract type AbstractSurfaceLayer{Tf} <: AbstractParameterization{Tf} end
 abstract type AbstractStabilityCorrection{Tf} <: AbstractParameterization{Tf} end
 abstract type AbstractFreshSnowDensity{Tf} <: AbstractParameterization{Tf} end
 abstract type AbstractCompaction{Tf} <: AbstractParameterization{Tf} end
@@ -36,19 +35,18 @@ include("numerics/reductions.jl")
 # Process parameterizations called from process entry points
 include("parameterizations/albedo.jl")
 include("parameterizations/conductivity.jl")
-include("parameterizations/canopy.jl")
-include("parameterizations/substrate.jl")
 include("parameterizations/stability.jl")
-include("parameterizations/surface_layer.jl")
+include("parameterizations/substrate.jl")
+include("parameterizations/land_cover.jl")
 include("parameterizations/fresh_snow_density.jl")
-include("parameterizations/snow_compaction.jl")
-include("parameterizations/snow_hydrology.jl")
-include("parameterizations/snowcoverfraction.jl")
+include("parameterizations/compaction.jl")
+include("parameterizations/hydrology.jl")
+include("parameterizations/snow_cover_fraction.jl")
 include("parameterizations/layering.jl")
 
 # Processes entry points with a launcher and its kernel function called from step!
 include("processes/drive.jl")
-include("processes/canopy.jl")
+include("processes/canopy_mass_balance.jl")
 include("processes/radiation.jl")
 include("processes/thermal.jl")
 include("processes/surface_exchange_coefficients.jl")
@@ -71,18 +69,17 @@ export FSM, MET, Grid
 export AbstractParameterization, grid_array, check_grid, instantiate
 export AbstractConductivity, FixedConductivity, DensityConductivity, snow_conductivity!
 export AbstractAlbedo, DiagnosticAlbedo, DecayAlbedo, PrognosticAlbedo, snow_albedo!
-export AbstractCanopy, NoCanopy, OneLayerCanopy, surface_energy_balance!, energy_balance!, canopy_snow!
+export AbstractLandCover, OpenCover, ForestCover, surface_energy_balance!, energy_balance!, canopy_snow!
 export solar_radiation!, thermal_radiation!
 export AbstractSubstrate, SoilSubstrate, IceSubstrate, soil_properties!
-export AbstractSurfaceLayer, OpenSurfaceLayer, ForestSurfaceLayer
 export AbstractStabilityCorrection, NoStabilityCorrection, LouisStabilityCorrection
-export AbstractFreshSnowDensity, FixedFreshSnowDensity, ClimateFreshSnowDensity, ElevationFreshSnowDensity, fresh_snow_density
+export AbstractFreshSnowDensity, FixedFreshSnowDensity, ClimateFreshSnowDensity, ElevationFreshSnowDensity, snowfall_density
 export AbstractCompaction, AgeCompaction, OverburdenCompaction, CrocusCompaction, compact_snow!
 export AbstractHydrology, FreeDrainingHydrology, BucketHydrology, DensityBucketHydrology, snow_hydrology!
 export AbstractLayering, OriginalLayering, DensityLayering, relayer_snow!
 export AbstractSnowFraction, SeasonalSnowFraction, HelbigSnowFraction, HelbigMaxSnowFraction, PointSnowFraction, TanhSnowFraction, snow_covered_fraction!
 export AbstractArchitecture, CPU, GPU, on_architecture
-export canopy!, radiation!, thermal!, surface_exchange_coefficients!, snow!, soil!, snowcoverfraction!
+export canopy_mass_balance!, radiation!, thermal!, surface_exchange_coefficients!, snow!, soil!, snow_cover_fraction!
 export qsat, tridiag!, ludcmp!
 export drive!, step!, setup
 export SnowTransport, setup_transport, transport!, relayer!

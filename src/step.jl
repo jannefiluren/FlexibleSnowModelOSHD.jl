@@ -46,7 +46,7 @@ function step!(fsm::FSM{Tf}, met::MET{Tf}, t; transport = nothing) where {Tf}
     end
 
     # 5. Canopy interception / unloading
-    canopy!(fsm)
+    canopy_mass_balance!(fsm)
 
     # 6. Snow processes
     snow!(fsm, met, t)

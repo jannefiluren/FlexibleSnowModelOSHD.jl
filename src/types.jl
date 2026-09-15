@@ -207,11 +207,10 @@ end
 function FSM(
         grid::Grid{Tf};
         snow_albedo = PrognosticAlbedo{Tf}(grid),
-        canopy = NoCanopy{Tf}(),
+        land_cover = OpenCover{Tf}(),
         substrate = SoilSubstrate{Tf}(),
         conductivity = DensityConductivity{Tf}(),
-        surface_layer = OpenSurfaceLayer{Tf}(),
-        new_snow_density = ElevationFreshSnowDensity{Tf}(),
+        fresh_snow_density = ElevationFreshSnowDensity{Tf}(),
         compaction = CrocusCompaction{Tf}(),
         hydrology = DensityBucketHydrology{Tf}(),
         layering = OriginalLayering{Tf}(),
@@ -226,11 +225,10 @@ function FSM(
     diag = Diagnostics{GT, Matrix{Tf}, Array{Tf, 3}}(; grid = grid)
     physics = (;
         snow_albedo,
-        canopy,
+        land_cover,
         substrate,
         conductivity,
-        surface_layer,
-        new_snow_density,
+        fresh_snow_density,
         compaction,
         hydrology,
         layering,

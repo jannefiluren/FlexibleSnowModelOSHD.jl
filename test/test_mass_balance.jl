@@ -58,7 +58,7 @@ function setup_forest_example(snow_fraction)
         "physics" => Dict(
             "snow_fraction" => snow_fraction,
             # No preferential deposition in canopy gaps
-            "canopy" => OneLayerCanopy{Float32}(psr = 0, psf = 1),
+            "land_cover" => ForestCover{Float32}(psr = 0, psf = 1),
         ),
     )
 

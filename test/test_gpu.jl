@@ -40,7 +40,7 @@ function run_gpu_smoke(device_arch)
         (
             "forest", Dict(
                 "tile" => "forest",
-                "physics" => Dict("canopy" => OneLayerCanopy, "snow_fraction" => TanhSnowFraction{Tf}(; hfsn = 0.3)),
+                "physics" => Dict("land_cover" => ForestCover, "snow_fraction" => TanhSnowFraction{Tf}(; hfsn = 0.3)),
                 "params" => Dict("z0_snow" => 0.01),
             ),
         ),

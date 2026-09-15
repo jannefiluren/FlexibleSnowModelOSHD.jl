@@ -9,24 +9,24 @@ ClimateFreshSnowDensity{Tf}(grid::Grid; kwargs...) where {Tf} = ClimateFreshSnow
 ElevationFreshSnowDensity{Tf}(grid::Grid; kwargs...) where {Tf} = ElevationFreshSnowDensity{Tf}()
 
 """
-    fresh_snow_density(scheme, rho0, rhob, rhoc, rhof, rhos_min, Ta, Ua, dem)
+    snowfall_density(scheme, rho0, rhob, rhoc, rhof, rhos_min, Ta, Ua, dem)
 
 Density of fresh snow (kg/m^3) for one cell (air temperature `Ta`, wind `Ua`,
 elevation `dem`).
 """
-function fresh_snow_density end
+function snowfall_density end
 
 # Fixed fresh snow density
-@inline fresh_snow_density(::FixedFreshSnowDensity, rho0, rhob, rhoc, rhof, rhos_min, Ta, Ua, dem) = rho0
+@inline snowfall_density(::FixedFreshSnowDensity, rho0, rhob, rhoc, rhof, rhos_min, Ta, Ua, dem) = rho0
 
 # Climate-dependent fresh snow density
-@inline function fresh_snow_density(::ClimateFreshSnowDensity{Tf}, rho0, rhob, rhoc, rhof, rhos_min, Ta, Ua, dem) where {Tf}
+@inline function snowfall_density(::ClimateFreshSnowDensity{Tf}, rho0, rhob, rhoc, rhof, rhos_min, Ta, Ua, dem) where {Tf}
     @unpack_constants(Tf)
     return max(rhof + rhob * (Ta - Tm) + rhoc * Ua^Tf(0.5), rhos_min)
 end
 
 # Climate-dependent with elevation-dependent decompaction
-@inline function fresh_snow_density(::ElevationFreshSnowDensity{Tf}, rho0, rhob, rhoc, rhof, rhos_min, Ta, Ua, dem) where {Tf}
+@inline function snowfall_density(::ElevationFreshSnowDensity{Tf}, rho0, rhob, rhoc, rhof, rhos_min, Ta, Ua, dem) where {Tf}
     @unpack_constants(Tf)
     rhonew = rhof + rhob * (Ta - Tm) + rhoc * Ua^Tf(0.5)
     if (dem <= Tf(1000))

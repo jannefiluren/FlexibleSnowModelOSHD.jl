@@ -1,22 +1,22 @@
 # Canopy process: snow interception, sublimation and unloading
 
 """
-    canopy!(fsm)
+    canopy_mass_balance!(fsm)
 
 Snow interception, sublimation, and unloading from the vegetation canopy.
 
 # Arguments
 - `fsm::FSM`: Model state structure
 """
-function canopy!(fsm::FSM{Tf}) where {Tf <: Real}
+function canopy_mass_balance!(fsm::FSM{Tf}) where {Tf <: Real}
 
-    (; canopy) = fsm.physics
+    (; land_cover) = fsm.physics
 
     backend = get_backend(fsm.state.Sveg)
-    kernel! = canopy_kernel!(backend)
+    kernel! = canopy_mass_balance_kernel!(backend)
     kernel!(
         fsm.state, fsm.diag, fsm.surface, fsm.params,
-        canopy;
+        land_cover;
         ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
     KernelAbstractions.synchronize(backend)
@@ -24,9 +24,9 @@ function canopy!(fsm::FSM{Tf}) where {Tf <: Real}
     return nothing
 end
 
-@kernel function canopy_kernel!(
+@kernel function canopy_mass_balance_kernel!(
         state, diag, surface, params::Parameters{Tf},
-        canopy::AbstractCanopy{Tf},
+        land_cover::AbstractLandCover{Tf},
     ) where {Tf}
 
     i, j = @index(Global, NTuple)
@@ -36,7 +36,7 @@ end
 
     if (tilefrac[i, j] >= tthresh)
 
-        canopy_snow!(canopy, i, j, state, diag, surface, params)
+        canopy_snow!(land_cover, i, j, state, diag, surface, params)
 
     end
 end

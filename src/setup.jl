@@ -19,10 +19,10 @@ taken from `grid` (`eltype(grid)`, `grid.Nx`, `grid.Ny`).
 # Keyword arguments
 - `tile`: surface tile type (`"open"`, `"forest"`, `"glacier"`).
 - `physics::Dict` (optional): scheme selection, mapping a physics name to a scheme type or
-  instance, e.g. `Dict("snow_fraction" => TanhSnowFraction, "canopy" => OneLayerCanopy)`. Keys:
-  `snow_albedo`, `canopy`, `substrate`, `conductivity`, `compaction`, `hydrology`,
-  `new_snow_density`, `layering`, `snow_fraction`, `surface_layer`.
-  Unspecified schemes use defaults; `canopy`/`surface_layer`/`substrate` default from `tile`.
+  instance, e.g. `Dict("snow_fraction" => TanhSnowFraction, "land_cover" => ForestCover)`. Keys:
+  `snow_albedo`, `land_cover`, `substrate`, `conductivity`, `compaction`, `hydrology`,
+  `fresh_snow_density`, `layering`, `snow_fraction`.
+  Unspecified schemes use defaults; `land_cover`/`substrate` default from `tile`.
 - `params::Dict` (optional): parameter overrides routed by field name to `Parameters` (scalars)
   or `Surface` (per-cell fields), e.g. `dt`, `z0_snow`. Scheme parameters are set at construction
   via the `physics` schemes, not here.
@@ -49,8 +49,8 @@ end
 setup(grid::Grid, landuse::Dict, settings::AbstractDict) = setup(CPU(), grid, landuse, settings)
 
 const PHYSICS_KEYS = (
-    "snow_albedo", "canopy", "substrate", "conductivity", "compaction", "hydrology",
-    "new_snow_density", "layering", "snow_fraction", "surface_layer",
+    "snow_albedo", "land_cover", "substrate", "conductivity", "compaction", "hydrology",
+    "fresh_snow_density", "layering", "snow_fraction",
 )
 
 function setup(
@@ -72,29 +72,26 @@ function setup(
         key in PHYSICS_KEYS || throw(ArgumentError("unknown physics key \"$key\" (known: $(join(PHYSICS_KEYS, ", ")))"))
     end
 
-    # canopy / surface_layer / substrate default from the tile; the user may override via physics.
-    canopy = instantiate(get(physics, "canopy", tile == "forest" ? OneLayerCanopy : NoCanopy), grid)
+    # land_cover / substrate default from the tile; the user may override via physics.
+    land_cover = instantiate(get(physics, "land_cover", tile == "forest" ? ForestCover : OpenCover), grid)
     if tile == "forest"
-        canopy isa OneLayerCanopy || error("forest tile requires a OneLayerCanopy canopy")
-        default_surface_layer = ForestSurfaceLayer
+        land_cover isa ForestCover || error("forest tile requires a ForestCover")
         default_substrate = SoilSubstrate
     else
-        default_surface_layer = OpenSurfaceLayer{Tf}()
         default_substrate = tile == "open" ? SoilSubstrate : IceSubstrate
     end
 
     # runic: off
     schemes = (
         snow_albedo        = instantiate(get(physics, "snow_albedo", PrognosticAlbedo), grid),
-        canopy             = canopy,
+        land_cover         = land_cover,
         substrate          = instantiate(get(physics, "substrate", default_substrate), grid),
         conductivity       = instantiate(get(physics, "conductivity", DensityConductivity), grid),
         compaction         = instantiate(get(physics, "compaction", CrocusCompaction), grid),
         hydrology          = instantiate(get(physics, "hydrology", DensityBucketHydrology), grid),
-        new_snow_density   = instantiate(get(physics, "new_snow_density", ElevationFreshSnowDensity), grid),
+        fresh_snow_density = instantiate(get(physics, "fresh_snow_density", ElevationFreshSnowDensity), grid),
         layering           = instantiate(get(physics, "layering", OriginalLayering), grid),
         snow_fraction      = instantiate(get(physics, "snow_fraction", PointSnowFraction), grid),
-        surface_layer      = instantiate(get(physics, "surface_layer", default_surface_layer), grid),
     )
     # runic: on
 
@@ -111,7 +108,7 @@ function setup(
     st = fsm.state
 
     # Settings specific for fixed fresh snow density
-    if fsm.physics.new_snow_density isa FixedFreshSnowDensity
+    if fsm.physics.fresh_snow_density isa FixedFreshSnowDensity
         fsm.params = reconstruct(fsm.params; rhof = fsm.params.rho0)
     end
 
