@@ -31,7 +31,7 @@ function setup_immutability_example(tile)
         settings = Dict("tile" => tile)
     end
 
-    fsm = setup(Grid(Float32; Nx = 1, Ny = 1), lus, settings)
+    fsm = build_fsm(Grid(Float32; Nx = 1, Ny = 1), lus, settings)
     met = MET{Float32}()
 
     # Wind speed below the 0.1 m/s minimum to exercise the clamping in drive!,

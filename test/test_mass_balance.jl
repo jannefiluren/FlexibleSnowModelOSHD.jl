@@ -21,7 +21,7 @@ function setup_open_example(snow_fraction)
     settings = Dict("tile" => "open", "physics" => Dict("snow_fraction" => snow_fraction))
 
     # create fsm struct
-    fsm = setup(Grid(Float32; Nx = 1, Ny = 1), lus, settings)
+    fsm = build_fsm(Grid(Float32; Nx = 1, Ny = 1), lus, settings)
 
     # define meteo data struct
     met = MET{Float32}()
@@ -63,7 +63,7 @@ function setup_forest_example(snow_fraction)
     )
 
     # create fsm struct
-    fsm = setup(Grid(Float32; Nx = 1, Ny = 1), lus, settings)
+    fsm = build_fsm(Grid(Float32; Nx = 1, Ny = 1), lus, settings)
 
     # define meteo data struct
     met = MET{Float32}()

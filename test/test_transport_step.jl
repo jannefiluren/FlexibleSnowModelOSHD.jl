@@ -33,7 +33,7 @@ function make_transport_step_case(; wind = false, slide = false)
     )
 
     settings = Dict("tile" => "open", "physics" => Dict("snow_fraction" => SeasonalSnowFraction))
-    fsm = setup(Grid(Float32; Nx = Nx, Ny = Ny), lus, settings)
+    fsm = build_fsm(Grid(Float32; Nx = Nx, Ny = Ny), lus, settings)
     w = setup_transport(fsm, lus; wind = wind, slide = slide, use_fortran = false)
 
     # Seed a snowpack (0-2 layers per cell, densities within [rhos_min, rhos_max])

@@ -20,11 +20,11 @@ using KernelAbstractions: @kernel, @index, get_backend
 using StaticArrays: MVector, MMatrix
 import Libdl
 
-# Core functionality such as state and parameter structs, constants and model setup
+# Core functionality such as state and parameter structs, constants and scheme construction helpers
 include("parameters.jl")
 include("types.jl")
 include("architectures.jl")
-include("setup.jl")
+include("scheme_construction.jl")
 
 # Numerical utilities and helper functions
 include("numerics/qsat.jl")
@@ -43,6 +43,9 @@ include("parameterizations/compaction.jl")
 include("parameterizations/hydrology.jl")
 include("parameterizations/snow_cover_fraction.jl")
 include("parameterizations/layering.jl")
+
+# Methods for constructing a model from landuse data
+include("construct.jl")
 
 # Processes entry points with a launcher and its kernel function called from step!
 include("processes/drive.jl")
@@ -66,7 +69,7 @@ include("transport/relayer.jl")
 include("transport/transport.jl")
 
 export FSM, MET, Grid
-export AbstractParameterization, grid_array, check_grid, instantiate
+export AbstractParameterization, grid_array, check_grid, instantiate, reconstruct
 export AbstractConductivity, FixedConductivity, DensityConductivity, snow_conductivity!
 export AbstractAlbedo, DiagnosticAlbedo, DecayAlbedo, PrognosticAlbedo, snow_albedo!
 export AbstractLandCover, OpenCover, ForestCover, surface_energy_balance!, energy_balance!, canopy_snow!
@@ -81,7 +84,7 @@ export AbstractSnowFraction, SeasonalSnowFraction, HelbigSnowFraction, HelbigMax
 export AbstractArchitecture, CPU, GPU, on_architecture
 export canopy_mass_balance!, radiation!, thermal!, surface_exchange_coefficients!, snow!, soil!, snow_cover_fraction!
 export qsat, tridiag!, ludcmp!
-export drive!, step!, setup
+export drive!, step!
 export SnowTransport, setup_transport, transport!, relayer!
 export snowslide!, snowslide_julia!, snowtran3d!, snowtran3d_julia!
 export @unpack_constants

@@ -15,7 +15,7 @@ Adapt.adapt_storage(::DeviceAdaptor, a::Array) = DeviceArray(a)
 
 @testset "on_architecture round trip" begin
 
-    fsm = FSM(Grid(Float32; Nx = 3, Ny = 2))
+    fsm = bare_fsm(Grid(Float32; Nx = 3, Ny = 2))
     met = MET{Float32}(Nx = 3, Ny = 2)
 
     moved = on_architecture(FlexibleSnowModelOSHD.CPU(), fsm)
@@ -35,7 +35,7 @@ end
 
 @testset "adapt rebuilds sub-structs on a device array type" begin
 
-    fsm = FSM(Grid(Float32; Nx = 3, Ny = 2))
+    fsm = bare_fsm(Grid(Float32; Nx = 3, Ny = 2))
     met = MET{Float32}(Nx = 3, Ny = 2)
     to = DeviceAdaptor()
 

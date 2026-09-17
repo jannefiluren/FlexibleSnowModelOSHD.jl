@@ -28,6 +28,9 @@ using Printf
 const PROJDIR = pkgdir(FlexibleSnowModelOSHD)
 const DEFAULT_BASELINE = joinpath(PROJDIR, "test", "baseline_6c4dda5.txt")
 
+# test_regression's helper portion (below) calls build_fsm, defined here.
+include(joinpath(PROJDIR, "test", "testhelpers.jl"))
+
 let src = read(joinpath(PROJDIR, "test", "test_regression.jl"), String)
     marker = findfirst("# Test data paths", src)
     marker === nothing && error("could not locate the helper/testset boundary in test_regression.jl")

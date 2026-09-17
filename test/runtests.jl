@@ -1,5 +1,6 @@
 using Test
 using FlexibleSnowModelOSHD
+include("testhelpers.jl")
 
 @testset "Mass Balance" begin
     include("test_mass_balance.jl")

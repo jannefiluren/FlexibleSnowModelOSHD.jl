@@ -11,7 +11,7 @@ Create a minimal FSM structure with only the fields needed for soil!()
 function create_minimal_fsm(Tf::Type)
 
     # Initialize model with minimal configuration
-    fsm = FSM(Grid(Tf; Nx = 1, Ny = 1))
+    fsm = bare_fsm(Grid(Tf; Nx = 1, Ny = 1))
 
     # Set tile fraction
     fsm.surface.tilefrac[1, 1] = Tf(1.0)

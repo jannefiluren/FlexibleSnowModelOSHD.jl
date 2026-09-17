@@ -71,7 +71,7 @@ function run_gpu_smoke(device_arch)
 
     # Set up on the CPU, seed a snowpack, move to `arch`, run all steps, bring the result back.
     function run_case(arch, settings)
-        fsm = setup(host, Grid(Tf; Nx = Nx, Ny = Ny), landuse, settings)
+        fsm = build_fsm(host, Grid(Tf; Nx = Nx, Ny = Ny), landuse, settings)
         for j in 1:Ny, i in 1:Nx
             fsm.state.Nsnow[i, j] = 2
             fsm.state.fsnow[i, j] = 1.0f0

@@ -24,11 +24,9 @@ function setup_example()
     lus["lai"] = Dict("data" => [2.5;;])  # Leaf area index
     lus["vfhp"] = Dict("data" => [0.5;;]) # Hemispherical sky-view fraction including canopy
 
-    # define custom settings
-    settings = Dict("tile" => "forest")
-
-    # create fsm struct
-    fsm = setup(Grid(Float32; Nx = 1, Ny = 1), lus, settings)
+    # create fsm struct with forest terrain land cover (ForestCover / SoilSubstrate schemes)
+    grid = Grid(Float32; Nx = 1, Ny = 1)
+    fsm = FSM(grid, lus; land_cover = ForestCover{Float32}())
 
     # define meteo data struct
     met = MET{Float32}()

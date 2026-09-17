@@ -204,43 +204,6 @@ function FSM(
     }(grid, params, surface, state, diag, physics)
 end
 
-function FSM(
-        grid::Grid{Tf};
-        snow_albedo = PrognosticAlbedo{Tf}(grid),
-        land_cover = OpenCover{Tf}(),
-        substrate = SoilSubstrate{Tf}(),
-        conductivity = DensityConductivity{Tf}(),
-        fresh_snow_density = ElevationFreshSnowDensity{Tf}(),
-        compaction = CrocusCompaction{Tf}(),
-        hydrology = DensityBucketHydrology{Tf}(),
-        layering = OriginalLayering{Tf}(),
-        snow_fraction = PointSnowFraction{Tf}()
-    ) where {Tf}
-
-    check_layer_thicknesses(grid)
-    GT = typeof(grid)
-    params = Parameters{Tf}()
-    surface = Surface{GT, Matrix{Tf}, Matrix{Float64}}(; grid = grid)
-    state = State{GT, Matrix{Tf}, Matrix{Int}, Array{Tf, 3}}(; grid = grid)
-    diag = Diagnostics{GT, Matrix{Tf}, Array{Tf, 3}}(; grid = grid)
-    physics = (;
-        snow_albedo,
-        land_cover,
-        substrate,
-        conductivity,
-        fresh_snow_density,
-        compaction,
-        hydrology,
-        layering,
-        snow_fraction,
-    )
-
-    all(s -> s isa AbstractParameterization{Tf}, values(physics)) ||
-        throw(ArgumentError("physics scheme precision does not match model Tf = $Tf"))
-
-    return FSM(grid, params, surface, state, diag, physics)
-end
-
 @kwdef struct MET{
         Tf, MF <: AbstractMatrix{Tf}, MF64 <: AbstractMatrix{Float64},
         AF64_3 <: AbstractArray{Float64, 3},

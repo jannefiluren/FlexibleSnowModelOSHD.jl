@@ -97,7 +97,7 @@ function run_simulations(settings, Tf = Float32)
     Ny = size(landuse["elevation"]["data"], 2)
     Nt = length(times)
 
-    fsm = setup(Grid(Tf; Nx = Nx, Ny = Ny), landuse, settings)
+    fsm = build_fsm(Grid(Tf; Nx = Nx, Ny = Ny), landuse, settings)
     met = MET{Tf}(Nx = Nx, Ny = Ny)
 
     # Preallocate arrays to store simulation results

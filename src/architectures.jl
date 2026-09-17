@@ -7,7 +7,7 @@ KernelAbstractions GPU backend, e.g. with CUDA.jl loaded:
 
     using CUDA
     arch = GPU(CUDABackend())
-    fsm = setup(arch, Grid(Float32; Nx = Nx, Ny = Ny), surface, settings)
+    fsm = FSM(Grid(Float32; Nx = Nx, Ny = Ny), landuse; arch = arch)
     met = on_architecture(arch, MET{Float32}(Nx = Nx, Ny = Ny))
 
 Physics routines pick their compute backend from the arrays themselves (via

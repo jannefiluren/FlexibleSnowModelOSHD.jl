@@ -16,11 +16,9 @@ function setup_example()
     lus["Ld"] = Dict("data" => [1.0;;])
     lus["prec_multi"] = Dict("data" => [1.0;;])
 
-    # define custom settings
-    settings = Dict("tile" => "open")
-
-    # create fsm struct
-    fsm = setup(Grid(Float32; Nx = 1, Ny = 1), lus, settings)
+    # create fsm struct with default open terrain land cover (OpenCover / SoilSubstrate schemes)
+    grid = Grid(Float32; Nx = 1, Ny = 1)
+    fsm = FSM(grid, lus)
 
     # define meteo data struct
     met = MET{Float32}()
