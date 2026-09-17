@@ -66,13 +66,13 @@ end
     alb0::MF = 0.2 * ones(grid.Nx, grid.Ny)         # Snow-free ground albedo (-)
 
     # Forest
-    VAI::MF = zeros(grid.Nx, grid.Ny)               # Vegetation area index (-)
+    VAI::MF = fill(NaN, grid.Nx, grid.Ny)           # Vegetation area index (-)
     lai::MF = fill(NaN, grid.Nx, grid.Ny)           # Leaf area index (-)
-    fveg::MF = zeros(grid.Nx, grid.Ny)              # Canopy cover fraction (-)
-    fves::MF = zeros(grid.Nx, grid.Ny)              # Stand-scale canopy cover fraction (-)
-    fsky::MF = ones(grid.Nx, grid.Ny)               # Sky view fraction (-)
+    fveg::MF = fill(NaN, grid.Nx, grid.Ny)          # Canopy cover fraction (-)
+    fves::MF = fill(NaN, grid.Nx, grid.Ny)          # Stand-scale canopy cover fraction (-)
+    fsky::MF = fill(NaN, grid.Nx, grid.Ny)          # Sky view fraction (-)
     vfhp::MF = fill(NaN, grid.Nx, grid.Ny)          # Hemispherical sky-view fraction incl. canopy (-)
-    hcan::MF = zeros(grid.Nx, grid.Ny)              # Canopy height (m)
+    hcan::MF = fill(NaN, grid.Nx, grid.Ny)          # Canopy height (m)
     canh::MF = fill(NaN, grid.Nx, grid.Ny)          # Canopy heat capacity (J/K/m^2)
     scap::MF = fill(NaN, grid.Nx, grid.Ny)          # Canopy snow capacity (kg/m^2)
     trcn::MF = ones(grid.Nx, grid.Ny)               # Canopy transmissivity (-)
@@ -280,3 +280,80 @@ end
 @adapt_structure State
 @adapt_structure Diagnostics
 @adapt_structure MET
+
+function Base.show(io::IO, grid::Grid{Tf}) where Tf
+    print(io, "Grid", '\n')
+    print(io, "├── Precision: ", Tf, '\n')
+    print(io, "├── Nx: ", grid.Nx, '\n')
+    print(io, "├── Ny: ", grid.Ny, '\n')
+    print(io, "├── Dzsnow: ", "[" * join(grid.Dzsnow, ", ") * "]", '\n')
+    print(io, "└── Dzsoil: ", "[" * join(grid.Dzsoil, ", ") * "]", '\n')
+end
+
+function Base.show(io::IO, fsm::FSM{Tf}) where Tf
+
+    active = fsm.surface.tilefrac .>= fsm.params.tthresh
+    Ds = dropdims(sum(fsm.state.Ds, dims=1), dims=1)
+    SWE = dropdims(sum(fsm.state.Sice .+ fsm.state.Sliq, dims=1), dims=1)
+    Tsrf = fsm.state.Tsrf
+    albs = fsm.state.albs
+    fsnow = fsm.state.fsnow
+
+    padding = 40
+    
+    print(io, "FSM", '\n')
+    print(io, "├── Precision: ", Tf, '\n')
+    print(io, "├── Nx: ", fsm.grid.Nx, ", Ny: ", fsm.grid.Ny, '\n')
+    print(io, "└── Active cells: ", sum(active), '\n')
+    print(io, "Physics options:", '\n')
+    for (i, (name, p)) in enumerate(pairs(fsm.physics))
+        start = i == length(fsm.physics) ? "└── " : "├── "
+        print(io, "   $start", name, ": ", nameof(typeof(p)), '\n')
+    end
+
+    any(active) || return
+
+    print(io, "Summary statistics:", '\n')
+    print(io, rpad("   ├── Snowdepth (min/max):", padding), join(extrema(Ds[active]), ", ") ,'\n')
+    print(io, rpad("   ├── Snow water equivalent (min/max):", padding), join(extrema(SWE[active]), ", ") ,'\n')
+    print(io, rpad("   ├── Surface temperature (min/max):", padding), join(extrema(Tsrf[active]), ", ") ,'\n')
+    print(io, rpad("   ├── Snow albedo (min/max):", padding), join(extrema(albs[active]), ", ") ,'\n')
+    print(io, rpad("   └── Snow cover fraction (min/max):", padding), join(extrema(fsnow[active]), ", ") ,'\n')
+
+end
+
+function Base.show(io::IO, p::AbstractParameterization; indent = "")
+    print(io, nameof(typeof(p)), '\n')
+    fields = filter(f -> !(getfield(p, f) isa Grid), propertynames(p))
+    for (i, field) in enumerate(fields)
+        last = i == length(fields)
+        start = indent * (last ? "└── " : "├── ")
+        values = getfield(p, field)
+        if values isa AbstractParameterization
+            print(io, start, field, ": ")
+            show(io, values; indent = indent * (last ? "    " : "│   "))
+        elseif values isa AbstractArray && ndims(values) > 0
+            print(io, start, field, ": ", extrema(values), '\n')
+        else
+            print(io, start, field, ": ", values, '\n')
+        end
+    end
+end
+
+function Base.show(io::IO, params::Parameters{Tf}) where Tf
+    print(io, "Parameters", '\n')
+    print(io, "├── Precision: ", Tf, '\n')
+    fields = propertynames(params)
+    for (i, field) in enumerate(fields)
+        start = i == length(fields) ? "└── " : "├── "
+        print(io, start, field, ": ", getfield(params, field), '\n')
+    end
+end
+
+function Base.show(io::IO, x::Union{State, Surface, Diagnostics})
+    grid = x.grid
+    print(io, nameof(typeof(x)), '\n')
+    print(io, "├── Precision: ", eltype(grid), '\n')
+    print(io, "├── Grid: ", grid.Nx, " × ", grid.Ny, '\n')
+    print(io, "└── Fields: ", length(propertynames(x)) - 1, '\n')
+end
