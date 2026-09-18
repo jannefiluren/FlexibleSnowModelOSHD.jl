@@ -13,8 +13,8 @@ function create_minimal_fsm(Tf::Type)
     # Initialize model with minimal configuration
     fsm = bare_fsm(Grid(Tf; Nx = 1, Ny = 1))
 
-    # Set tile fraction
-    fsm.surface.tilefrac[1, 1] = Tf(1.0)
+    # Mark the cell active
+    fsm.surface.active[1, 1] = true
 
     # Set default thermal properties
     # Typical soil volumetric heat capacity: ~2.0e6 J/m³/K

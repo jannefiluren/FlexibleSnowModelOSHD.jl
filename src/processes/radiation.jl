@@ -37,11 +37,10 @@ end
 
     i, j = @index(Global, NTuple)
 
-    (; tthresh) = params
-    (; tilefrac, alb0) = surface
+    (; active, alb0) = surface
     (; albs, fsnow) = state
 
-    if (tilefrac[i, j] >= tthresh)
+    if active[i, j]
 
         snow_albedo!(albedo, i, j, state, surface, meteo, params, summer_decay)
 

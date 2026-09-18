@@ -40,9 +40,9 @@ end
 
     @unpack_constants(Tf)
 
-    (; dt, tthresh, rho0, rhob, rhoc, rhof, rhos_min, Tsnow_min) = params
+    (; dt, rho0, rhob, rhoc, rhof, rhos_min, Tsnow_min) = params
     (; Dzsoil) = grid
-    (; dem, tilefrac) = surface
+    (; dem, active) = surface
     (; Tsnow, Ds, Sice, Sliq, Nsnow, fsnow, Tsoil, Tsrf) = state
     (;
         Sbsrf, Roff_bare, Roff_snow, Roff, meltflux_out, Gsoil, Sice0, snowdepth0,
@@ -50,7 +50,7 @@ end
     ) = diag
     (; Rf, Ta) = meteo
 
-    if (tilefrac[i, j] >= tthresh)
+    if active[i, j]
 
         # Kernel-local scratch
         csnow = zero(MVector{Nsmax, Tf})

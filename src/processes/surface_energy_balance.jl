@@ -33,10 +33,9 @@ end
 
     i, j = @index(Global, NTuple)
 
-    (; tthresh) = params
-    (; tilefrac) = surface
+    (; active) = surface
 
-    if (tilefrac[i, j] >= tthresh)
+    if active[i, j]
 
         energy_balance!(land_cover, substrate, i, j, state, diag, surface, params, meteo)
 

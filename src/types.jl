@@ -34,7 +34,6 @@ end
     zT::Tf = 10                                      # Temperature measurement height (m)
     zU::Tf = 10                                      # Wind speed measurement height (m)
     zRH::Tf = 10                                     # Relative humidity measurement height (m)
-    tthresh::Tf = 0.1                                # Tile threshold
     Nitr::Int = 4                                    # Iterations for surface energy balance
     cvai::Tf = 4.4                                   # Canopy snow capacity per unit vegetation area index (kg/m^2)
     pmultf_for::Tf = 0.5                             # Multiplier for snowfall in forest (-)
@@ -49,7 +48,7 @@ end
     Tprof::Tf = 285                                  # Initial soil layer temperatures (K)
 end
 
-@kwdef struct Surface{GT, MF, MF64}
+@kwdef struct Surface{GT, MF, MF64, MB}
     grid::GT
 
     # Terrain
@@ -58,7 +57,7 @@ end
     slopemu::MF = fill(NaN, grid.Nx, grid.Ny)       # Slope parameter (-)
     xi::MF = fill(NaN, grid.Nx, grid.Ny)            # Terrain correlation length (m)
     fsky_terr::MF = fill(NaN, grid.Nx, grid.Ny)     # Sky view fraction terrain (-)
-    tilefrac::MF = ones(grid.Nx, grid.Ny)           # Tile fraction (-)
+    active::MB = trues(grid.Nx, grid.Ny)            # Per-cell mask: run physics where true
 
     # Snow and ground surface
     z0_snow::MF = 0.002 * ones(grid.Nx, grid.Ny)    # Roughness length of snow (m)
@@ -255,7 +254,7 @@ end
 
 function Base.show(io::IO, fsm::FSM{Tf}) where Tf
 
-    active = fsm.surface.tilefrac .>= fsm.params.tthresh
+    active = fsm.surface.active
     Ds = dropdims(sum(fsm.state.Ds, dims=1), dims=1)
     SWE = dropdims(sum(fsm.state.Sice .+ fsm.state.Sliq, dims=1), dims=1)
     Tsrf = fsm.state.Tsrf

@@ -11,6 +11,18 @@ end
 SoilSubstrate{Tf}(grid::Grid; kwargs...) where {Tf} = SoilSubstrate{Tf}(; kwargs...)
 IceSubstrate{Tf}(grid::Grid; kwargs...) where {Tf} = IceSubstrate{Tf}(; kwargs...)
 
+# Per-cell mix of soil and glacier-ice substrate for a single run. `icecells` is a per-cell mask:
+# physics uses the ice scheme where it is true and the soil scheme elsewhere. Carries a grid-sized
+# array like the per-cell albedo schemes, so it is `@adapt_structure`d.
+struct MixedSubstrate{Tf, S, I, MB} <: AbstractSubstrate{Tf}
+    soil::S
+    ice::I
+    icecells::MB
+end
+MixedSubstrate(soil::SoilSubstrate{Tf}, ice::IceSubstrate{Tf}, icecells::AbstractMatrix{Bool}) where {Tf} =
+    MixedSubstrate{Tf, typeof(soil), typeof(ice), typeof(icecells)}(soil, ice, icecells)
+@adapt_structure MixedSubstrate
+
 """
     soil_properties!(substrate, i, j, state, diag, surface, grid, params)
 
@@ -86,6 +98,15 @@ end
     return nothing
 end
 
+@inline function soil_properties!(m::MixedSubstrate, i, j, state, diag, surface, grid, params)
+    if m.icecells[i, j]
+        soil_properties!(m.ice, i, j, state, diag, surface, grid, params)
+    else
+        soil_properties!(m.soil, i, j, state, diag, surface, grid, params)
+    end
+    return nothing
+end
+
 """
     cap_soil_temperature!(substrate, i, j, state, grid)
 
@@ -103,6 +124,44 @@ function cap_soil_temperature! end
 
     for k in 1:Nsoil
         Tsoil[k, i, j] = min(Tsoil[k, i, j], Tm)
+    end
+    return nothing
+end
+
+@inline function cap_soil_temperature!(m::MixedSubstrate, i, j, state, grid)
+    if m.icecells[i, j]
+        cap_soil_temperature!(m.ice, i, j, state, grid)
+    else
+        cap_soil_temperature!(m.soil, i, j, state, grid)
+    end
+    return nothing
+end
+
+"""
+    cap_initial_temperatures!(substrate, state, surface, grid)
+
+Cap the initial surface and soil temperatures at the melting point on glacier ice: everywhere for an
+`IceSubstrate`, on the `icecells` for a `MixedSubstrate`, and nowhere for a `SoilSubstrate`. Called
+once from `build_state`.
+"""
+function cap_initial_temperatures! end
+
+cap_initial_temperatures!(::SoilSubstrate, state, surface, grid) = nothing
+
+function cap_initial_temperatures!(::IceSubstrate{Tf}, state, surface, grid) where {Tf}
+    Tm = get_constants(Tf).Tm
+    state.Tsrf .= min.(state.Tsrf, Tm)
+    state.Tsoil .= min.(state.Tsoil, Tm)
+    return nothing
+end
+
+function cap_initial_temperatures!(m::MixedSubstrate, state, surface, grid)
+    Tm = get_constants(eltype(state.Tsrf)).Tm
+    glacier = m.icecells
+    state.Tsrf[glacier] .= min.(state.Tsrf[glacier], Tm)
+    for k in 1:grid.Nsoil
+        Tsoilk = @view state.Tsoil[k, :, :]
+        Tsoilk[glacier] .= min.(Tsoilk[glacier], Tm)
     end
     return nothing
 end

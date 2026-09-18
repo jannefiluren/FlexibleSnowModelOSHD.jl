@@ -31,12 +31,11 @@ end
 
     i, j = @index(Global, NTuple)
 
-    (; tthresh) = params
-    (; tilefrac) = surface
+    (; active) = surface
     (; Tveg) = state
     (; Tveg0) = diag
 
-    if (tilefrac[i, j] >= tthresh)
+    if active[i, j]
 
         snow_conductivity!(conductivity, i, j, state, diag, params)
         soil_properties!(substrate, i, j, state, diag, surface, grid, params)

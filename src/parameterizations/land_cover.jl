@@ -36,6 +36,18 @@ OpenCover{Tf}(; stability = LouisStabilityCorrection{Tf}()) where {Tf} =
 OpenCover{Tf}(grid::Grid; kwargs...) where {Tf} = OpenCover{Tf}(; kwargs...)
 ForestCover{Tf}(grid::Grid; kwargs...) where {Tf} = ForestCover{Tf}(; kwargs...)
 
+# Per-cell mix of open and forest land cover for a single run. `forestcells` is a per-cell mask:
+# physics uses the forest scheme where it is true and the open scheme elsewhere (glacier cells use
+# open cover). Carries a grid-sized array like the per-cell albedo schemes, so it is `@adapt_structure`d.
+struct MixedLandCover{Tf, O, F, MB} <: AbstractLandCover{Tf}
+    open::O
+    forest::F
+    forestcells::MB
+end
+MixedLandCover(open::OpenCover{Tf}, forest::ForestCover{Tf}, forestcells::AbstractMatrix{Bool}) where {Tf} =
+    MixedLandCover{Tf, typeof(open), typeof(forest), typeof(forestcells)}(open, forest, forestcells)
+@adapt_structure MixedLandCover
+
 canopy_fsar(c::ForestCover) = c.fsar
 canopy_avg0(c::ForestCover) = c.avg0
 canopy_avgs(c::ForestCover) = c.avgs
@@ -532,5 +544,56 @@ end
         Hsrf[i, j] = Rnet[i, j] - G[i, j] - LEsrf[i, j] - Lf * Melt[i, j]
     end
 
+    return nothing
+end
+
+# Per-cell delegation for a MixedLandCover: pick the concrete land-cover method from the
+# `forestcells` mask. Both branches call concrete, inlined methods (no dynamic dispatch),
+# so this stays GPU-safe.
+
+@inline function canopy_snow!(m::MixedLandCover, i, j, state, diag, surface, params)
+    if m.forestcells[i, j]
+        canopy_snow!(m.forest, i, j, state, diag, surface, params)
+    else
+        canopy_snow!(m.open, i, j, state, diag, surface, params)
+    end
+    return nothing
+end
+
+@inline function exchange_coefficients!(m::MixedLandCover, i, j, state, diag, surface, params, meteo, z0g)
+    if m.forestcells[i, j]
+        exchange_coefficients!(m.forest, i, j, state, diag, surface, params, meteo, z0g)
+    else
+        exchange_coefficients!(m.open, i, j, state, diag, surface, params, meteo, z0g)
+    end
+    return nothing
+end
+
+@inline function solar_radiation!(m::MixedLandCover, i, j, state, diag, surface, meteo)
+    if m.forestcells[i, j]
+        solar_radiation!(m.forest, i, j, state, diag, surface, meteo)
+    else
+        solar_radiation!(m.open, i, j, state, diag, surface, meteo)
+    end
+    return nothing
+end
+
+@inline function thermal_radiation!(m::MixedLandCover, i, j, diag, surface, meteo)
+    if m.forestcells[i, j]
+        thermal_radiation!(m.forest, i, j, diag, surface, meteo)
+    else
+        thermal_radiation!(m.open, i, j, diag, surface, meteo)
+    end
+    return nothing
+end
+
+@inline function energy_balance!(m::MixedLandCover, substrate::MixedSubstrate, i, j, state, diag, surface, params, meteo)
+    if m.forestcells[i, j]
+        energy_balance!(m.forest, substrate.soil, i, j, state, diag, surface, params, meteo)
+    elseif substrate.icecells[i, j]
+        energy_balance!(m.open, substrate.ice, i, j, state, diag, surface, params, meteo)
+    else
+        energy_balance!(m.open, substrate.soil, i, j, state, diag, surface, params, meteo)
+    end
     return nothing
 end

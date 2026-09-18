@@ -72,9 +72,9 @@ export FSM, MET, Grid
 export AbstractParameterization, grid_array, check_grid, instantiate, reconstruct
 export AbstractConductivity, FixedConductivity, DensityConductivity, snow_conductivity!
 export AbstractAlbedo, DiagnosticAlbedo, DecayAlbedo, PrognosticAlbedo, snow_albedo!
-export AbstractLandCover, OpenCover, ForestCover, surface_energy_balance!, energy_balance!, canopy_snow!
+export AbstractLandCover, OpenCover, ForestCover, MixedLandCover, surface_energy_balance!, energy_balance!, canopy_snow!
 export solar_radiation!, thermal_radiation!
-export AbstractSubstrate, SoilSubstrate, IceSubstrate, soil_properties!
+export AbstractSubstrate, SoilSubstrate, IceSubstrate, MixedSubstrate, soil_properties!
 export AbstractStabilityCorrection, NoStabilityCorrection, LouisStabilityCorrection
 export AbstractFreshSnowDensity, FixedFreshSnowDensity, ClimateFreshSnowDensity, ElevationFreshSnowDensity, snowfall_density
 export AbstractCompaction, AgeCompaction, OverburdenCompaction, CrocusCompaction, compact_snow!

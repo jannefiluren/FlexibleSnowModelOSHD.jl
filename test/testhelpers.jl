@@ -22,7 +22,7 @@ function bare_fsm(
     check_layer_thicknesses(grid)
     GT = typeof(grid)
     params = Parameters{Tf}()
-    surface = Surface{GT, Matrix{Tf}, Matrix{Float64}}(; grid = grid)
+    surface = Surface{GT, Matrix{Tf}, Matrix{Float64}, Matrix{Bool}}(; grid = grid)
     state = State{GT, Matrix{Tf}, Matrix{Int}, Array{Tf, 3}}(; grid = grid)
     diag = Diagnostics{GT, Matrix{Tf}, Array{Tf, 3}}(; grid = grid)
     physics = (;
@@ -42,7 +42,13 @@ function build_fsm(arch::AbstractArchitecture, grid::Grid, landuse::Dict, settin
     substrate = get(physics, "substrate", tile == "glacier" ? IceSubstrate : SoilSubstrate)
     schemes = (; (Symbol(k) => v for (k, v) in physics if !(k in ("land_cover", "substrate")))...)
 
-    fsm = FSM(grid, landuse; arch, land_cover, substrate, schemes...)
+    # Which cells to run: open runs everywhere; forest/glacier where the tile fraction >= tthresh
+    # (0.1 is the test suite's threshold; reproduces the old tilefrac gate).
+    Tf = eltype(grid)
+    tthresh = Tf(0.1)
+    active = tile == "open" ? trues(grid.Nx, grid.Ny) : (Tf.(landuse[tile]["data"]) .>= tthresh)
+
+    fsm = FSM(grid, landuse; arch, active, land_cover, substrate, schemes...)
 
     # Per-cell Surface overrides (e.g. z0_snow). Scalar Parameters overrides are not used in the
     # FSM test suite, so they are intentionally unsupported here.

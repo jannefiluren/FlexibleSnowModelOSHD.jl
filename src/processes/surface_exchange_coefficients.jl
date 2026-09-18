@@ -34,10 +34,9 @@ end
 
     i, j = @index(Global, NTuple)
 
-    (; tthresh) = params
-    (; tilefrac) = surface
+    (; active) = surface
 
-    if (tilefrac[i, j] >= tthresh)
+    if active[i, j]
 
         z0g = ground_roughness(snow_fraction, i, j, state, surface)
 

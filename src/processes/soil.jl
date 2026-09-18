@@ -32,10 +32,9 @@ end
 
     i, j = @index(Global, NTuple)
 
-    (; tthresh) = params
-    (; tilefrac) = surface
+    (; active) = surface
 
-    if (tilefrac[i, j] >= tthresh)
+    if active[i, j]
 
         soil_temperature!(i, j, state, diag, grid, params, Val(Nsoil))
         cap_soil_temperature!(substrate, i, j, state, grid)

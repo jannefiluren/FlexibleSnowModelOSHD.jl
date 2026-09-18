@@ -34,6 +34,10 @@ end
     include("test_regression.jl")
 end
 
+@testset "Mixed land cover" begin
+    include("test_mixed_landcover.jl")
+end
+
 # GPU test — runs a full CPU-vs-GPU comparison only if CUDA is functional in the (stacked)
 # default environment; otherwise it logs a skip and adds no tests. See test_gpu.jl.
 include("test_gpu.jl")

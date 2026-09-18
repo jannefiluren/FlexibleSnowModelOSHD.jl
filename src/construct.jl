@@ -14,11 +14,16 @@ function Grid(::Type{Tf}, landuse::Dict; kwargs...) where {Tf}
     return Grid{Tf, Vector{Tf}}(; kwargs..., Nx, Ny)
 end
 
-# Build the Surface struct from the landuse data. Which landuse fraction to load and whether to read
-# canopy — is inferred from the scheme types.
-function build_surface(grid::Grid{Tf}, landuse::Dict, land_cover, substrate, params) where {Tf}
+# Mask for forest cells depending on land cover type
+forest_cells(::AbstractLandCover, grid) = falses(grid.Nx, grid.Ny)
+forest_cells(::ForestCover, grid) = trues(grid.Nx, grid.Ny)
+forest_cells(m::MixedLandCover, grid) = m.forestcells
+
+# Build Surface from the landuse data
+function build_surface(grid::Grid{Tf}, landuse::Dict, land_cover, params, active) where {Tf}
     c = get_constants(Tf)
-    sf = Surface{typeof(grid), Matrix{Tf}, Matrix{Float64}}(; grid = grid)
+    sf = Surface{typeof(grid), Matrix{Tf}, Matrix{Float64}, Matrix{Bool}}(; grid = grid)
+    sf.active .= active
 
     # Terrain properties
     sf.fsky_terr .= Tf.(require_field(landuse, "skyvf"))
@@ -27,22 +32,6 @@ function build_surface(grid::Grid{Tf}, landuse::Dict, land_cover, substrate, par
     sf.slopemu .= Tf.(require_field(landuse, "slopemu"))
     sf.xi .= Tf.(require_field(landuse, "xi"))
     sf.Ld .= Tf.(require_field(landuse, "Ld"))
-
-    # Tile fraction for the chosen tile (open keeps the default of ones)
-    if land_cover isa ForestCover
-        sf.tilefrac .= Tf.(require_field(landuse, "forest"))
-    elseif substrate isa IceSubstrate
-        sf.tilefrac .= Tf.(require_field(landuse, "glacier"))
-    end
-
-    # Canopy inputs (forest tile only)
-    if land_cover isa ForestCover
-        sf.fveg .= Tf.(require_field(landuse, "fveg"))
-        sf.hcan .= Tf.(require_field(landuse, "hcan"))
-        sf.lai .= Tf.(require_field(landuse, "lai"))
-        sf.vfhp .= Tf.(require_field(landuse, "vfhp"))
-        sf.fves .= Tf.(require_field(landuse, "fves"))
-    end
 
     # Derived soil parameters
     mask = sf.fcly .+ sf.fsnd .> Tf(1)
@@ -55,46 +44,50 @@ function build_surface(grid::Grid{Tf}, landuse::Dict, land_cover, substrate, par
     hcon_min = (c.hcon_clay .^ sf.fcly) .* (c.hcon_sand .^ (Tf(1) .- sf.fcly))
     sf.hcon_soil .= (c.hcon_air .^ sf.Vsat) .* (hcon_min .^ (Tf(1) .- sf.Vsat))
 
-    # Derived canopy fields (forest tile only)
-    if land_cover isa ForestCover
-        forest = require_field(landuse, "forest")
+    # Canopy inputs and derived canopy fields on the forest cells
+    forest = forest_cells(land_cover, grid)
+    if any(forest)
+        sf.fveg[forest] .= Tf.(require_field(landuse, "fveg")[forest])
+        sf.hcan[forest] .= Tf.(require_field(landuse, "hcan")[forest])
+        sf.lai[forest] .= Tf.(require_field(landuse, "lai")[forest])
+        sf.vfhp[forest] .= Tf.(require_field(landuse, "vfhp")[forest])
+        sf.fves[forest] .= Tf.(require_field(landuse, "fves")[forest])
+
         prec_multi = require_field(landuse, "prec_multi")
-        sf.pmultf .= Tf.((1 .- (1 .- prec_multi) .* (1 .- forest * params.pmultf_for)) ./ prec_multi)
-        sf.VAI[:, :] = sf.lai[:, :]
-        sf.trcn[:, :] = Tf(1) .- Tf(0.9) .* sf.fveg[:, :]
-        sf.fsky .= sf.vfhp ./ sf.trcn
-        cmask = sf.fsky .> Tf(1)
+        forestfrac = require_field(landuse, "forest")
+        pmultf = Tf.((1 .- (1 .- prec_multi) .* (1 .- forestfrac * params.pmultf_for)) ./ prec_multi)
+        sf.pmultf[forest] .= pmultf[forest]
+        sf.VAI[forest] .= sf.lai[forest]
+        sf.trcn[forest] .= Tf(1) .- Tf(0.9) .* sf.fveg[forest]
+        sf.fsky[forest] .= sf.vfhp[forest] ./ sf.trcn[forest]
+        cmask = forest .& (sf.fsky .> Tf(1))
         sf.trcn[cmask] .= sf.vfhp[cmask]
         sf.fsky[cmask] .= Tf(1)
-        sf.canh[:, :] = Tf(12500) .* sf.VAI[:, :]
-        sf.scap[:, :] = params.cvai .* sf.VAI[:, :]
+        sf.canh[forest] .= Tf(12500) .* sf.VAI[forest]
+        sf.scap[forest] .= params.cvai .* sf.VAI[forest]
     end
 
     return sf
 end
 
-# Validate the built Surface sturct against the chosen physics
-function validate_surface(surface, params, land_cover)
+# Range-check the canopy inputs on the land cover's active forest cells
+function validate_surface(surface, land_cover)
     Tf = eltype(surface.dem)
-
-    if land_cover isa ForestCover
-        active = surface.tilefrac .>= params.tthresh
-        for (name, field, lo, hi) in (
-                (:fveg, surface.fveg, Tf(0.02), Tf(0.99)),
-                (:fves, surface.fves, Tf(0.02), Tf(0.99)),
-                (:vfhp, surface.vfhp, Tf(0.02), Tf(0.99)),
-                (:hcan, surface.hcan, Tf(1.0), Tf(100.0)),
-                (:lai, surface.lai, Tf(0.05), Tf(10.0)),
-            )
-            bad = count(active .& ((field .< lo) .| (field .> hi)))
-            bad == 0 || error("forest tile: $bad active cell(s) have $name outside [$lo, $hi]")
-        end
+    forest = forest_cells(land_cover, surface.grid) .& surface.active
+    for (name, field, lo, hi) in (
+            (:fveg, surface.fveg, Tf(0.02), Tf(0.99)),
+            (:fves, surface.fves, Tf(0.02), Tf(0.99)),
+            (:vfhp, surface.vfhp, Tf(0.02), Tf(0.99)),
+            (:hcan, surface.hcan, Tf(1.0), Tf(100.0)),
+            (:lai, surface.lai, Tf(0.05), Tf(10.0)),
+        )
+        bad = count(forest .& ((field .< lo) .| (field .> hi)))
+        bad == 0 || error("forest cell: $bad active cell(s) have $name outside [$lo, $hi]")
     end
-
     return nothing
 end
 
-# Build the initial State from the finalized Surface.
+# Build the initial State from the finalized Surface
 function build_state(grid::Grid{Tf}, surface, params, substrate) where {Tf}
     GT = typeof(grid)
     st = State{GT, Matrix{Tf}, Matrix{Int}, Array{Tf, 3}}(; grid = grid)
@@ -105,12 +98,7 @@ function build_state(grid::Grid{Tf}, surface, params, substrate) where {Tf}
         st.Tsoil[k, :, :] .= params.Tprof
     end
 
-    # Cap surface and soil temperatures on glacier ice
-    if substrate isa IceSubstrate
-        Tm = get_constants(Tf).Tm
-        st.Tsrf .= min.(st.Tsrf, Tm)
-        st.Tsoil .= min.(st.Tsoil, Tm)
-    end
+    cap_initial_temperatures!(substrate, st, surface, grid)
 
     return st
 end
@@ -127,6 +115,7 @@ keyword accepts a scheme **type** (default-constructed at the grid precision) or
 function FSM(
         grid::Grid{Tf}, landuse::Dict;
         arch::AbstractArchitecture = CPU(),
+        active = trues(grid.Nx, grid.Ny),
         params = Parameters{Tf}(),
         snow_albedo = PrognosticAlbedo{Tf}(grid),
         land_cover = OpenCover{Tf}(),
@@ -159,13 +148,21 @@ function FSM(
         check_grid(scheme, grid.Nx, grid.Ny)
     end
 
+    # Mixed land cover and substrate must be used together, with disjoint forest/ice cells.
+    (physics.land_cover isa MixedLandCover) == (physics.substrate isa MixedSubstrate) ||
+        error("mixed land cover requires both a MixedLandCover and a MixedSubstrate")
+    if physics.land_cover isa MixedLandCover
+        any(physics.land_cover.forestcells .& physics.substrate.icecells) &&
+            error("forestcells and icecells overlap; a cell cannot be both forest and glacier")
+    end
+
     # Lock fresh snow density to a constant when the fixed scheme is selected
     if physics.fresh_snow_density isa FixedFreshSnowDensity
         params = reconstruct(params; rhof = params.rho0)
     end
 
-    surface = build_surface(grid, landuse, physics.land_cover, physics.substrate, params)
-    validate_surface(surface, params, physics.land_cover)
+    surface = build_surface(grid, landuse, physics.land_cover, params, active)
+    validate_surface(surface, physics.land_cover)
     state = build_state(grid, surface, params, physics.substrate)
     diag = Diagnostics{typeof(grid), Matrix{Tf}, Array{Tf, 3}}(; grid = grid)
 

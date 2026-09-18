@@ -31,10 +31,9 @@ end
 
     i, j = @index(Global, NTuple)
 
-    (; tthresh) = params
-    (; tilefrac) = surface
+    (; active) = surface
 
-    if (tilefrac[i, j] >= tthresh)
+    if active[i, j]
 
         canopy_snow!(land_cover, i, j, state, diag, surface, params)
 
