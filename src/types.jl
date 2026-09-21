@@ -138,8 +138,8 @@
 
   # Grid cell/ pixel properties 
 
-  tilefrac::Array{Tf,2} = ones(Nx,Ny)                      # Tile fraction  
-  landcover::Array{Ti,2} = ones(Ti,Nx,Ny)                   # Land cover type grid. 1 = open, 2 = glacier, 3 = forest, 0 = exclude
+  # tilefrac::Array{Tf,2} = ones(Nx,Ny)                      # Tile fraction  
+  landcover::Array{Ti,2} = ones(Ti,Nx,Ny)                  # Land cover type grid. 1 = open, 2 = glacier, 3 = forest, 0 = exclude
     
   # Surface parameters
   
@@ -261,7 +261,7 @@
   Melt::Array{Tf,2} = zeros(Nx,Ny)                         # Surface melt rate (kg/m^2/s)
   Rnet::Array{Tf,2} = zeros(Nx,Ny)                         # Net radiation (W/m^2)
   Rsrf::Array{Tf,2} = zeros(Nx,Ny)                         # Net radiation at surface (W/m^2)
-  Icemlt::Array{Tf,2} = zeros(Nx,Ny)                              # Ice melt rate (kg/m^2/s)
+  Icemlt::Array{Tf,2} = zeros(Nx,Ny)                       # Ice melt rate (kg/m^2/s)
 
   # Variables used in ebalfor-function
 

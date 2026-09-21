@@ -29,6 +29,9 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
 
   # Set tile
   fsm.TILE = settings["tile"]
+  if haskey(landuse, "landcover")
+    fsm.landcover = landuse["landcover"]["data"] # only for gridded glacierized simulations
+  end
 
   # Apply model configuration
   if haskey(settings, "config")
@@ -76,7 +79,11 @@ function setup(Tf, Ti, landuse::Dict, Nx::Int, Ny::Int, settings::Dict)
 
   # Initial soil profiles
   fsat = Tf(0.5)
-  Tprof = Tf(285)
+  if haskey(settings, "Tinit")
+    Tprof = settings["Tinit"]
+  else
+    Tprof = Tf(273.15) #273.15 #285
+  end
   for k = 1:fsm.Nsoil
     fsm.theta[k, :, :] .= fsat * fsm.Vsat[:, :]
     fsm.Tsoil[k, :, :] .= Tprof
