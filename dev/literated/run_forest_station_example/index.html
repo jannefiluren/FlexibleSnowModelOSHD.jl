@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Forest-site simulation · FlexibleSnowModelOSHD.jl</title><meta name="title" content="Forest-site simulation · FlexibleSnowModelOSHD.jl"/><meta property="og:title" content="Forest-site simulation · FlexibleSnowModelOSHD.jl"/><meta property="twitter:title" content="Forest-site simulation · FlexibleSnowModelOSHD.jl"/><meta name="description" content="Documentation for FlexibleSnowModelOSHD.jl."/><meta property="og:description" content="Documentation for FlexibleSnowModelOSHD.jl."/><meta property="twitter:description" content="Documentation for FlexibleSnowModelOSHD.jl."/><meta property="og:url" content="https://jannefiluren.github.io/FlexibleSnowModelOSHD.jl/literated/run_forest_station_example/"/><meta property="twitter:url" content="https://jannefiluren.github.io/FlexibleSnowModelOSHD.jl/literated/run_forest_station_example/"/><link rel="canonical" href="https://jannefiluren.github.io/FlexibleSnowModelOSHD.jl/literated/run_forest_station_example/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.63.2/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">FlexibleSnowModelOSHD.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../constructing_a_model/">Constructing a model</a></li><li><a class="tocitem" href="../run_open_station_example/">Open-site simulation</a></li><li class="is-active"><a class="tocitem" href>Forest-site simulation</a><ul class="internal"><li><a class="tocitem" href="#Model-setup"><span>Model setup</span></a></li><li><a class="tocitem" href="#Time-loop"><span>Time loop</span></a></li><li><a class="tocitem" href="#Run-the-example"><span>Run the example</span></a></li></ul></li></ul></li><li><a class="tocitem" href="../../api/">API reference</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>Forest-site simulation</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Forest-site simulation</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/jannefiluren/FlexibleSnowModelOSHD.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/jannefiluren/FlexibleSnowModelOSHD.jl/blob/main/examples/run_forest_station_example.jl" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Forest-site-simulation"><a class="docs-heading-anchor" href="#Forest-site-simulation">Forest-site simulation</a><a id="Forest-site-simulation-1"></a><a class="docs-heading-anchor-permalink" href="#Forest-site-simulation" title="Permalink"></a></h1><p>A point simulation over a single forested cell. Same driving data as the open-site example, but with canopy properties and the <code>ForestCover</code> land cover, so canopy interception, unloading and sub-canopy radiation are active.</p><pre><code class="language-julia hljs">using Dates
+using CSV
+using DataFrames
+using FlexibleSnowModelOSHD</code></pre><h2 id="Model-setup"><a class="docs-heading-anchor" href="#Model-setup">Model setup</a><a id="Model-setup-1"></a><a class="docs-heading-anchor-permalink" href="#Model-setup" title="Permalink"></a></h2><p>The landuse now carries canopy fields (<code>fveg</code>, <code>hcan</code>, <code>lai</code>, …) and the FSM is built with <code>ForestCover</code>.</p><pre><code class="language-julia hljs">function setup_example()
+
+    # Set landuse properties
+    lus = Dict()
+    lus[&quot;skyvf&quot;] = Dict(&quot;data&quot; =&gt; [1.0;;])
+    lus[&quot;elevation&quot;] = Dict(&quot;data&quot; =&gt; [2540.0;;])
+    lus[&quot;slopemu&quot;] = Dict(&quot;data&quot; =&gt; [1.0;;])
+    lus[&quot;xi&quot;] = Dict(&quot;data&quot; =&gt; [1.0;;])
+    lus[&quot;Ld&quot;] = Dict(&quot;data&quot; =&gt; [1.0;;])
+    lus[&quot;prec_multi&quot;] = Dict(&quot;data&quot; =&gt; [1.0;;])
+
+    # Add forest properties
+    lus[&quot;forest&quot;] = Dict(&quot;data&quot; =&gt; [1;;]) # Forest cover fraction
+    lus[&quot;fveg&quot;] = Dict(&quot;data&quot; =&gt; [0.6;;]) # Canopy cover fraction
+    lus[&quot;fves&quot;] = Dict(&quot;data&quot; =&gt; [0.6;;]) # Stand-scale canopy cover fraction
+    lus[&quot;hcan&quot;] = Dict(&quot;data&quot; =&gt; [20;;])  # Canopy height (m)
+    lus[&quot;lai&quot;] = Dict(&quot;data&quot; =&gt; [2.5;;])  # Leaf area index
+    lus[&quot;vfhp&quot;] = Dict(&quot;data&quot; =&gt; [0.5;;]) # Hemispherical sky-view fraction including canopy
+
+    # Create FSM struct with forest terrain land cover (ForestCover / SoilSubstrate schemes)
+    grid = Grid(Float32; Nx = 1, Ny = 1)
+    fsm = FSM(grid, lus; land_cover = ForestCover{Float32}())
+
+    # Define meteo data struct
+    met = MET{Float32}()
+
+    # Read meteorological data from a text file
+    df_meteo = CSV.read(joinpath(pkgdir(FlexibleSnowModelOSHD), &quot;data&quot;, &quot;input_SLF_5WJ.txt&quot;), DataFrame)
+
+    return fsm, met, df_meteo
+
+end</code></pre><pre><code class="nohighlight hljs">setup_example (generic function with 1 method)</code></pre><h2 id="Time-loop"><a class="docs-heading-anchor" href="#Time-loop">Time loop</a><a id="Time-loop-1"></a><a class="docs-heading-anchor-permalink" href="#Time-loop" title="Permalink"></a></h2><p>As in the open-site example, plus the canopy transmissivity <code>Tv</code> forcing.</p><pre><code class="language-julia hljs">function run_fsm(fsm, met, df_meteo)
+
+    # Allocate output variable-wise
+    hs = zeros(nrow(df_meteo))
+
+    # Loop over time
+    for (i, row) in zip(1:nrow(df_meteo), eachrow(df_meteo))
+
+        # Assign input to the MET struct
+        met.Sdir .= row[&quot;Sdir&quot;]
+        met.Sdif .= row[&quot;Sdif&quot;]
+        met.Sdird .= row[&quot;Sdir&quot;]
+        met.LW .= row[&quot;LW&quot;]
+        met.Sf .= row[&quot;Sf&quot;] / fsm.params.dt  # Convert accumulation (kg/m^2) to rate (kg/m^2/s)
+        met.Rf .= row[&quot;Rf&quot;] / fsm.params.dt  # Convert accumulation (kg/m^2) to rate (kg/m^2/s)
+        met.Ta .= row[&quot;Ta&quot;]
+        met.RH .= row[&quot;RH&quot;]
+        met.Ua .= row[&quot;Ua&quot;]
+        met.Ps .= row[&quot;Ps&quot;]
+        met.Sf24h .= row[&quot;Sf24h&quot;]
+        met.Tv .= row[&quot;Tv&quot;]
+
+        # Set time
+        t = DateTime(row[&quot;year&quot;], row[&quot;month&quot;], row[&quot;day&quot;], row[&quot;hour&quot;])
+
+        # Run model and update states
+        step!(fsm, met, t)
+
+        # Write output
+        hs[i] = dropdims(sum(fsm.state.Ds, dims = 1), dims = 1)[1, 1]
+
+    end
+
+    # Write results to a dataframe
+    time = DateTime.(df_meteo[!, &quot;year&quot;], df_meteo[!, &quot;month&quot;], df_meteo[!, &quot;day&quot;], df_meteo[!, &quot;hour&quot;])
+    df_results = DataFrame(time = time, hs = hs)
+
+    return df_results
+
+end</code></pre><pre><code class="nohighlight hljs">run_fsm (generic function with 1 method)</code></pre><h2 id="Run-the-example"><a class="docs-heading-anchor" href="#Run-the-example">Run the example</a><a id="Run-the-example-1"></a><a class="docs-heading-anchor-permalink" href="#Run-the-example" title="Permalink"></a></h2><p>Set up, run the season, and summarise the resulting snow-depth series.</p><pre><code class="language-julia hljs">fsm, met, df_meteo = setup_example()
+
+df_results = run_fsm(fsm, met, df_meteo)
+
+describe(df_results)</code></pre><div><div style = "float: left;"><span>2×7 DataFrame</span></div><div style = "clear: both;"></div></div><div class = "data-frame" style = "overflow-x: scroll;"><table class = "data-frame" style = "margin-bottom: 6px;"><thead><tr class = "columnLabelRow"><th class = "stubheadLabel" style = "font-weight: bold; text-align: right;">Row</th><th style = "text-align: left;">variable</th><th style = "text-align: left;">mean</th><th style = "text-align: left;">min</th><th style = "text-align: left;">median</th><th style = "text-align: left;">max</th><th style = "text-align: left;">nmissing</th><th style = "text-align: left;">eltype</th></tr><tr class = "columnLabelRow"><th class = "stubheadLabel" style = "font-weight: bold; text-align: right;"></th><th title = "Symbol" style = "text-align: left;">Symbol</th><th title = "Union{Nothing, Float64}" style = "text-align: left;">Union…</th><th title = "Any" style = "text-align: left;">Any</th><th title = "Any" style = "text-align: left;">Any</th><th title = "Any" style = "text-align: left;">Any</th><th title = "Int64" style = "text-align: left;">Int64</th><th title = "DataType" style = "text-align: left;">DataType</th></tr></thead><tbody><tr class = "dataRow"><td class = "rowLabel" style = "font-weight: bold; text-align: right;">1</td><td style = "text-align: left;">time</td><td style = "font-style: italic; text-align: left;"></td><td style = "text-align: left;">2021-09-01T06:00:00</td><td style = "text-align: left;">2022-02-15T05:30:00</td><td style = "text-align: left;">2022-08-01T05:00:00</td><td style = "text-align: right;">0</td><td style = "text-align: left;">DateTime</td></tr><tr class = "dataRow"><td class = "rowLabel" style = "font-weight: bold; text-align: right;">2</td><td style = "text-align: left;">hs</td><td style = "text-align: left;">0.690031</td><td style = "text-align: left;">0.0</td><td style = "text-align: left;">0.787209</td><td style = "text-align: left;">1.95731</td><td style = "text-align: right;">0</td><td style = "text-align: left;">Float64</td></tr></tbody></table></div><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../run_open_station_example/">« Open-site simulation</a><a class="docs-footer-nextpage" href="../../api/">API reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.19.0 on <span class="colophon-date" title="Wednesday 23 September 2026 08:24">Wednesday 23 September 2026</span>. Using Julia version 1.13.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
