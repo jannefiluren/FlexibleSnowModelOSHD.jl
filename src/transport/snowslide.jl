@@ -1,7 +1,7 @@
 const LIBSNOWSLIDE = joinpath(@__DIR__, "..", "..", "deps", "libsnowslide")
 
 """
-    snowslide!(fsm, w, snowdepth0, Sice0, dSWE_slide)
+$(TYPEDSIGNATURES)
 
 Lateral redistribution of snow through gravity using the SnowSlide model.
 

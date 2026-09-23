@@ -55,7 +55,7 @@ end
 end
 
 """
-    snowcoverfraction_point!(scheme, state, surface, snowdepth, SWEtmp, i, j, update_hist)
+$(TYPEDSIGNATURES)
 
 Snow cover fraction parameterizations for one grid cell.
 """
@@ -298,7 +298,7 @@ end
 end
 
 """
-    snow_cover_fraction!(fsm, snowdepth, SWEtmp, t, i, j, SWEbuffer, snowdepthbuffer, diffSWEbuffer)
+$(TYPEDSIGNATURES)
 
 Snow cover fraction for one grid cell (host convenience wrapper around
 [`snowcoverfraction_point!`](@ref), kept for API compatibility).

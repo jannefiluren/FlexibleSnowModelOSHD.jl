@@ -2,7 +2,7 @@
 paths:
   - src/**/*.jl
   - test/**/*.jl
-  - script/**/*.jl
+  - examples/**/*.jl
 ---
 
 # Comment rules

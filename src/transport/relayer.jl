@@ -2,7 +2,7 @@
 # deposits redistributed snow into diag, this layers it into the pack by reusing snow_layering!.
 
 """
-    relayer!(fsm, met, t; update_hist = false)
+$(TYPEDSIGNATURES)
 
 Grid-level relayering pass: accumulate the deposit currently in `diag.snowdepth0` /
 `diag.Sice0` into the snowpack, update the snow cover fraction and relayer, at every cell above

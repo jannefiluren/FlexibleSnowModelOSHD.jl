@@ -1,7 +1,7 @@
 # Soil process: soil / glacier-ice column temperature
 
 """
-    soil!(fsm)
+$(TYPEDSIGNATURES)
 
 Soil thermal processes: the temperature of the soil or glacier ice column.
 
@@ -43,7 +43,7 @@ end
 end
 
 """
-    soil_temperature!(i, j, state, diag, grid, params, ::Val{Nsoil})
+$(TYPEDSIGNATURES)
 
 Advance the soil column temperature `state.Tsoil[1:Nsoil, i, j]` at cell `(i, j)` by one
 step, solving the tridiagonal heat conduction system driven by `diag.Gsoil`.

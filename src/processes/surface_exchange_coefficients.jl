@@ -1,7 +1,7 @@
 # Computation of turbulent eddy diffusivities for heat and moisture
 
 """
-    surface_exchange_coefficients!(fsm, meteo)
+$(TYPEDSIGNATURES)
 
 Eddy diffusivities for turbulent transfer of heat and moisture between the ground,
 the canopy and the atmosphere.

@@ -1,13 +1,21 @@
+# # Open-site simulation
+#
+# A point simulation over a single open (non-forested) cell, driven by an hourly
+# meteorological time series read from a text file, tracking snow depth over the season.
+
 using Dates
 using CSV
 using DataFrames
 using FlexibleSnowModelOSHD
 
-const path = dirname(@__FILE__)
+# ## Model setup
+#
+# Build the landuse, the single-cell FSM (default open-terrain schemes), the meteorological
+# forcing struct, and read the driving data.
 
 function setup_example()
 
-    # set landuse properties
+    ## Set landuse properties
     lus = Dict()
     lus["skyvf"] = Dict("data" => [1.0;;])
     lus["elevation"] = Dict("data" => [2540.0;;])
@@ -16,30 +24,34 @@ function setup_example()
     lus["Ld"] = Dict("data" => [1.0;;])
     lus["prec_multi"] = Dict("data" => [1.0;;])
 
-    # create fsm struct with default open terrain land cover (OpenCover / SoilSubstrate schemes)
+    ## Create FSM struct with default open terrain land cover (OpenCover / SoilSubstrate schemes)
     grid = Grid(Float32; Nx = 1, Ny = 1)
     fsm = FSM(grid, lus)
 
-    # define meteo data struct
+    ## Define meteo data struct
     met = MET{Float32}()
 
-    # read meteo file
-    df_meteo = CSV.read(joinpath(path, "../data/input_SLF_5WJ.txt"), DataFrame)
+    ## Read meteorological data from a text file
+    df_meteo = CSV.read(joinpath(pkgdir(FlexibleSnowModelOSHD), "data", "input_SLF_5WJ.txt"), DataFrame)
 
     return fsm, met, df_meteo
 
 end
 
+# ## Time loop
+#
+# Step the model hour by hour, feeding each row of forcing into the `MET` struct and recording
+# the total snow depth.
 
 function run_fsm(fsm, met, df_meteo)
 
-    # allocate output variable-wise
+    ## Allocate output variable-wise
     hs = zeros(nrow(df_meteo))
 
-    # time loop
+    ## Loop over time
     for (i, row) in zip(1:nrow(df_meteo), eachrow(df_meteo))
 
-        # assign input
+        ## Assign input to the MET struct
         met.Sdir .= row["Sdir"]
         met.Sdif .= row["Sdif"]
         met.Sdird .= row["Sdir"]
@@ -52,24 +64,28 @@ function run_fsm(fsm, met, df_meteo)
         met.Ps .= row["Ps"]
         met.Sf24h .= row["Sf24h"]
 
-        # set time
+        ## Set time
         t = DateTime(row["year"], row["month"], row["day"], row["hour"])
 
-        # run model and update states
+        ## Run model and update states
         step!(fsm, met, t)
 
-        # write output
+        ## Write output
         hs[i] = dropdims(sum(fsm.state.Ds, dims = 1), dims = 1)[1, 1]
 
     end
 
-    # write results to dataframe
+    ## Write results to a dataframe
     time = DateTime.(df_meteo[!, "year"], df_meteo[!, "month"], df_meteo[!, "day"], df_meteo[!, "hour"])
     df_results = DataFrame(time = time, hs = hs)
 
     return df_results
 
 end
+
+# ## Run the example
+#
+# Set up, run the season, and summarise the resulting snow-depth series.
 
 fsm, met, df_meteo = setup_example()
 

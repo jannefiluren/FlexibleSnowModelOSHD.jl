@@ -15,7 +15,7 @@ KernelAbstractions kernels on both CPU and GPU.
 end
 
 """
-    first_argmin(v, n)
+$(TYPEDSIGNATURES)
 
 Index of the first minimum of `v[1:n]`. Equivalent to `argmin(v[1:n])` for
 data without NaNs, written as a plain loop that is safe inside kernels
@@ -32,7 +32,7 @@ data without NaNs, written as a plain loop that is safe inside kernels
 end
 
 """
-    first_argmax(v, n)
+$(TYPEDSIGNATURES)
 
 Index of the first maximum of `v[1:n]`; see [`first_argmin`](@ref).
 """

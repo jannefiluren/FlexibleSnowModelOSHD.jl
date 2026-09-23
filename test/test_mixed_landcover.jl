@@ -32,7 +32,8 @@ let
 
     grid = Grid(Tf, landuse)
 
-    fsm_mixed = FSM(grid, landuse;
+    fsm_mixed = FSM(
+        grid, landuse;
         land_cover = MixedLandCover(OpenCover{Tf}(), ForestCover{Tf}(), forestcells),
         substrate = MixedSubstrate(SoilSubstrate{Tf}(), IceSubstrate{Tf}(), icecells),
     )
@@ -79,11 +80,15 @@ let
 
     @testset "construction guards" begin
         # A half-mixed request (only one Mixed wrapper) is rejected.
-        @test_throws ErrorException FSM(grid, landuse;
-            land_cover = MixedLandCover(OpenCover{Tf}(), ForestCover{Tf}(), forestcells))
+        @test_throws ErrorException FSM(
+            grid, landuse;
+            land_cover = MixedLandCover(OpenCover{Tf}(), ForestCover{Tf}(), forestcells)
+        )
         # forestcells / icecells must be disjoint.
-        @test_throws ErrorException FSM(grid, landuse;
+        @test_throws ErrorException FSM(
+            grid, landuse;
             land_cover = MixedLandCover(OpenCover{Tf}(), ForestCover{Tf}(), [false true true false true false]),
-            substrate = MixedSubstrate(SoilSubstrate{Tf}(), IceSubstrate{Tf}(), icecells))
+            substrate = MixedSubstrate(SoilSubstrate{Tf}(), IceSubstrate{Tf}(), icecells)
+        )
     end
 end

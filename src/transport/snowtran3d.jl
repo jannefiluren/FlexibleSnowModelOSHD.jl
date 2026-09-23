@@ -1,7 +1,7 @@
 const LIBSNOWTRAN3D = joinpath(@__DIR__, "..", "..", "deps", "libsnowtran3d")
 
 """
-    snowtran3d!(fsm, met, w, snowdepth0, Sice0, dSWE_salt, dSWE_susp, dSWE_subl)
+$(TYPEDSIGNATURES)
 
 Snow transport by wind using Liston's SnowTran3D model.
 

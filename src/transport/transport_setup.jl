@@ -4,7 +4,7 @@
 # here is shared and cannot make the two paths disagree.
 
 """
-    setup_transport(fsm, landuse; wind = false, slide = false, use_fortran = false, tiled = false) -> SnowTransport
+$(TYPEDSIGNATURES)
 
 Allocate and initialise a [`SnowTransport`](@ref) workspace for `fsm`:
 
@@ -58,7 +58,7 @@ function setup_transport(
 end
 
 """
-    sort_dem_indices!(index_sorted_dem, dem)
+$(TYPEDSIGNATURES)
 
 Sort DEM indices from highest to lowest elevation for the SnowSlide processing order. Fills
 `index_sorted_dem`, an `(Nx*Ny, 2)` array whose rows are `(i, j)` pairs ordered by decreasing

@@ -1,7 +1,7 @@
 # Radiation process: snow-albedo, canopy shortwave transmission, terrain longwave
 
 """
-    radiation!(fsm, meteo, t)
+$(TYPEDSIGNATURES)
 
 Snow albedo calculations, surface and canopy net shortwave radiation, terrain correction of
 longwave radiation for open terrain.

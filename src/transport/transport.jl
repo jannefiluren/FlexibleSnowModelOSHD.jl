@@ -18,7 +18,7 @@ function transport_use_fortran(w::SnowTransport, lib::String)
 end
 
 """
-    transport!(fsm, met, w::SnowTransport, t)
+$(TYPEDSIGNATURES)
 
 Redistribute snow horizontally for one time step: wind transport (SnowTran3D) and/or snow
 slides (SnowSlide), as selected by `w.wind` / `w.slide`, using the Fortran or Julia

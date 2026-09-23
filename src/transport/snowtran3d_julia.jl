@@ -76,7 +76,7 @@ function hs_from_swe(
 end
 
 """
-    compute_soft_snow!(fsm, w)
+$(TYPEDSIGNATURES)
 
 Determine the soft (movable) snow thickness `w.Ds_soft` from the layer wetting
 history: layers from the top are soft while they are dry (`Sliq == 0`) and have
@@ -104,7 +104,7 @@ function compute_soft_snow!(
 end
 
 """
-    update_soft_snow!(fsm, w)
+$(TYPEDSIGNATURES)
 
 Update `w.Ds_soft` by removing layers that are too dense to be moved by the
 friction velocity `w.Utau`.
@@ -154,7 +154,7 @@ function update_soft_snow!(
 end
 
 """
-    surface_snow!(fsm, w)
+$(TYPEDSIGNATURES)
 
 Compute the threshold friction velocity `w.Utau_t` from the density of the top
 snow layer.
@@ -189,7 +189,7 @@ function surface_snow!(
 end
 
 """
-    getdirection!(w)
+$(TYPEDSIGNATURES)
 
 Build the wind direction index arrays: for every row (column), find the runs of
 grid cells where the u (v) wind component keeps the same sign. Column 1 of each
@@ -314,7 +314,7 @@ function getdirection!(w::SnowTransport{Tf}) where {Tf <: Real}
 end
 
 """
-    solve1(zU, guess, windtmp, threshold_flag)
+$(TYPEDSIGNATURES)
 
 Newton iterations for the friction velocity under saltation, following
 Liston and Sturm (1998) eq. 5 (threshold_flag = 1) or the high-wind relation
@@ -369,7 +369,7 @@ function solve1(zU::Tf, guess::Tf, windtmp::Tf, threshold_flag::Tf) where {Tf <:
 end
 
 """
-    solve_utau!(fsm, w, met)
+$(TYPEDSIGNATURES)
 
 Solve for the friction velocity `w.Utau`, surface roughness length `w.z_0` and
 saltation-layer height `w.h_star`. Returns the blowing snow flag (1 if snow is
@@ -463,7 +463,7 @@ function solve_utau!(
 end
 
 """
-    getsublim(zRH, z, RH, Ta, Utau, z_0, Utau_t, flag)
+$(TYPEDSIGNATURES)
 
 Sublimation loss rate coefficients at height `z`, following the appendix of
 Liston and Sturm (1998). Returns `(V_susp, V_salt)`; `flag = 1` computes the
@@ -537,7 +537,7 @@ function getsublim(
 end
 
 """
-    suspension!(fsm, w, met)
+$(TYPEDSIGNATURES)
 
 Compute the suspension flux `w.Qsusp` (vertical quadrature of the suspended
 snow concentration following Kind, 1992) and the sublimation flux `w.Qsubl`.
@@ -639,7 +639,7 @@ function suspension!(
 end
 
 """
-    saltation!(fsm, w, delta_WE, delta_SN)
+$(TYPEDSIGNATURES)
 
 Compute the saltation flux `w.Qsalt` and its components `w.Qsalt_u`/`w.Qsalt_v`
 with four directional upwind sweeps (westerly, easterly, southerly, northerly)
@@ -853,7 +853,7 @@ function saltation!(
 end
 
 """
-    getnewdepth_point!(fsm, w, Qs, dSWE_c, dSWE_c_loss, dSWE_c_gain, dh_c, dh_c_loss,
+$(TYPEDSIGNATURES)
                        i, j, iu, ju, delta)
 
 Per-pixel body shared by the four directional sweeps of [`getnewdepth!`](@ref):
@@ -943,7 +943,7 @@ not enough erodible snow on the ground.
 end
 
 """
-    getnewdepth!(fsm, w, Qs_u, Qs_v, dSWE_s, snowdepth0, Sice0, delta_WE, delta_SN, Tm)
+$(TYPEDSIGNATURES)
 
 Convert the flux components `Qs_u`/`Qs_v` (either saltation or suspension) into
 SWE and depth changes per pixel: erode snow from the snowpack (via
@@ -1081,7 +1081,7 @@ function getnewdepth!(
 end
 
 """
-    accum!(fsm, w, snowdepth0, Sice0, dSWE_salt, dSWE_susp, dSWE_subl,
+$(TYPEDSIGNATURES)
            bs_flag, delta_WE, delta_SN, Tm)
 
 Compute the new snow depth due to accumulation from saltation and suspension,
@@ -1199,7 +1199,7 @@ function accum!(
 end
 
 """
-    snowtran3d_julia!(fsm, met, snowdepth0, Sice0, dSWE_salt, dSWE_susp, dSWE_subl)
+$(TYPEDSIGNATURES)
 
 Snow transport by wind using Liston's SnowTran3D model.
 

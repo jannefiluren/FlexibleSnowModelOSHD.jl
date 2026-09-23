@@ -5,7 +5,7 @@ function require_field(landuse::Dict, key)
 end
 
 """
-    Grid(Tf, landuse::Dict; kwargs...)
+$(TYPEDSIGNATURES)
 
 Build a `Grid` for a landuse domain; `Nx`, `Ny` are taken from the elevation array.
 """

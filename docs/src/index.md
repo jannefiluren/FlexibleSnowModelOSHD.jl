@@ -1,22 +1,5 @@
 # FlexibleSnowModelOSHD.jl
 
-[ci-img]: https://github.com/jannefiluren/FlexibleSnowModelOSHD.jl/actions/workflows/CI.yml/badge.svg?branch=main
-[ci-url]: https://github.com/jannefiluren/FlexibleSnowModelOSHD.jl/actions/workflows/CI.yml?query=branch%3Amain
-
-[codecov-img]: https://codecov.io/gh/jannefiluren/FlexibleSnowModelOSHD.jl/branch/main/graph/badge.svg
-[codecov-url]: https://codecov.io/gh/jannefiluren/FlexibleSnowModelOSHD.jl
-
-[runic-img]: https://img.shields.io/badge/code_style-%E1%9A%B1%E1%9A%A2%E1%9A%BE%E1%9B%81%E1%9A%B2-black
-[runic-url]: https://github.com/fredrikekre/Runic.jl
-
-[zenodo-img]: https://img.shields.io/badge/DOI-10.5281/zenodo.21322824-blue.svg
-[zenodo-url]: https://doi.org/10.5281/zenodo.21322824
-
-[docs-dev-img]: https://img.shields.io/badge/docs-dev-blue.svg
-[docs-dev-url]: https://jannefiluren.github.io/FlexibleSnowModelOSHD.jl/dev/
-
- [![][docs-dev-img]][docs-dev-url] [![][ci-img]][ci-url] [![][codecov-img]][codecov-url] [![][runic-img]][runic-url] [![DOI][zenodo-img]][zenodo-url]
-
 A Julia implementation of the **Flexible Snow Model (FSM)** for the **Operational Snow Hydrological Service (OSHD)** at SLF. This package provides a comprehensive snow physics model for simulating snow accumulation and melt processes in complex terrain.
 
 ## Overview
@@ -30,7 +13,7 @@ FlexibleSnowModelOSHD is a multi-layer snow model that simulates:
 - **Forest canopy interactions** including snow interception, unloading, and subcanopy processes
 - **Fractional snow cover** using multiple parameterization approaches
 
-The model is designed for operational snow forecasting applications and supports both point-scale and distributed (gridded) simulations across various surface types including open areas, forests, and glaciers.
+The model is designed for operational snow forecasting applications and supports both point-scale and distributed (gridded) simulations across various surface types including open areas, forests, and glaciers. See the [API reference](api.md) for the documented types and functions.
 
 ## Installation
 
@@ -57,6 +40,11 @@ The model is designed for operational snow forecasting applications and supports
    ```julia
    using FlexibleSnowModelOSHD
    ```
+
+## Examples
+
+See the **Examples** section in the navigation for tutorials on how to setup and run the
+model. These examples are also found in the `examples/` folder as runnable scripts.
 
 ## Package Structure
 

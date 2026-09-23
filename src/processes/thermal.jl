@@ -1,7 +1,7 @@
 # Thermal property calculations for snow and soil layers
 
 """
-    thermal!(fsm)
+$(TYPEDSIGNATURES)
 
 Thermal property calculations for snow and soil layers.
 
@@ -47,7 +47,7 @@ end
 end
 
 """
-    surface_layer_properties!(i, j, state, diag, grid)
+$(TYPEDSIGNATURES)
 
 Thickness, temperature and thermal conductivity of the layer the surface energy balance
 sees (`diag.Ds1`, `diag.Ts1`, `diag.ks1`) for cell `(i, j)`. The layer is always at least

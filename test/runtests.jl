@@ -2,6 +2,23 @@ using Test
 using FlexibleSnowModelOSHD
 include("testhelpers.jl")
 
+using Documenter
+
+@testset "Doctests" begin
+    # Doctest output can drift across Julia versions (type/float printing), and the
+    # CI matrix includes the 1.10 compat floor. Pin doctests to the version we
+    # develop against; the floor still runs every other test.
+    if VERSION >= v"1.11"
+        DocMeta.setdocmeta!(
+            FlexibleSnowModelOSHD,
+            :DocTestSetup,
+            :(using FlexibleSnowModelOSHD);
+            recursive = true,
+        )
+        doctest(FlexibleSnowModelOSHD)
+    end
+end
+
 @testset "Mass Balance" begin
     include("test_mass_balance.jl")
 end

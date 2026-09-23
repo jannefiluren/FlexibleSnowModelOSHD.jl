@@ -19,10 +19,17 @@ import KernelAbstractions
 using KernelAbstractions: @kernel, @index, get_backend
 using StaticArrays: MVector, MMatrix
 import Libdl
+using DocStringExtensions: TYPEDEF, TYPEDFIELDS, TYPEDSIGNATURES, TYPEDFIELDS
 
 # Core functionality such as state and parameter structs, constants and scheme construction helpers
 include("parameters.jl")
-include("types.jl")
+include("types/grid.jl")
+include("types/parameters.jl")
+include("types/surface.jl")
+include("types/state.jl")
+include("types/diagnostics.jl")
+include("types/met.jl")
+include("types/fsm.jl")
 include("architectures.jl")
 include("scheme_construction.jl")
 

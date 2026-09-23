@@ -12,15 +12,15 @@ DensityLayering{Tf}(grid::Grid; kwargs...) where {Tf} = DensityLayering{Tf}(; kw
 
 # High-level layering step: accumulate new snow, update the snow-cover fraction and relayer.
 # Called per-cell by snow_kernel! (processes/snow.jl) and by the transport relayer! pass.
+# @propagate_inbounds: carries the kernel's inbounds context down to relayer_snow!, keeping its MVector scratch off the heap
 """
-    snow_layering!(layering, snowfraction, i, j, state, diag, surface, grid, params, meteo, update_hist, ::Val{Nsmax})
+$(TYPEDSIGNATURES)
 
 Accumulation of new snow, snow cover fraction update and relayering at cell `(i, j)`,
 after the melt, sublimation and compaction of the same step. The snow cover fraction
 update is [`snowcoverfraction_point!`](@ref); `update_hist` refreshes the 14-day
 history state and is resolved by the caller, since `Dates` cannot run in a kernel.
 """
-# @propagate_inbounds: carries the kernel's inbounds context down to relayer_snow!, keeping its MVector scratch off the heap
 Base.@propagate_inbounds function snow_layering!(
         layering::AbstractLayering{Tf}, snow_fraction::AbstractSnowFraction{Tf},
         i, j, state, diag, surface, grid, params, meteo, update_hist::Bool, ::Val{Nsmax},

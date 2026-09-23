@@ -1,7 +1,7 @@
 # Canopy process: snow interception, sublimation and unloading
 
 """
-    canopy_mass_balance!(fsm)
+$(TYPEDSIGNATURES)
 
 Snow interception, sublimation, and unloading from the vegetation canopy.
 

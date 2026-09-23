@@ -14,7 +14,7 @@ reduction machinery, which matters in the snow slide hot loop.
 end
 
 """
-    swe_from_hs(fsm, hs, i, j)
+$(TYPEDSIGNATURES)
 
 Compute the SWE (kg/m^2) contained in the top `hs` meters of the snowpack at
 pixel (i, j).
@@ -100,7 +100,7 @@ function swe_from_hs(
 end
 
 """
-    snow_ablation!(fsm, dhs, dswe, i, j, Tm)
+$(TYPEDSIGNATURES)
 
 Erode a snow depth `dhs` (m) corresponding to mass `dswe` (kg/m^2) at the top
 of the snowpack at pixel (i, j), reducing the number of layers if necessary.
@@ -212,7 +212,7 @@ function snow_ablation!(
 end
 
 """
-    remove_slide_snow!(fsm, snowdepth0, Sice0, snowdepth_available, i, j, Tm)
+$(TYPEDSIGNATURES)
 
 Remove the snow depth `snowdepth_available` from pixel (i, j), taking snow
 first from the fresh avalanche deposit (`snowdepth0`, `Sice0`) and then from
@@ -261,7 +261,7 @@ function remove_slide_snow!(
 end
 
 """
-    snowslide_julia!(fsm, snowdepth0, Sice0, dSWE_slide)
+$(TYPEDSIGNATURES)
 
 Lateral redistribution of snow through gravity using the SnowSlide model.
 

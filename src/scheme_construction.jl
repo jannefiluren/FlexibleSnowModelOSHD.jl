@@ -3,7 +3,7 @@
 # that translate an operational config into constructor arguments.
 
 """
-    grid_array(Tf, x, Nx, Ny)
+$(TYPEDSIGNATURES)
 
 Materialize a parameterization parameter as an `Nx` by `Ny` array of element type `Tf`.
 A scalar is broadcast over the whole grid; an array is converted element-wise.
@@ -12,7 +12,7 @@ grid_array(::Type{Tf}, x::Number, Nx, Ny) where {Tf} = fill(Tf(x), Nx, Ny)
 grid_array(::Type{Tf}, x::AbstractArray, Nx, Ny) where {Tf} = convert(Array{Tf, 2}, x)
 
 """
-    check_grid(scheme, Nx, Ny)
+$(TYPEDSIGNATURES)
 
 Assert that any grid-shaped parameter held by `scheme` matches the `Nx` by `Ny` model grid.
 The fallback accepts anything, so a parameterization built only from scalars needs no method.
@@ -36,7 +36,7 @@ function check_grid(scheme::AbstractParameterization, Nx, Ny)
 end
 
 """
-    instantiate(scheme, grid)
+$(TYPEDSIGNATURES)
 
 Return a physics parameterization ready for the model: a scheme **type** is default-constructed at
 the grid's precision (`Scheme{eltype(grid)}(grid)`), while a ready-made **instance** is returned
@@ -47,7 +47,7 @@ instantiate(scheme::Type, grid) = scheme{eltype(grid)}(grid)
 instantiate(scheme, grid) = scheme
 
 """
-    reconstruct(x; kwargs...)
+$(TYPEDSIGNATURES)
 
 Copy the immutable struct `x` with the named fields replaced. `Parameters` is rebuilt
 rather than mutated so that it stays isbits and can cross into a kernel by value.
@@ -56,4 +56,23 @@ function reconstruct(x::T; kwargs...) where {T}
     names = fieldnames(T)
     fields = NamedTuple{names}(map(f -> getfield(x, f), names))
     return T(; merge(fields, NamedTuple(kwargs))...)
+end
+
+function Base.show(io::IO, p::AbstractParameterization; indent = "")
+    print(io, nameof(typeof(p)), '\n')
+    fields = filter(f -> !(getfield(p, f) isa Grid), propertynames(p))
+    for (i, field) in enumerate(fields)
+        last = i == length(fields)
+        start = indent * (last ? "└── " : "├── ")
+        values = getfield(p, field)
+        if values isa AbstractParameterization
+            print(io, start, field, ": ")
+            show(io, values; indent = indent * (last ? "    " : "│   "))
+        elseif values isa AbstractArray && ndims(values) > 0
+            print(io, start, field, ": ", extrema(values), '\n')
+        else
+            print(io, start, field, ": ", values, '\n')
+        end
+    end
+    return nothing
 end

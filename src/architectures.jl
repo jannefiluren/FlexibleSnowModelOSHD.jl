@@ -1,4 +1,6 @@
 """
+$(TYPEDEF)
+
 Architecture abstraction for CPU/GPU portability (Oceananigans-style).
 
 An architecture decides where the model arrays live. `CPU()` is the default
@@ -16,7 +18,7 @@ Physics routines pick their compute backend from the arrays themselves (via
 abstract type AbstractArchitecture end
 
 """
-    CPU()
+$(TYPEDEF)
 
 Architecture for CPU runs: all model arrays are plain Julia `Array`s.
 KernelAbstractions kernels are partitioned across Julia threads.
@@ -24,12 +26,17 @@ KernelAbstractions kernels are partitioned across Julia threads.
 struct CPU <: AbstractArchitecture end
 
 """
-    GPU(backend)
+$(TYPEDEF)
 
 Architecture for GPU runs on a KernelAbstractions GPU backend
 (e.g. `CUDABackend()` from CUDA.jl, `ROCBackend()` from AMDGPU.jl).
+
+# Fields
+
+$(TYPEDFIELDS)
 """
 struct GPU{B} <: AbstractArchitecture
+    "KernelAbstractions GPU backend"
     backend::B
 end
 
@@ -37,7 +44,7 @@ backend(::CPU) = KernelAbstractions.CPU()
 backend(arch::GPU) = arch.backend
 
 """
-    on_architecture(arch, x)
+$(TYPEDSIGNATURES)
 
 Move `x` to the architecture `arch`: arrays are converted to the
 architecture's array type (a no-op for `Array`s on `CPU()`), all

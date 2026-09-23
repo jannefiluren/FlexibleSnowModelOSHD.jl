@@ -1,7 +1,7 @@
 # Surface energy balance
 
 """
-    surface_energy_balance!(fsm, meteo)
+$(TYPEDSIGNATURES)
 
 Surface energy balance solution, coupled to the canopy where there is one.
 
