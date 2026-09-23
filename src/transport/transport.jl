@@ -2,8 +2,8 @@
 # neighbour-coupled, grid-global, CPU-only operator (SnowTran3D wind transport + SnowSlide),
 # kept separate from the per-cell snow! kernel. Each enabled process writes its redistributed
 # ("incoming") mass into the diag deposit arrays snowdepth0/Sice0 and erodes the pack directly;
-# a relayer! pass then accumulates the deposit into the snowpack - the same three-step idiom the
-# pre-refactor snow! used, but as its own step driven by a run-level SnowTransport workspace.
+# a relayer! pass then accumulates the deposit into the snowpack, driven by a run-level
+# SnowTransport workspace.
 
 # Fall back to the Julia port (with a warning) when use_fortran is set but the shared library
 # was not built, so a run never hard-fails on a missing gfortran toolchain.

@@ -1,5 +1,3 @@
-# Soil process: soil / glacier-ice column temperature
-
 """
 $(TYPEDSIGNATURES)
 

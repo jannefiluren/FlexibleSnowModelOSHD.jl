@@ -1,5 +1,3 @@
-# Snow thermal conductivity parameterizations.
-
 @kwdef struct FixedConductivity{Tf} <: AbstractConductivity{Tf}
     kfix::Tf = 0.24        # Fixed thermal conductivity of snow (W/m/K)
 end

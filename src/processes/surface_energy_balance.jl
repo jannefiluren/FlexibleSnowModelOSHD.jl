@@ -1,5 +1,3 @@
-# Surface energy balance
-
 """
 $(TYPEDSIGNATURES)
 

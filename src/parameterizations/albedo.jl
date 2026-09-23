@@ -1,5 +1,3 @@
-# Snow albedo parameterizations.
-
 @kwdef struct DiagnosticAlbedo{Tf} <: AbstractAlbedo{Tf}
     amin::Tf = 0.6                            # Minimum albedo for melting snow (-)
     amax::Tf = 0.86                           # Maximum albedo for fresh snow (-)

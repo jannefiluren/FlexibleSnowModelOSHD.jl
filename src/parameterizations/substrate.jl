@@ -1,5 +1,3 @@
-# Substrate (soil / glacier ice) parameterizations.
-
 @kwdef struct SoilSubstrate{Tf} <: AbstractSubstrate{Tf}
     gsat::Tf = 0.01             # Surface conductance for saturated soil (m/s)
 end

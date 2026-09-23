@@ -1,5 +1,3 @@
-# Canopy process: snow interception, sublimation and unloading
-
 """
 $(TYPEDSIGNATURES)
 

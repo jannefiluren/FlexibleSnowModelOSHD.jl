@@ -1,5 +1,3 @@
-# Regression tests comparing current simulation results against reference data
-
 using FlexibleSnowModelOSHD
 using Test
 using NCDatasets
@@ -83,13 +81,11 @@ end
 
 function run_simulations(settings, Tf = Float32)
 
-    # Read landuse data
     landuse = load_domain_data()
 
-    # Generate meteo data
     times, data_meteo = interpolate_meteo(Tf, landuse)
 
-    # Pre-scale wind speed (replaces former wind_scaling=0.7 parameter)
+    # Pre-scale wind speed by 0.7
     data_meteo["Ua"] .= Tf(0.7) .* data_meteo["Ua"]
 
     # Setup
@@ -112,7 +108,6 @@ function run_simulations(settings, Tf = Float32)
         simulation_results[var] = Array{Tf, 3}(undef, Nx, Ny, Nt)
     end
 
-    # Run simulation
     for (timestep, t) in enumerate(times)
 
         # Retrieve forcing data
@@ -137,10 +132,8 @@ function run_simulations(settings, Tf = Float32)
         met.Sf_history_f64[:, :, curr_hour] .= met.Sf .* fsm.params.dt
         met.Sf24h[:, :] .= met.Sf24h_f64
 
-        # Run model
         step!(fsm, met, t)
 
-        # Store results
         simulation_results["timestamps"][timestep] = string(t)
 
         # Store state variables
@@ -216,7 +209,6 @@ for (setting, simulation_ref) in zip(settings, simulation_refs)
     @testset "Tile: $tile" begin
         simulation_tst = run_simulations(setting)
 
-        # Get list of variables to compare (exclude metadata)
         variables_to_compare = filter(k -> !(k in ["timestamps", "filenames"]), keys(simulation_tst))
 
         for variable in variables_to_compare

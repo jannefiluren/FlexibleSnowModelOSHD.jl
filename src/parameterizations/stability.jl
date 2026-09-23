@@ -1,5 +1,3 @@
-# Stability correction for open/glacier surfaces.
-
 struct NoStabilityCorrection{Tf} <: AbstractStabilityCorrection{Tf} end
 
 @kwdef struct LouisStabilityCorrection{Tf} <: AbstractStabilityCorrection{Tf}

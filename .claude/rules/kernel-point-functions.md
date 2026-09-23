@@ -16,6 +16,12 @@ and GPU-safe.
   No physics. Pass the sub-structs the kernel needs — `fsm.state`, `fsm.diag`,
   `fsm.surface`, `fsm.grid`, `fsm.params` (and `meteo`) — plus the scheme objects
   and any `Val`/computed scalars. Do not unpack arrays in the launcher.
+- **Argument order** is fixed, omitting whatever the kernel does not need:
+  `state, diag, surface, [grid], params, [meteo], <schemes...>, <Val/scalars>`.
+  Within the scheme block, `land_cover` then `substrate` come first — they say
+  what the cell *is* (forest/open, soil/ice) and gate setup, rather than
+  selecting a formulation — then the remaining schemes. The same order applies
+  to the `physics` NamedTuple in `construct.jl`.
 - **Kernel** `foo_kernel!` (`@kernel`): `i, j = @index(Global, NTuple)`,
   `@unpack_constants(Tf)`, destructure the fields it uses from the passed
   sub-structs (`(; Tsrf, Ds) = state`), then dispatch to point functions.

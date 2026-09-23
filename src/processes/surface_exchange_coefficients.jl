@@ -1,5 +1,3 @@
-# Computation of turbulent eddy diffusivities for heat and moisture
-
 """
 $(TYPEDSIGNATURES)
 

@@ -1,5 +1,3 @@
-# Snow hydraulics parameterizations.
-
 struct FreeDrainingHydrology{Tf} <: AbstractHydrology{Tf} end
 
 @kwdef struct BucketHydrology{Tf} <: AbstractHydrology{Tf}
@@ -21,7 +19,6 @@ every layer.
 """
 function snow_hydrology! end
 
-# Free-draining snow
 @inline function snow_hydrology!(::FreeDrainingHydrology{Tf}, i, j, state, diag, params) where {Tf}
     (; Sliq, Nsnow) = state
     (; Roff_snow, meltflux_out) = diag
@@ -34,7 +31,6 @@ function snow_hydrology! end
     return nothing
 end
 
-# Bucket storage
 @inline function snow_hydrology!(c::BucketHydrology{Tf}, i, j, state, diag, params) where {Tf}
     @unpack_constants(Tf)
     (; Ds, Sice, Sliq, Tsnow, histowet, fsnow, Nsnow) = state
@@ -71,7 +67,6 @@ end
     return nothing
 end
 
-# Density-dependent bucket storage
 @inline function snow_hydrology!(::DensityBucketHydrology{Tf}, i, j, state, diag, params) where {Tf}
     @unpack_constants(Tf)
     (; Ds, Sice, Sliq, Tsnow, histowet, fsnow, Nsnow) = state

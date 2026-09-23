@@ -1,5 +1,3 @@
-# Thermal property calculations for snow and soil layers
-
 """
 $(TYPEDSIGNATURES)
 
@@ -10,13 +8,13 @@ Thermal property calculations for snow and soil layers.
 """
 function thermal!(fsm::FSM{Tf}) where {Tf <: Real}
 
-    (; conductivity, substrate) = fsm.physics
+    (; substrate, conductivity) = fsm.physics
 
     backend = get_backend(fsm.diag.gs1)
     kernel! = thermal_kernel!(backend)
     kernel!(
         fsm.state, fsm.diag, fsm.surface, fsm.grid, fsm.params,
-        conductivity, substrate;
+        substrate, conductivity;
         ndrange = (Int(fsm.grid.Nx), Int(fsm.grid.Ny))
     )
     KernelAbstractions.synchronize(backend)
@@ -26,7 +24,7 @@ end
 
 @kernel function thermal_kernel!(
         state, diag, surface, grid, params::Parameters{Tf},
-        conductivity::AbstractConductivity{Tf}, substrate::AbstractSubstrate{Tf},
+        substrate::AbstractSubstrate{Tf}, conductivity::AbstractConductivity{Tf},
     ) where {Tf}
 
     i, j = @index(Global, NTuple)

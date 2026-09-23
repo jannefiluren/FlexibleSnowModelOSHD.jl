@@ -8,9 +8,9 @@ import FlexibleSnowModelOSHD: Parameters, Surface, State, Diagnostics, check_lay
 # that populate the state by hand.
 function bare_fsm(
         grid::Grid{Tf};
-        snow_albedo = PrognosticAlbedo{Tf}(grid),
         land_cover = OpenCover{Tf}(),
         substrate = SoilSubstrate{Tf}(),
+        snow_albedo = PrognosticAlbedo{Tf}(grid),
         conductivity = DensityConductivity{Tf}(),
         fresh_snow_density = ElevationFreshSnowDensity{Tf}(),
         compaction = CrocusCompaction{Tf}(),
@@ -26,7 +26,7 @@ function bare_fsm(
     state = State{GT, Matrix{Tf}, Matrix{Int}, Array{Tf, 3}}(; grid = grid)
     diag = Diagnostics{GT, Matrix{Tf}, Array{Tf, 3}}(; grid = grid)
     physics = (;
-        snow_albedo, land_cover, substrate, conductivity, fresh_snow_density,
+        land_cover, substrate, snow_albedo, conductivity, fresh_snow_density,
         compaction, hydrology, layering, snow_fraction,
     )
     return FSM(grid, params, surface, state, diag, physics)

@@ -1,5 +1,3 @@
-# Snow compaction parameterizations.
-
 @kwdef struct AgeCompaction{Tf} <: AbstractCompaction{Tf}
     rmlt::Tf = 500              # Maximum density for melting snow (kg/m^3)
     rcld::Tf = 300              # Maximum density for cold snow (kg/m^3)
@@ -32,7 +30,6 @@ place to the compacted density, for every layer.
 """
 function compact_snow! end
 
-# Snow compaction with age
 @inline function compact_snow!(c::AgeCompaction{Tf}, i, j, state, params) where {Tf}
     @unpack_constants(Tf)
     (; Ds, Sice, Sliq, fsnow, Nsnow, Tsnow) = state
@@ -56,7 +53,6 @@ function compact_snow! end
     return nothing
 end
 
-# Snow compaction by overburden
 @inline function compact_snow!(c::OverburdenCompaction{Tf}, i, j, state, params) where {Tf}
     @unpack_constants(Tf)
     (; Ds, Sice, Sliq, fsnow, Nsnow, Tsnow) = state
@@ -76,7 +72,6 @@ end
     return nothing
 end
 
-# Snow compaction by overburden, dependent on liquid water content (Crocus B92)
 @inline function compact_snow!(c::CrocusCompaction{Tf}, i, j, state, params) where {Tf}
     @unpack_constants(Tf)
     (; Ds, Sice, Sliq, fsnow, Nsnow, Tsnow) = state

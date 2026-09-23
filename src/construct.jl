@@ -1,8 +1,76 @@
-# Fetch a required landuse field, with a clear error naming the missing key.
-function require_field(landuse::Dict, key)
-    haskey(landuse, key) || error("landuse is missing required field \"$key\"")
-    return landuse[key]["data"]
+"""
+    FSM(grid, landuse; arch = CPU(), params = Parameters, land_cover, substrate, ...schemes)
+    FSM(Tf, landuse; ...)
+
+Construct a ready-to-run FSM for one tile from a landuse domain. The tile is inferred from the
+physics scheme types (`ForestCover`/`OpenCover`, `SoilSubstrate`/`IceSubstrate`). Each scheme
+keyword accepts a scheme **type** (default-constructed at the grid precision) or a ready
+**instance**. With a non-`CPU` `arch` the model is moved to that device.
+"""
+function FSM(
+        grid::Grid{Tf}, landuse::Dict;
+        arch::AbstractArchitecture = CPU(),
+        active = trues(grid.Nx, grid.Ny),
+        params = Parameters{Tf}(),
+        land_cover = OpenCover{Tf}(),
+        substrate = SoilSubstrate{Tf}(),
+        snow_albedo = PrognosticAlbedo{Tf}(grid),
+        conductivity = DensityConductivity{Tf}(),
+        fresh_snow_density = ElevationFreshSnowDensity{Tf}(),
+        compaction = CrocusCompaction{Tf}(),
+        hydrology = DensityBucketHydrology{Tf}(),
+        layering = OriginalLayering{Tf}(),
+        snow_fraction = PointSnowFraction{Tf}(),
+    ) where {Tf}
+
+    check_layer_thicknesses(grid)
+
+    physics = (;
+        land_cover = instantiate(land_cover, grid),
+        substrate = instantiate(substrate, grid),
+        snow_albedo = instantiate(snow_albedo, grid),
+        conductivity = instantiate(conductivity, grid),
+        fresh_snow_density = instantiate(fresh_snow_density, grid),
+        compaction = instantiate(compaction, grid),
+        hydrology = instantiate(hydrology, grid),
+        layering = instantiate(layering, grid),
+        snow_fraction = instantiate(snow_fraction, grid),
+    )
+
+    all(s -> s isa AbstractParameterization{Tf}, values(physics)) ||
+        throw(ArgumentError("physics scheme precision does not match model Tf = $Tf"))
+    for scheme in physics
+        check_grid(scheme, grid.Nx, grid.Ny)
+    end
+
+    # Mixed land cover and substrate must be used together, with disjoint forest/ice cells.
+    (physics.land_cover isa MixedLandCover) == (physics.substrate isa MixedSubstrate) ||
+        error("mixed land cover requires both a MixedLandCover and a MixedSubstrate")
+    if physics.land_cover isa MixedLandCover
+        any(physics.land_cover.forestcells .& physics.substrate.icecells) &&
+            error("forestcells and icecells overlap; a cell cannot be both forest and glacier")
+    end
+
+    # Lock fresh snow density to a constant when the fixed scheme is selected
+    if physics.fresh_snow_density isa FixedFreshSnowDensity
+        params = reconstruct(params; rhof = params.rho0)
+    end
+
+    surface = build_surface(grid, landuse, physics.land_cover, params, active)
+    validate_surface(surface, physics.land_cover)
+    state = build_state(grid, surface, params, physics.substrate)
+    diag = Diagnostics{typeof(grid), Matrix{Tf}, Array{Tf, 3}}(; grid = grid)
+
+    fsm = FSM(grid, params, surface, state, diag, physics)
+
+    if !(arch isa CPU)
+        fsm = on_architecture(arch, fsm)
+    end
+    return fsm
 end
+
+FSM(::Type{Tf}, landuse::Dict; kwargs...) where {Tf} = FSM(Grid(Tf, landuse), landuse; kwargs...)
+
 
 """
 $(TYPEDSIGNATURES)
@@ -18,6 +86,12 @@ end
 forest_cells(::AbstractLandCover, grid) = falses(grid.Nx, grid.Ny)
 forest_cells(::ForestCover, grid) = trues(grid.Nx, grid.Ny)
 forest_cells(m::MixedLandCover, grid) = m.forestcells
+
+# Fetch a required landuse field, with a clear error naming the missing key.
+function require_field(landuse::Dict, key)
+    haskey(landuse, key) || error("landuse is missing required field \"$key\"")
+    return landuse[key]["data"]
+end
 
 # Build Surface from the landuse data
 function build_surface(grid::Grid{Tf}, landuse::Dict, land_cover, params, active) where {Tf}
@@ -87,7 +161,7 @@ function validate_surface(surface, land_cover)
     return nothing
 end
 
-# Build the initial State from the finalized Surface
+# Build the initial State from the finalized surface
 function build_state(grid::Grid{Tf}, surface, params, substrate) where {Tf}
     GT = typeof(grid)
     st = State{GT, Matrix{Tf}, Matrix{Int}, Array{Tf, 3}}(; grid = grid)
@@ -102,76 +176,3 @@ function build_state(grid::Grid{Tf}, surface, params, substrate) where {Tf}
 
     return st
 end
-
-"""
-    FSM(grid, landuse; arch = CPU(), params = Parameters, land_cover, substrate, ...schemes)
-    FSM(Tf, landuse; ...)
-
-Construct a ready-to-run FSM for one tile from a landuse domain. The tile is inferred from the
-physics scheme types (`ForestCover`/`OpenCover`, `SoilSubstrate`/`IceSubstrate`). Each scheme
-keyword accepts a scheme **type** (default-constructed at the grid precision) or a ready
-**instance**. With a non-`CPU` `arch` the model is moved to that device.
-"""
-function FSM(
-        grid::Grid{Tf}, landuse::Dict;
-        arch::AbstractArchitecture = CPU(),
-        active = trues(grid.Nx, grid.Ny),
-        params = Parameters{Tf}(),
-        snow_albedo = PrognosticAlbedo{Tf}(grid),
-        land_cover = OpenCover{Tf}(),
-        substrate = SoilSubstrate{Tf}(),
-        conductivity = DensityConductivity{Tf}(),
-        fresh_snow_density = ElevationFreshSnowDensity{Tf}(),
-        compaction = CrocusCompaction{Tf}(),
-        hydrology = DensityBucketHydrology{Tf}(),
-        layering = OriginalLayering{Tf}(),
-        snow_fraction = PointSnowFraction{Tf}(),
-    ) where {Tf}
-
-    check_layer_thicknesses(grid)
-
-    physics = (;
-        snow_albedo = instantiate(snow_albedo, grid),
-        land_cover = instantiate(land_cover, grid),
-        substrate = instantiate(substrate, grid),
-        conductivity = instantiate(conductivity, grid),
-        fresh_snow_density = instantiate(fresh_snow_density, grid),
-        compaction = instantiate(compaction, grid),
-        hydrology = instantiate(hydrology, grid),
-        layering = instantiate(layering, grid),
-        snow_fraction = instantiate(snow_fraction, grid),
-    )
-
-    all(s -> s isa AbstractParameterization{Tf}, values(physics)) ||
-        throw(ArgumentError("physics scheme precision does not match model Tf = $Tf"))
-    for scheme in physics
-        check_grid(scheme, grid.Nx, grid.Ny)
-    end
-
-    # Mixed land cover and substrate must be used together, with disjoint forest/ice cells.
-    (physics.land_cover isa MixedLandCover) == (physics.substrate isa MixedSubstrate) ||
-        error("mixed land cover requires both a MixedLandCover and a MixedSubstrate")
-    if physics.land_cover isa MixedLandCover
-        any(physics.land_cover.forestcells .& physics.substrate.icecells) &&
-            error("forestcells and icecells overlap; a cell cannot be both forest and glacier")
-    end
-
-    # Lock fresh snow density to a constant when the fixed scheme is selected
-    if physics.fresh_snow_density isa FixedFreshSnowDensity
-        params = reconstruct(params; rhof = params.rho0)
-    end
-
-    surface = build_surface(grid, landuse, physics.land_cover, params, active)
-    validate_surface(surface, physics.land_cover)
-    state = build_state(grid, surface, params, physics.substrate)
-    diag = Diagnostics{typeof(grid), Matrix{Tf}, Array{Tf, 3}}(; grid = grid)
-
-    fsm = FSM(grid, params, surface, state, diag, physics)
-
-    if !(arch isa CPU)
-        fsm = on_architecture(arch, fsm)
-    end
-    return fsm
-end
-
-FSM(::Type{Tf}, landuse::Dict; kwargs...) where {Tf} = FSM(Grid(Tf, landuse), landuse; kwargs...)

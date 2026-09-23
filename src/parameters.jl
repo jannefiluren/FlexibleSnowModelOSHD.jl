@@ -1,4 +1,3 @@
-# Generic physical constants that adapt to the precision type
 function get_constants(::Type{Tf}) where {Tf <: AbstractFloat}
     return (
         cp = Tf(1005),              # Specific heat capacity of air (J/K/kg)
@@ -29,7 +28,6 @@ function get_constants(::Type{Tf}) where {Tf <: AbstractFloat}
     )
 end
 
-# Convenience macro to unpack constants in functions
 macro unpack_constants(Tf)
     return esc(
         quote

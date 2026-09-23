@@ -1,6 +1,3 @@
-# Grid-level relayering pass used only by the snow-transport step (transport!): after transport
-# deposits redistributed snow into diag, this layers it into the pack by reusing snow_layering!.
-
 """
 $(TYPEDSIGNATURES)
 

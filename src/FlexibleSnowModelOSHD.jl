@@ -3,6 +3,7 @@ module FlexibleSnowModelOSHD
 using Dates
 using Adapt: Adapt, @adapt_structure
 
+# Model parametrizations are defined as types to make use of multiple dispatch
 abstract type AbstractParameterization{Tf <: Real} end
 abstract type AbstractConductivity{Tf} <: AbstractParameterization{Tf} end
 abstract type AbstractAlbedo{Tf} <: AbstractParameterization{Tf} end

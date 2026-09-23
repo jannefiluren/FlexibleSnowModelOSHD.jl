@@ -1,5 +1,3 @@
-# Fresh snow density parameterizations.
-
 struct FixedFreshSnowDensity{Tf} <: AbstractFreshSnowDensity{Tf} end
 struct ClimateFreshSnowDensity{Tf} <: AbstractFreshSnowDensity{Tf} end
 struct ElevationFreshSnowDensity{Tf} <: AbstractFreshSnowDensity{Tf} end
@@ -16,16 +14,13 @@ elevation `dem`).
 """
 function snowfall_density end
 
-# Fixed fresh snow density
 @inline snowfall_density(::FixedFreshSnowDensity, rho0, rhob, rhoc, rhof, rhos_min, Ta, Ua, dem) = rho0
 
-# Climate-dependent fresh snow density
 @inline function snowfall_density(::ClimateFreshSnowDensity{Tf}, rho0, rhob, rhoc, rhof, rhos_min, Ta, Ua, dem) where {Tf}
     @unpack_constants(Tf)
     return max(rhof + rhob * (Ta - Tm) + rhoc * Ua^Tf(0.5), rhos_min)
 end
 
-# Climate-dependent with elevation-dependent decompaction
 @inline function snowfall_density(::ElevationFreshSnowDensity{Tf}, rho0, rhob, rhoc, rhof, rhos_min, Ta, Ua, dem) where {Tf}
     @unpack_constants(Tf)
     rhonew = rhof + rhob * (Ta - Tm) + rhoc * Ua^Tf(0.5)

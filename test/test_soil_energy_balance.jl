@@ -1,5 +1,3 @@
-# Idealized energy balance tests for the soil thermal routine
-
 using FlexibleSnowModelOSHD
 using Test
 
@@ -10,10 +8,8 @@ Create a minimal FSM structure with only the fields needed for soil!()
 """
 function create_minimal_fsm(Tf::Type)
 
-    # Initialize model with minimal configuration
     fsm = bare_fsm(Grid(Tf; Nx = 1, Ny = 1))
 
-    # Mark the cell active
     fsm.surface.active[1, 1] = true
 
     # Set default thermal properties
@@ -24,7 +20,6 @@ function create_minimal_fsm(Tf::Type)
         fsm.diag.ksoil[k, 1, 1] = Tf(1.5)                    # W/m/K (typical soil)
     end
 
-    # Initialize temperatures to a reasonable value
     fsm.state.Tsoil[:, 1, 1] .= Tf(285.0)
 
     # Initialize Gsoil (will be set in each test)
@@ -53,31 +48,24 @@ end
 
 @testset "Soil Energy Balance Tests" begin
 
-    # Common parameters
     Tf = Float32
 
     # Test 1: Uniform temperature, positive heat flux (warming from above)
     @testset "Warming from above" begin
         fsm = create_minimal_fsm(Tf)
 
-        # Set uniform initial temperature
         T_init = 280.0  # K
         fsm.state.Tsoil[:, 1, 1] .= T_init
 
-        # Set positive heat flux into soil (warming)
         Gsoil_in = 50.0  # W/m²
         fsm.diag.Gsoil[1, 1] = Gsoil_in
 
-        # Calculate initial energy
         E_initial = compute_soil_energy(fsm)
 
-        # Run soil routine
         soil!(fsm)
 
-        # Calculate final energy
         E_final = compute_soil_energy(fsm)
 
-        # Expected energy change from top boundary flux
         E_expected_from_top = Gsoil_in * fsm.params.dt
         E_actual_change = E_final - E_initial
 
@@ -93,24 +81,18 @@ end
     @testset "Cooling from above" begin
         fsm = create_minimal_fsm(Tf)
 
-        # Set uniform initial temperature
         T_init = 290.0  # K
         fsm.state.Tsoil[:, 1, 1] .= T_init
 
-        # Set negative heat flux (heat leaving soil)
         Gsoil_in = -30.0  # W/m²
         fsm.diag.Gsoil[1, 1] = Gsoil_in
 
-        # Calculate initial energy
         E_initial = compute_soil_energy(fsm)
 
-        # Run soil routine
         soil!(fsm)
 
-        # Calculate final energy
         E_final = compute_soil_energy(fsm)
 
-        # Expected energy change from top boundary flux
         E_expected_from_top = Gsoil_in * fsm.params.dt
         E_actual_change = E_final - E_initial
 
@@ -130,11 +112,9 @@ end
         T_init = 273.15  # K (melting point - used as reference)
         fsm.state.Tsoil[:, 1, 1] .= T_init
 
-        # Set zero heat flux at top
         Gsoil_in = 0.0  # W/m²
         fsm.diag.Gsoil[1, 1] = Gsoil_in
 
-        # Run soil routine
         soil!(fsm)
 
         # Check that temperatures didn't change much (isothermal should stay isothermal)
@@ -164,20 +144,15 @@ end
         fsm.state.Tsoil[3, 1, 1] = 281.0
         fsm.state.Tsoil[4, 1, 1] = 280.0
 
-        # Set heat flux
         Gsoil_in = 25.0  # W/m²
         fsm.diag.Gsoil[1, 1] = Gsoil_in
 
-        # Calculate initial energy
         E_initial = compute_soil_energy(fsm)
 
-        # Run soil routine
         soil!(fsm)
 
-        # Calculate final energy
         E_final = compute_soil_energy(fsm)
 
-        # Expected energy change from top boundary flux
         E_expected_from_top = Gsoil_in * fsm.params.dt
         E_actual_change = E_final - E_initial
 
@@ -195,19 +170,15 @@ end
         Gsoil_in = 20.0  # W/m²
         fsm.diag.Gsoil[1, 1] = Gsoil_in
 
-        # Calculate initial energy
         E_initial = compute_soil_energy(fsm)
 
-        # Run multiple timesteps
         n_steps = 10
         for _ in 1:n_steps
             soil!(fsm)
         end
 
-        # Calculate final energy
         E_final = compute_soil_energy(fsm)
 
-        # Expected total energy change from top boundary
         E_expected_from_top = Gsoil_in * fsm.params.dt * n_steps
         E_actual_change = E_final - E_initial
 
@@ -245,17 +216,14 @@ end
     @testset "Warming of top layer" begin
         fsm = create_minimal_fsm(Tf)
 
-        # Set uniform initial temperature
         T_init = 280.0  # K
         fsm.state.Tsoil[:, 1, 1] .= T_init
 
-        # Set zero conductivity
         fsm.diag.ksoil[:, 1, 1] .= 0.0  # W/m/K
 
         # Add a heat flux to increase the top layer soil temperature by one degree
         fsm.diag.Gsoil[1, 1] = 2.0e5 / fsm.params.dt
 
-        # Run soil routine
         soil!(fsm)
 
         # Top soil layer temperature should have increased by one degree

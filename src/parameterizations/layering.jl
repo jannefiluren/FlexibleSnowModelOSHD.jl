@@ -10,9 +10,6 @@ end
 OriginalLayering{Tf}(grid::Grid; kwargs...) where {Tf} = OriginalLayering{Tf}()
 DensityLayering{Tf}(grid::Grid; kwargs...) where {Tf} = DensityLayering{Tf}(; kwargs...)
 
-# High-level layering step: accumulate new snow, update the snow-cover fraction and relayer.
-# Called per-cell by snow_kernel! (processes/snow.jl) and by the transport relayer! pass.
-# @propagate_inbounds: carries the kernel's inbounds context down to relayer_snow!, keeping its MVector scratch off the heap
 """
 $(TYPEDSIGNATURES)
 
@@ -21,6 +18,8 @@ after the melt, sublimation and compaction of the same step. The snow cover frac
 update is [`snowcoverfraction_point!`](@ref); `update_hist` refreshes the 14-day
 history state and is resolved by the caller, since `Dates` cannot run in a kernel.
 """
+# @propagate_inbounds: carries the kernel's inbounds context down to relayer_snow!, 
+# keeping its MVector scratch off the heap
 Base.@propagate_inbounds function snow_layering!(
         layering::AbstractLayering{Tf}, snow_fraction::AbstractSnowFraction{Tf},
         i, j, state, diag, surface, grid, params, meteo, update_hist::Bool, ::Val{Nsmax},
@@ -116,9 +115,9 @@ caller. Every `AbstractLayering` implements it.
 """
 function relayer_snow! end
 
-# @propagate_inbounds (not @inline): inherits the kernel's inbounds context so MVector scratch stays off the heap
+# @propagate_inbounds (not @inline): inherits the kernel's inbounds context 
+# so MVector scratch stays off the heap
 
-# Original layering routine
 Base.@propagate_inbounds function relayer_snow!(::OriginalLayering{Tf}, i, j, state, diag, grid, params, snowdepth, Tsnow0, ::Val{Nsmax}) where {Tf, Nsmax}
     @unpack_constants(Tf)
     (; Ds, Sice, Sliq, Tsnow, Nsnow, fsnow) = state
@@ -234,7 +233,6 @@ Base.@propagate_inbounds function relayer_snow!(::OriginalLayering{Tf}, i, j, st
     return nothing
 end
 
-# Density dependent snowpack layering
 Base.@propagate_inbounds function relayer_snow!(s::DensityLayering{Tf}, i, j, state, diag, grid, params, snowdepth, Tsnow0, ::Val{Nsmax}) where {Tf, Nsmax}
     @unpack_constants(Tf)
     (; Ds, Sice, Sliq, Tsnow, histowet, Nsnow, fsnow) = state
@@ -297,17 +295,18 @@ Base.@propagate_inbounds function relayer_snow!(s::DensityLayering{Tf}, i, j, st
                 histowet_loc[Nsnow_loc - k + 1] = histowet_loc[Nsnow_loc - k]
             end
         end
-        Ds_loc[1] = Ds0[i, j]             # Set new top layer thickness
-        Sice_loc[1] = Sice0[i, j]         # Set new top layer ice content
-        Sliq_loc[1] = 0                   # No liquid water in new snow
-        Tsnow_loc[1] = Tsnow0             # Set new snow temperature
+        # Thickness, ice content, liquid water and temperature of new top layer
+        Ds_loc[1] = Ds0[i, j]
+        Sice_loc[1] = Sice0[i, j]
+        Sliq_loc[1] = 0
+        Tsnow_loc[1] = Tsnow0
         if fsnow[i, j] > eps(Tf)
             csnow_loc[1] = (Sice_loc[1] * hcap_ice + Sliq_loc[1] * hcap_wat) / fsnow[i, j]
             U_loc[1] = csnow_loc[1] * (Tsnow_loc[1] - Tm)
         else
             U_loc[1] = 0
         end
-        histowet_loc[1] = 0               # New snow has never been wet
+        histowet_loc[1] = 0
     end
 
     # Step 2: Initialise new layers for the case of no snow
@@ -388,14 +387,12 @@ Base.@propagate_inbounds function relayer_snow!(s::DensityLayering{Tf}, i, j, st
 
         # Step 4: If one layer is too thin, merge it with the neighbouring layer of closest density
         while Nsnow_loc > 1
-            # Find the thinnest layer
             kmin = first_argmin(Ds_loc, Nsnow_loc)
             if !(Ds_loc[kmin] < Ds_min)
                 break
             end
             if kmin == 1
-                # The thinnest layer is the top one
-                # Merge top two layers
+                # The thinnest layer is the top one - merge top two layers
                 Ds_loc[1] = Ds_loc[1] + Ds_loc[2]
                 histowet_loc[1] = ((Sice_loc[1] + Sliq_loc[1]) * histowet_loc[1] + (Sice_loc[2] + Sliq_loc[2]) * histowet_loc[2]) /
                     (Sice_loc[1] + Sliq_loc[1] + Sice_loc[2] + Sliq_loc[2])
@@ -418,8 +415,7 @@ Base.@propagate_inbounds function relayer_snow!(s::DensityLayering{Tf}, i, j, st
                 histowet_loc[Nsnow_loc] = 0
                 Nsnow_loc = Nsnow_loc - 1
             elseif kmin == Nsnow_loc
-                # The thinnest layer is the bottom one
-                # Merge bottom two layers
+                # The thinnest layer is the bottom one - merge bottom two layers
                 Ds_loc[Nsnow_loc - 1] = Ds_loc[Nsnow_loc - 1] + Ds_loc[Nsnow_loc]
                 Ds_loc[Nsnow_loc] = 0
                 histowet_loc[Nsnow_loc - 1] = (
@@ -447,8 +443,7 @@ Base.@propagate_inbounds function relayer_snow!(s::DensityLayering{Tf}, i, j, st
                 rho_kdown = (Sice_loc[kdown] + Sliq_loc[kdown]) / Ds_loc[kdown] / fsnow[i, j]
                 rho_kmin = (Sice_loc[kmin] + Sliq_loc[kmin]) / Ds_loc[kmin] / fsnow[i, j]
                 if abs(rho_kmin - rho_kup) < abs(rho_kmin - rho_kdown)
-                    # Layer with closest density is up
-                    # Merge with upper neighbour
+                    # Layer with closest density is above - merge with this neighbour
                     Ds_loc[kup] = Ds_loc[kup] + Ds_loc[kmin]
                     histowet_loc[kup] = (
                         (Sice_loc[kup] + Sliq_loc[kup]) * histowet_loc[kup] +
@@ -475,8 +470,7 @@ Base.@propagate_inbounds function relayer_snow!(s::DensityLayering{Tf}, i, j, st
                     histowet_loc[Nsnow_loc] = 0
                     Nsnow_loc = Nsnow_loc - 1
                 else
-                    # Layer with closest density is down
-                    # Merge with lower neighbour
+                    # Layer with closest density is below - merge with this layer
                     Ds_loc[kmin] = Ds_loc[kmin] + Ds_loc[kdown]
                     histowet_loc[kmin] = (
                         (Sice_loc[kmin] + Sliq_loc[kmin]) * histowet_loc[kmin] +
@@ -515,7 +509,6 @@ Base.@propagate_inbounds function relayer_snow!(s::DensityLayering{Tf}, i, j, st
                 rho[k] = (Sice_loc[k] + Sliq_loc[k]) / Ds_loc[k] / fsnow[i, j]
             end
             for k in 1:(Nsnow_loc - 1)
-                # Compute the density difference between each layer and its bottom neighbour
                 diff_rho[k] = abs(rho[k] - rho[k + 1])
             end
             # Find neighbours with smallest density difference
@@ -553,7 +546,7 @@ Base.@propagate_inbounds function relayer_snow!(s::DensityLayering{Tf}, i, j, st
         if Nsnow_loc > 0
             while Nsnow_loc < Nsmax
                 if Nsnow_loc == 1
-                    # Only one layer
+                    # Single layer
                     kmax = 1
                     # If the thickest layer is too thin to split, stop
                     if Ds_loc[kmax] < Tf(2.0) * Ds_min
@@ -590,8 +583,7 @@ Base.@propagate_inbounds function relayer_snow!(s::DensityLayering{Tf}, i, j, st
                         U_loc[kmax] = wt * U_loc[kmax]
                     end
                 else
-                    # More than one layer
-                    # Find the thickest layer
+                    # Multiple layers - find the thickest one
                     kmax = first_argmax(Ds_loc, Nsnow_loc)
                     # If the thickest layer is too thin to split, stop
                     if Ds_loc[kmax] < Tf(2.0) * Ds_min
@@ -622,7 +614,8 @@ Base.@propagate_inbounds function relayer_snow!(s::DensityLayering{Tf}, i, j, st
                             U_loc[Nsnow_loc] = (Tf(1.0) - wt) * U_loc[kmax]
                             U_loc[kmax] = wt * U_loc[kmax]
                         else
-                            # If we fill the surface layers to the max Ds_surflay, the bottom layer will be thinner than Ds_min.
+                            # If we fill the surface layers to the max Ds_surflay, 
+                            # the bottom layer will be thinner than Ds_min.
                             # Ds_loc[kmax] > 2 * Ds_min anyway
                             # We then remove Ds_min from the bottom layer to a new layer on top of it.
                             Nsnow_loc = Nsnow_loc + 1

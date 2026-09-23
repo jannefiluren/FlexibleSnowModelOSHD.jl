@@ -1,5 +1,3 @@
-# Radiation process: snow-albedo, canopy shortwave transmission, terrain longwave
-
 """
 $(TYPEDSIGNATURES)
 

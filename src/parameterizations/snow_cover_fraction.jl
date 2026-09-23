@@ -1,5 +1,3 @@
-# Snow cover fraction parameterizations.
-
 struct SeasonalSnowFraction{Tf} <: AbstractSnowFraction{Tf} end
 struct HelbigSnowFraction{Tf} <: AbstractSnowFraction{Tf} end
 struct HelbigMaxSnowFraction{Tf} <: AbstractSnowFraction{Tf} end
@@ -77,7 +75,7 @@ Snow cover fraction parameterizations for one grid cell.
     return nothing
 end
 
-# OSHD seasonal model. @inbounds so the bounds-check error paths do not capture
+# @inbounds so the bounds-check error paths do not capture
 # the local MVector history buffers (which would force them onto the heap,
 # allocating once per grid cell); tests run with --check-bounds=yes, overriding.
 @inline function snow_covered_fraction!(
@@ -129,7 +127,7 @@ end
             dsnowdepth = Tf(0)
         end
 
-        # compute dswemax in SWEbuffer
+        # compute dsnowdepthmax in snowdepthbuffer
         dsnowdepthmax = snowdepthmax_buffer - snowdepthmin_buffer
         if (dsnowdepthmax < eps(Tf))
             dsnowdepthmax = Tf(0)
@@ -177,7 +175,6 @@ end
             snowdepthmin[i, j] = snowdepth
         end
 
-        # Snow cover fraction
         # Initial guess of snow covered fraction
         fsnow_season = Tf(0)
 
@@ -207,17 +204,13 @@ end
         fsnow_nsnow_recent = Tf(0)
 
         sd_snowdepth0_dhs_recent = dsnowdepth_recent^Tf(0.84)
-        # SCF from recent new snow
         if (dsnowdepth_recent > eps(Tf))
             fsnow_nsnow_recent = tanh(dsnowdepth_recent^Tf(0.14) + dsnowdepth_recent / Tf(0.13))
         end
 
-        # take the max of the two new-snow SCF estimates
         fsnow_nsnow = max(fsnow_nsnow, fsnow_nsnow_recent)
 
-        # Seasonal-SCF reset after new-snow melt is disabled (caused instabilities).
 
-        # Use the largest of the two fsnow estimates
         fsnow[i, j] = max(fsnow_season, fsnow_nsnow)
 
         # refresh the 14-day SWE/depth history
@@ -233,14 +226,12 @@ end
     return nothing
 end
 
-# HelbigHS
 @inline function snow_covered_fraction!(
         ::HelbigSnowFraction{Tf}, state, surface,
         snowdepth::Tf, SWEtmp::Tf, i, j, update_hist::Bool
     ) where {Tf}
     (; fsnow) = state
     (; slopemu, xi, Ld) = surface
-    # HelbigHS
     sd_snowdepth2 = snowdepth^Tf(0.549)
     sd_snowdepth1 = exp(Tf(-1) / (Ld[i, j] / xi[i, j])^Tf(2))
     sd_snowdepth3 = slopemu[i, j]^Tf(0.309)
@@ -250,14 +241,12 @@ end
     return nothing
 end
 
-# HelbigHS0 (running max)
 @inline function snow_covered_fraction!(
         ::HelbigMaxSnowFraction{Tf}, state, surface,
         snowdepth::Tf, SWEtmp::Tf, i, j, update_hist::Bool
     ) where {Tf}
     (; fsnow, snowdepthmax) = state
     (; slopemu, xi, Ld) = surface
-    # HelbigHS0
     if snowdepth == Tf(0)
         snowdepthmax[i, j] = Tf(0.0)
     end
@@ -275,24 +264,20 @@ end
     return nothing
 end
 
-# Point model
 @inline function snow_covered_fraction!(
         ::PointSnowFraction{Tf}, state, surface,
         snowdepth::Tf, SWEtmp::Tf, i, j, update_hist::Bool
     ) where {Tf}
     (; fsnow) = state
-    # Point model
     fsnow[i, j] = snowdepth > eps(Tf) ? Tf(1.0) : Tf(0.0)
     return nothing
 end
 
-# tanh model / original FSM
 @inline function snow_covered_fraction!(
         scheme::TanhSnowFraction{Tf}, state, surface,
         snowdepth::Tf, SWEtmp::Tf, i, j, update_hist::Bool
     ) where {Tf}
     (; fsnow) = state
-    # tanh model / original FSM
     fsnow[i, j] = tanh(snowdepth / scheme.hfsn)
     return nothing
 end

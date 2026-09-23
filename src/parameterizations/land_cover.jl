@@ -111,7 +111,6 @@ function canopy_snow! end
     return nothing
 end
 
-# Surface-layer turbulent exchange: eddy diffusivities over open terrain and under a canopy.
 
 """
     exchange_coefficients!(land_cover, i, j, state, diag, surface, params, meteo, z0g)
@@ -125,7 +124,6 @@ terrain uses them directly, a canopy offsets them by the canopy height.
 """
 function exchange_coefficients! end
 
-# Open/glacier terrain
 @inline function exchange_coefficients!(c::OpenCover{Tf}, i, j, state, diag, surface, params, meteo, z0g) where {Tf}
     @unpack_constants(Tf)
     (; zU, zT) = params
@@ -152,7 +150,6 @@ function exchange_coefficients! end
     return nothing
 end
 
-# Forest terrain
 @inline function exchange_coefficients!(c::ForestCover{Tf}, i, j, state, diag, surface, params, meteo, z0g) where {Tf}
     @unpack_constants(Tf)
     (; zU, zT) = params
@@ -205,7 +202,6 @@ end
     return nothing
 end
 
-# Canopy radiative transfer
 
 """
     solar_radiation!(land_cover, i, j, state, diag, surface, meteo)
@@ -292,7 +288,6 @@ unused under a canopy.
 """
 function energy_balance! end
 
-# Open and non-forest tiles
 @inline function energy_balance!(::OpenCover{Tf}, substrate, i, j, state, diag, surface, params, meteo) where {Tf}
 
     @unpack_constants(Tf)
@@ -400,7 +395,6 @@ function energy_balance! end
     return nothing
 end
 
-# Forest tiles
 @inline function energy_balance!(::ForestCover{Tf}, substrate, i, j, state, diag, surface, params, meteo) where {Tf}
 
     @unpack_constants(Tf)

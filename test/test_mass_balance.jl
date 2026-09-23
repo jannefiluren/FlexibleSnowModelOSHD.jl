@@ -17,16 +17,12 @@ function setup_open_example(snow_fraction)
     lus["Ld"] = Dict("data" => [1.0;;])
     lus["prec_multi"] = Dict("data" => [1.0;;])
 
-    # define custom settings
     settings = Dict("tile" => "open", "physics" => Dict("snow_fraction" => snow_fraction))
 
-    # create fsm struct
     fsm = build_fsm(Grid(Float32; Nx = 1, Ny = 1), lus, settings)
 
-    # define meteo data struct
     met = MET{Float32}()
 
-    # read meteo file
     df_meteo = CSV.read(joinpath(path, "../data/input_SLF_5WJ.txt"), DataFrame)
 
     return fsm, met, df_meteo
@@ -52,7 +48,6 @@ function setup_forest_example(snow_fraction)
     lus["lai"] = Dict("data" => [2.5;;])  # Leaf area index
     lus["vfhp"] = Dict("data" => [0.5;;]) # Hemispherical sky-view fraction including canopy
 
-    # define custom settings
     settings = Dict(
         "tile" => "forest",
         "physics" => Dict(
@@ -62,13 +57,10 @@ function setup_forest_example(snow_fraction)
         ),
     )
 
-    # create fsm struct
     fsm = build_fsm(Grid(Float32; Nx = 1, Ny = 1), lus, settings)
 
-    # define meteo data struct
     met = MET{Float32}()
 
-    # read meteo file
     df_meteo = CSV.read(joinpath(path, "../data/input_SLF_5WJ.txt"), DataFrame)
 
     return fsm, met, df_meteo
@@ -87,7 +79,6 @@ function run_fsm(fsm, met, df_meteo)
     dSWE = -sum(fsm.state.Sice[:, 1, 1] .+ fsm.state.Sliq[:, 1, 1])
     dSveg = -fsm.state.Sveg[1, 1]
 
-    # time loop
     for (i, row) in zip(1:nrow(df_meteo), eachrow(df_meteo))
 
         # record precipitation before model run as the forest tile modifies these fluxes
@@ -107,10 +98,8 @@ function run_fsm(fsm, met, df_meteo)
         met.Sf24h .= row["Sf24h"]
         met.Tv .= 1
 
-        # set time
         t = DateTime(row["year"], row["month"], row["day"], row["hour"])
 
-        # run model and update states
         step!(fsm, met, t)
 
         # record mass fluxes
