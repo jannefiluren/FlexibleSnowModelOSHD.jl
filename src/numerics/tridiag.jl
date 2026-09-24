@@ -12,7 +12,7 @@ sub/main/super-diagonals `a`/`b`/`c` and right-hand side `r`, writing the result
 - `c`: Super-diagonal coefficients
 - `r`: Right-hand side vector
 """
-# @propagate_inbounds (not @inline): the kernel's inbounds context reaches 
+# @propagate_inbounds (not @inline): the kernel's inbounds context reaches
 # the internal gamma MVector, keeping it off the heap.
 Base.@propagate_inbounds function tridiag!(x::AbstractVector{Tf}, Nvec, a, b, c, r) where {Tf <: Real}
 
