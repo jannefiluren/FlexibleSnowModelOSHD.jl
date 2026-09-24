@@ -395,7 +395,7 @@ function energy_balance! end
     return nothing
 end
 
-@inline function energy_balance!(::ForestCover{Tf}, substrate, i, j, state, diag, surface, params, meteo) where {Tf}
+Base.@propagate_inbounds function energy_balance!(::ForestCover{Tf}, substrate, i, j, state, diag, surface, params, meteo) where {Tf}
 
     @unpack_constants(Tf)
 
@@ -581,7 +581,7 @@ end
     return nothing
 end
 
-@inline function energy_balance!(m::MixedLandCover, substrate::MixedSubstrate, i, j, state, diag, surface, params, meteo)
+Base.@propagate_inbounds function energy_balance!(m::MixedLandCover, substrate::MixedSubstrate, i, j, state, diag, surface, params, meteo)
     if m.forestcells[i, j]
         energy_balance!(m.forest, substrate.soil, i, j, state, diag, surface, params, meteo)
     elseif substrate.icecells[i, j]

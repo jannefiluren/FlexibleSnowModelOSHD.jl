@@ -8,7 +8,6 @@ allocated internally.
 Numerical Recipes' `ludcmp`/`lubksb`: Crout ordering with implicit (scaled) partial pivoting; the
 factors are Doolittle-form (unit-diagonal `L`, `U` carries the diagonal).
 """
-# @propagate_inbounds (not @inline): the kernel's inbounds context reaches the internal scratch, keeping it off the heap.
 Base.@propagate_inbounds function ludcmp!(N::Integer, A::AbstractMatrix{Tf}, b::AbstractVector{Tf}, x::AbstractVector{Tf}) where {Tf <: Real}
 
     Acp = similar(A)

@@ -89,11 +89,25 @@ are exempt — classify a new function by its shape, not by name:
   array-holding struct.
 - **`@kernel inbounds = true`** for kernels with `MVector` scratch — never a raw
   `@inbounds` block inside a `@kernel` body (it miscompiles with the KA CPU
-  aliasscope on Julia ≥ 1.11). A helper that allocates `MVector` scratch must be
-  `Base.@propagate_inbounds`, not merely `@inline`: only that carries the kernel's
-  inbounds context into it. With plain `@inline` the bounds-check paths capture the
-  scratch and it is heap-allocated once per grid cell (measured: 3 allocations per
-  cell in `relayer_snow!` before this was fixed).
+  aliasscope on Julia ≥ 1.11).
+- **Every function between that kernel and the `MVector` scratch is
+  `Base.@propagate_inbounds`**, not merely `@inline`: only that carries the
+  kernel's inbounds context down, and a single plain `@inline` link breaks the
+  chain. With the chain broken, the bounds-check paths capture the scratch and it is
+  heap-allocated once per grid cell on the CPU backend (measured: 3 allocations per
+  cell in `relayer_snow!`; 80 bytes per cell in the seasonal snow-cover scheme
+  while `snowcoverfraction_point!` was `@inline`). A host-side caller outside any
+  kernel supplies the context itself with `@inbounds` at the call site (see
+  `snow_cover_fraction!`). Whether a plain `@inline` link actually allocates
+  depends on what the compiler inlines, so measure rather than reason about it.
+- **Checking for heap allocations:** warm up, then compare `@allocated` of the
+  launcher (e.g. `snow!(fsm, met, t)`) at several grid sizes, such as 1, 100 and 900
+  cells. A constant byte count is kernel-launch overhead; growth with cell count
+  is scratch on the heap. Run without `--check-bounds=yes`: `Pkg.test` forces
+  bounds checks, which allocate per cell by design, so the suite cannot catch
+  this. The measurement covers the CPU backend only — `@allocated` does not see
+  the device — so kernel changes must also pass `test/test_gpu.jl` on a CUDA
+  machine.
 
 ## Bit-identity
 
@@ -101,3 +115,8 @@ Every refactor must stay **bit-identical** to the physics baseline. Verify with
 `Pkg.test`, `test/baseline.jl check` (IDENTICAL vs commit `6c4dda5`), and — for
 schemes the baseline matrix cannot cover (ALBEDO/CONDCT are schemes, not integer
 flags) — a git A/B hash of a synthetic run across scheme combinations.
+
+These checks run on the CPU. `test/test_gpu.jl` is the only check of the GPU path:
+it runs every kernel on the device and compares against the CPU, and it is skipped
+(with an info message) wherever CUDA is not functional. A change to kernel or
+point-function code is not verified for GPU until it has run on a CUDA machine.

@@ -23,7 +23,6 @@ function surface_energy_balance!(fsm::FSM{Tf}, meteo::MET{Tf}) where {Tf <: Real
     return nothing
 end
 
-# inbounds = true (not a raw @inbounds block, which miscompiles the KA CPU kernel) keeps the forest solver's scratch off the heap
 @kernel inbounds = true function surface_energy_balance_kernel!(
         state, diag, surface, params::Parameters{Tf}, meteo,
         land_cover::AbstractLandCover{Tf}, substrate::AbstractSubstrate{Tf},
