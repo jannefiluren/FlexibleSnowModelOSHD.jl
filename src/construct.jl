@@ -23,8 +23,6 @@ function FSM(
         snow_fraction = PointSnowFraction{Tf}(),
     ) where {Tf}
 
-    check_layer_thicknesses(grid)
-
     physics = (;
         land_cover = instantiate(land_cover, grid),
         substrate = instantiate(substrate, grid),
@@ -79,7 +77,9 @@ Build a `Grid` for a landuse domain; `Nx`, `Ny` are taken from the elevation arr
 """
 function Grid(::Type{Tf}, landuse::Dict; kwargs...) where {Tf}
     Nx, Ny = size(require_field(landuse, "elevation"))
-    return Grid{Tf, Vector{Tf}}(; kwargs..., Nx, Ny)
+    grid = Grid{Tf, Vector{Tf}}(; kwargs..., Nx, Ny)
+    check_layer_thicknesses(grid)
+    return grid
 end
 
 # Mask for forest cells depending on land cover type

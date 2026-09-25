@@ -37,7 +37,11 @@ $(TYPEDFIELDS)
     Ny::Int = 1
 end
 
-Grid(::Type{Tf}; kwargs...) where {Tf} = Grid{Tf, Vector{Tf}}(; kwargs...)
+function Grid(::Type{Tf}; kwargs...) where {Tf}
+    grid = Grid{Tf, Vector{Tf}}(; kwargs...)
+    check_layer_thicknesses(grid)
+    return grid
+end
 
 Base.eltype(::Grid{Tf}) where {Tf} = Tf
 Base.eltype(::Type{<:Grid{Tf}}) where {Tf} = Tf
