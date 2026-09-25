@@ -12,7 +12,10 @@
 [zenodo-img]: https://img.shields.io/badge/DOI-10.5281/zenodo.21322824-blue.svg
 [zenodo-url]: https://doi.org/10.5281/zenodo.21322824
 
- [![][ci-img]][ci-url] [![][codecov-img]][codecov-url] [![][runic-img]][runic-url] [![DOI][zenodo-img]][zenodo-url]
+[docs-dev-img]: https://img.shields.io/badge/docs-dev-blue.svg
+[docs-dev-url]: https://jannefiluren.github.io/FlexibleSnowModelOSHD.jl/dev/
+
+ [![][docs-dev-img]][docs-dev-url] [![][ci-img]][ci-url] [![][codecov-img]][codecov-url] [![][runic-img]][runic-url] [![DOI][zenodo-img]][zenodo-url]
 
 A Julia implementation of the **Flexible Snow Model (FSM)** for the **Operational Snow Hydrological Service (OSHD)** at SLF. This package provides a comprehensive snow physics model for simulating snow accumulation and melt processes in complex terrain.
 
@@ -32,7 +35,7 @@ The model is designed for operational snow forecasting applications and supports
 ## Installation
 
 ### Prerequisites
-- Julia 1.6 or higher
+- Julia 1.10 or higher
 - Required packages are specified in `Project.toml`
 
 ### Installation Steps
@@ -55,35 +58,39 @@ The model is designed for operational snow forecasting applications and supports
    using FlexibleSnowModelOSHD
    ```
 
-## Examples
-
-A simulation representing an open site can be run from the terminal by:
-
-```julia
-include("script/run_open_station_example.jl")
-```
-
-while a corresponding simulation for a forested site can be run by:
-
-```julia
-include("script/run_forest_station_example.jl")
-```
-
 ## Package Structure
 
 ```
 FlexibleSnowModelOSHD.jl/
-├── src/                            # Source code
-│   ├── FlexibleSnowModelOSHD.jl    # Main module
-│   ├── types.jl                    # Model data structures  
-│   ├── parameters.jl               # Physical constants
-│   ├── setup.jl                    # Model initialization
-│   ├── step.jl                     # Main physics time step
-│   ├── snow.jl                     # Snow physics processes
-│   ├── radiation.jl                # Radiation calculations
-│   ├── thermal.jl                  # Thermal properties
-│   └── ...                         # Additional physics modules
-├── script/                         # Simulation scripts
-└── test/                           # Unit tests and regression tests
+├── src/                              # Source code
+│   ├── FlexibleSnowModelOSHD.jl      # Main module
+│   ├── parameters.jl                 # Physical constants
+│   ├── types/                        # Core model data structures
+│   │   ├── grid.jl                   # Grid definition
+│   │   ├── parameters.jl             # Scalar model parameters
+│   │   ├── surface.jl                # Static surface / terrain / canopy / soil properties
+│   │   ├── state.jl                  # Prognostic model state
+│   │   ├── diagnostics.jl            # Model diagnostic fields
+│   │   ├── met.jl                    # Meteorological forcing
+│   │   └── fsm.jl                    # FSM container
+│   ├── architectures.jl              # CPU/GPU architecture abstraction
+│   ├── scheme_construction.jl        # Scheme construction helpers
+│   ├── construct.jl                  # Model construction from a landuse domain
+│   ├── step.jl                       # Main physics time step
+│   ├── numerics/                     # Numerical utilities
+│   ├── processes/                    # Kernel functions called from step
+│   ├── parameterizations/            # Swappable physics schemes
+│   │   ├── albedo.jl                 # Snow albedo schemes
+│   │   ├── compaction.jl             # Snow compaction schemes
+│   │   ├── conductivity.jl           # Snow thermal conductivity schemes
+│   │   ├── fresh_snow_density.jl     # Fresh snow density schemes
+│   │   ├── hydrology.jl              # Snow liquid-water (hydrology) schemes
+│   │   ├── land_cover.jl             # Open/forest land cover and canopy schemes
+│   │   ├── layering.jl               # Snow layering schemes
+│   │   ├── snow_cover_fraction.jl    # Snow cover fraction schemes
+│   │   ├── stability.jl              # Atmospheric stability correction schemes
+│   │   └── substrate.jl              # Soil / glacier-ice substrate schemes
+│   └── transport/                    # Snow transport routines
+├── examples/                         # Runnable example scripts (rendered into the docs)
+└── test/                             # Unit tests and regression tests
 ```
-
