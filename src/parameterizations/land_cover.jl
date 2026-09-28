@@ -56,8 +56,7 @@ canopy_avgs(c::ForestCover) = c.avgs
     forest_cells(land_cover, grid)
 
 `Nx` by `Ny` `Bool` mask of the cells that use the forest scheme: none for an `OpenCover`,
-all for a `ForestCover`, and the `forestcells` of a `MixedLandCover`. Host-side, for setup;
-kernels dispatch on the land-cover type instead.
+all for a `ForestCover`, and the `forestcells` of a `MixedLandCover`.
 """
 function forest_cells end
 
