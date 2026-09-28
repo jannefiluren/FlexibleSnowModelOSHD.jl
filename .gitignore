@@ -17,3 +17,4 @@ nlst_from_julia.nam
 *.dll
 *.so
 Manifest*.toml
+/docs/build

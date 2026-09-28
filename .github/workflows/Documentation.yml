@@ -1,0 +1,40 @@
+name: Documentation
+on:
+  push:
+    branches:
+      - jan-gpu-on-main   # TODO: revert to `main` after merge
+    tags: ['*']
+  pull_request:
+  workflow_dispatch:
+concurrency:
+  # Cancel superseded runs on the same ref, except on main.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+jobs:
+  docs:
+    name: Build & deploy documentation
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write       # push the rendered site to the gh-pages branch
+      pull-requests: read
+      statuses: write        # attach the preview-URL status to pull requests
+    steps:
+      - uses: actions/checkout@v5
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1'
+      - uses: julia-actions/cache@v2
+      # deps/build.jl compiles the Fortran routines with gfortran. The docs build
+      # loads the package, so gfortran must be on PATH here too (mirrors CI.yml).
+      - uses: fortran-lang/setup-fortran@v1
+        with:
+          compiler: gcc
+      - uses: julia-actions/julia-buildpkg@v1
+      - uses: julia-actions/julia-docdeploy@v1
+        env:
+          # deploydocs prefers DOCUMENTER_KEY (SSH deploy key) when present and
+          # otherwise falls back to the automatic GITHUB_TOKEN. Either works for
+          # deploying to this repo's gh-pages branch.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
