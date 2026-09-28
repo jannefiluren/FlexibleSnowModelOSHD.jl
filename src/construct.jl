@@ -77,15 +77,9 @@ Build a `Grid` for a landuse domain; `Nx`, `Ny` are taken from the elevation arr
 """
 function Grid(::Type{Tf}, landuse::Dict; kwargs...) where {Tf}
     Nx, Ny = size(require_field(landuse, "elevation"))
-    grid = Grid{Tf, Vector{Tf}}(; kwargs..., Nx, Ny)
-    check_layer_thicknesses(grid)
+    grid = Grid(Tf; kwargs..., Nx, Ny)
     return grid
 end
-
-# Mask for forest cells depending on land cover type
-forest_cells(::AbstractLandCover, grid) = falses(grid.Nx, grid.Ny)
-forest_cells(::ForestCover, grid) = trues(grid.Nx, grid.Ny)
-forest_cells(m::MixedLandCover, grid) = m.forestcells
 
 # Fetch a required landuse field, with a clear error naming the missing key.
 function require_field(landuse::Dict, key)

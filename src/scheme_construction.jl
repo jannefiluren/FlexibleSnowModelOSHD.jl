@@ -1,7 +1,3 @@
-# Helpers for materializing physics parameterizations against a grid, plus the immutable-struct
-# update used to rebuild `Parameters`. Used by the FSM constructor (construct.jl) and by callers
-# that translate an operational config into constructor arguments.
-
 """
 $(TYPEDSIGNATURES)
 

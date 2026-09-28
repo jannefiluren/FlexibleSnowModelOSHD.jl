@@ -3,27 +3,17 @@ module FlexibleSnowModelOSHD
 using Dates
 using Adapt: Adapt, @adapt_structure
 
-# Model parametrizations are defined as types to make use of multiple dispatch
-abstract type AbstractParameterization{Tf <: Real} end
-abstract type AbstractConductivity{Tf} <: AbstractParameterization{Tf} end
-abstract type AbstractAlbedo{Tf} <: AbstractParameterization{Tf} end
-abstract type AbstractLandCover{Tf} <: AbstractParameterization{Tf} end
-abstract type AbstractSubstrate{Tf} <: AbstractParameterization{Tf} end
-abstract type AbstractStabilityCorrection{Tf} <: AbstractParameterization{Tf} end
-abstract type AbstractFreshSnowDensity{Tf} <: AbstractParameterization{Tf} end
-abstract type AbstractCompaction{Tf} <: AbstractParameterization{Tf} end
-abstract type AbstractHydrology{Tf} <: AbstractParameterization{Tf} end
-abstract type AbstractLayering{Tf} <: AbstractParameterization{Tf} end
-abstract type AbstractSnowFraction{Tf} <: AbstractParameterization{Tf} end
-
 import KernelAbstractions
 using KernelAbstractions: @kernel, @index, get_backend
 using StaticArrays: MVector, MMatrix
 import Libdl
 using DocStringExtensions: TYPEDEF, TYPEDFIELDS, TYPEDSIGNATURES, TYPEDFIELDS
 
+# Model parametrizations are defined as types to make use of multiple dispatch
+include("parameterizations/abstract_parametrizations.jl")
+
 # Core functionality such as state and parameter structs, constants and scheme construction helpers
-include("parameters.jl")
+include("physical_constants.jl")
 include("types/grid.jl")
 include("types/parameters.jl")
 include("types/surface.jl")

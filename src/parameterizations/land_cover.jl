@@ -53,6 +53,19 @@ canopy_avg0(c::ForestCover) = c.avg0
 canopy_avgs(c::ForestCover) = c.avgs
 
 """
+    forest_cells(land_cover, grid)
+
+`Nx` by `Ny` `Bool` mask of the cells that use the forest scheme: none for an `OpenCover`,
+all for a `ForestCover`, and the `forestcells` of a `MixedLandCover`. Host-side, for setup;
+kernels dispatch on the land-cover type instead.
+"""
+function forest_cells end
+
+forest_cells(::AbstractLandCover, grid) = falses(grid.Nx, grid.Ny)
+forest_cells(::ForestCover, grid) = trues(grid.Nx, grid.Ny)
+forest_cells(m::MixedLandCover, grid) = m.forestcells
+
+"""
     canopy_snow!(land_cover, i, j, state, diag, surface, params)
 
 Snow on the canopy at cell `(i, j)`: interception from the throughfall `diag.Sfeff`,
@@ -298,7 +311,7 @@ function energy_balance! end
     (; Esrf, G, H, Hsrf, LE, LEsrf, LWsci, LWveg, Melt, Rnet, Rsrf, SWsrf, Ds1, Ts1, ks1, KH, KWg, Qa, LWeff) = diag
     (; Ps, Ta) = meteo
 
-    # Reported as air temperature so that Tcan and Tveg are defined in open runs
+    # Set Tcan and Tveg to air temperature, so that they are also defined in open runs
     Tveg[i, j] = Ta[i, j]
     Tcan[i, j] = Ta[i, j]
 

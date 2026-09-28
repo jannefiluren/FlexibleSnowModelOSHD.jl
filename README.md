@@ -64,7 +64,7 @@ The model is designed for operational snow forecasting applications and supports
 FlexibleSnowModelOSHD.jl/
 ├── src/                              # Source code
 │   ├── FlexibleSnowModelOSHD.jl      # Main module
-│   ├── parameters.jl                 # Physical constants
+│   ├── physical_constants.jl         # Physical constants
 │   ├── types/                        # Core model data structures
 │   │   ├── grid.jl                   # Grid definition
 │   │   ├── parameters.jl             # Scalar model parameters

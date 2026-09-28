@@ -37,10 +37,10 @@ function soil_properties! end
     (; csoil, ksoil, gs1) = diag
 
     for k in 1:Nsoil
-        # hcap_ice is a specific heat capacity and needs converting to a volumetric value
+        # converts the specific heat capacity hcap_ice (J/K/kg) into a volumetric value (J/K/m^3)
         csoil[k, i, j] = hcap_ice * rho_ice * Dzsoil[k]
         ksoil[k, i, j] = hcon_ice
-        # An ice surface behaves like saturated soil for surface moisture conductance
+        # the ice surface behaves like saturated soil for surface moisture conductance
         gs1[i, j] = gsat
     end
     return nothing
