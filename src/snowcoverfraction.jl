@@ -55,73 +55,73 @@ function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::Date
         # irecentmin = argmin(@view SWEbuffer[1:ifinal])
 
         # -------------------------------------------------------------
-# Find recent SWE maximum (today -> older)
-# -------------------------------------------------------------
-maxidx = 1
+        # Find recent SWE maximum (today -> older)
+        # -------------------------------------------------------------
+        maxidx = 1
 
-for k in 1:14
-    diffSWEbuffer = SWEbuffer[k + 1] - SWEbuffer[k]
+        for k in 1:14
+            diffSWEbuffer = SWEbuffer[k + 1] - SWEbuffer[k]
 
-    # Continue while SWE is increasing or nearly flat
-    if diffSWEbuffer >= Tf(-0.5)
-        maxidx = k + 1
-    else
-        break
-    end
-end
-
-# -------------------------------------------------------------
-# Find preceding SWE minimum with plateau hysteresis
-# -------------------------------------------------------------
-if maxidx == 15
-
-    irecentmin = 15
-    recent_max = snowdepthbuffer[15]
-
-else
-
-    irecentmin = maxidx
-    plateau_days = 0
-    started = false
-
-    for k in maxidx:14
-
-        diffSWEbuffer = SWEbuffer[k + 1] - SWEbuffer[k]
-
-        if !started
-
-            # First meaningful decrease starts the event 
-            if diffSWEbuffer < Tf(-0.5)  # not considering 0.5mm SWE gain a new snowfall TZ 10.26
-                started = true
-
-                if SWEbuffer[k + 1] < SWEbuffer[irecentmin]
-                    irecentmin = k + 1
-                end
-            end
-
-        else
-
-            # Update running minimum
-            if SWEbuffer[k + 1] < SWEbuffer[irecentmin]
-                irecentmin = k + 1
-            end
-
-            # Plateau detection
-            if diffSWEbuffer > Tf(-0.1)
-                plateau_days += 1
+            # Continue while SWE is increasing or nearly flat
+            if diffSWEbuffer >= Tf(-0.5)
+                maxidx = k + 1
             else
-                plateau_days = 0
-            end
-
-            if plateau_days >= 2    #one day of no increase does not stop the recent calculation TZ 10.26
                 break
             end
         end
-    end
 
-    recent_max = maximum(@view snowdepthbuffer[maxidx:irecentmin])
+        # -------------------------------------------------------------
+        # Find preceding SWE minimum with plateau hysteresis
+        # -------------------------------------------------------------
+        if maxidx == 15
 
-end
+            irecentmin = 15
+            recent_max = snowdepthbuffer[15]
+
+        else
+
+            irecentmin = maxidx
+            plateau_days = 0
+            started = false
+
+            for k in maxidx:14
+
+                diffSWEbuffer = SWEbuffer[k + 1] - SWEbuffer[k]
+
+                if !started
+
+                    # First meaningful decrease starts the event
+                    if diffSWEbuffer < Tf(-0.5)  # not considering 0.5mm SWE gain a new snowfall TZ 10.26
+                        started = true
+
+                        if SWEbuffer[k + 1] < SWEbuffer[irecentmin]
+                            irecentmin = k + 1
+                        end
+                    end
+
+                else
+
+                    # Update running minimum
+                    if SWEbuffer[k + 1] < SWEbuffer[irecentmin]
+                        irecentmin = k + 1
+                    end
+
+                    # Plateau detection
+                    if diffSWEbuffer > Tf(-0.1)
+                        plateau_days += 1
+                    else
+                        plateau_days = 0
+                    end
+
+                    if plateau_days >= 2    #one day of no increase does not stop the recent calculation TZ 10.26
+                        break
+                    end
+                end
+            end
+
+            recent_max = maximum(@view snowdepthbuffer[maxidx:irecentmin])
+
+        end
 
         # use indices to determine snowdepth amounts
         snowdepthmin_buffer = snowdepthbuffer[iabsmin]
@@ -219,22 +219,22 @@ end
         sd_snowdepth0_dhs = dsnowdepthmax^Tf(0.84)
         # calculate snow covered fraction of nsnow
         if (dsnowdepthmax > eps(Tf))
-        #    fsnow_nsnow = tanh(dsnowdepth^Tf(0.14) + dsnowdepth / Tf(0.13))
-            fsnow_nsnow = tanh(dsnowdepth/sd_snowdepth0_dhs + dsnowdepth / dsnowdepthmax^0.2/Tf(0.30))
+            #    fsnow_nsnow = tanh(dsnowdepth^Tf(0.14) + dsnowdepth / Tf(0.13))
+            fsnow_nsnow = tanh(dsnowdepth / sd_snowdepth0_dhs + dsnowdepth / dsnowdepthmax^0.2 / Tf(0.3))
         end
         #######
 
         ####### scf based on dswe_recent snowfall after since last minimum
-        # similar to the calculation of fsnow_nsnow, based on Helbig + additive term 
+        # similar to the calculation of fsnow_nsnow, based on Helbig + additive term
         fsnow_nsnow_recent = Tf(0)
 
         # sd_snowdepth0_dhs_recent = dsnowdepth_recent^Tf(0.84)
         sd_snowdepth0_dhs_recent = dsnowdepth_recent_max^Tf(0.84)
         # calculate snow covered fraction of nsnow with recent dswe, converting SWEtmp into snow depth
-        # consider only meaningful snow height increases, needed due to swe search 
-        if (dsnowdepth_recent > eps(Tf)&& (dsnowdepth_recent_max > Tf(1e-3)))  
-        #    fsnow_nsnow_recent = tanh(dsnowdepth_recent^Tf(0.14) + dsnowdepth_recent / Tf(0.13))
-            fsnow_nsnow_recent = tanh(dsnowdepth_recent/sd_snowdepth0_dhs_recent + dsnowdepth_recent /dsnowdepth_recent_max^0.2/ Tf(0.30))
+        # consider only meaningful snow height increases, needed due to swe search
+        if (dsnowdepth_recent > eps(Tf)&& (dsnowdepth_recent_max > Tf(1.0e-3)))
+            #    fsnow_nsnow_recent = tanh(dsnowdepth_recent^Tf(0.14) + dsnowdepth_recent / Tf(0.13))
+            fsnow_nsnow_recent = tanh(dsnowdepth_recent / sd_snowdepth0_dhs_recent + dsnowdepth_recent / dsnowdepth_recent_max^0.2 / Tf(0.3))
         end
 
         # take maximum between the two new snow scf, similar to taking the maximum of all three regimes at the end (done)
