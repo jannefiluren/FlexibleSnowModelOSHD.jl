@@ -89,7 +89,7 @@ function snow!(fsm::FSM{Tf, Ti}, meteo::MET{Tf, Ti}, t) where {Tf <: Real, Ti <:
                     if (SNFRAC == 3)
                         fsnow_thres = fsnow[i, j]
                     else
-                        fsnow_thres = min(fsnow[i, j] + Tf(0.25), Tf(1.0))
+                        fsnow_thres = min(fsnow[i, j] + Tf(0.3), Tf(1.0))
                     end
 
                     # Heat conduction

@@ -35,22 +35,96 @@ function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::Date
 
         # calculate snowdepthmin_buffer, snowdepthmax_buffer, snowdepthmin_recent
         # find indices of global min and max in SWEbuffer
-        iabsmax = argmax(SWEbuffer)
+        # iabsmax = argmax(SWEbuffer)
         iabsmin = argmin(SWEbuffer)
+        # maximum between today and the minimum (inclusive)
+        iabsmax = argmax(@view SWEbuffer[1:iabsmin])
 
         # find index of recent min in SWEbuffer
         # calculate diff vector of SWEBuffer
-        ifinal = 1
-        for iloop in 1:14
-            ifinal = iloop
-            diffSWEbuffer = SWEbuffer[iloop + 1] - SWEbuffer[iloop]
-            if (diffSWEbuffer > Tf(0.5))
-                break
+        # ifinal = 1
+        # for iloop in 1:14
+        #     ifinal = iloop
+        #     diffSWEbuffer = SWEbuffer[iloop + 1] - SWEbuffer[iloop]
+        #     if (diffSWEbuffer > Tf(0.5))
+        #         break
+        #     else
+        #         ifinal = iloop + 1
+        #     end
+        # end
+        # irecentmin = argmin(@view SWEbuffer[1:ifinal])
+
+        # -------------------------------------------------------------
+# Find recent SWE maximum (today -> older)
+# -------------------------------------------------------------
+maxidx = 1
+
+for k in 1:14
+    diffSWEbuffer = SWEbuffer[k + 1] - SWEbuffer[k]
+
+    # Continue while SWE is increasing or nearly flat
+    if diffSWEbuffer >= Tf(-0.5)
+        maxidx = k + 1
+    else
+        break
+    end
+end
+
+# -------------------------------------------------------------
+# Find preceding SWE minimum with plateau hysteresis
+# -------------------------------------------------------------
+if maxidx == 15
+
+    irecentmin = 15
+    recent_max = snowdepthbuffer[15]
+
+else
+
+    irecentmin = maxidx
+    plateau_days = 0
+    started = false
+
+    for k in maxidx:14
+
+        diffSWEbuffer = SWEbuffer[k + 1] - SWEbuffer[k]
+
+        if !started
+
+            # First meaningful decrease starts the event
+            if diffSWEbuffer < Tf(-0.5)
+                started = true
+
+                if SWEbuffer[k + 1] < SWEbuffer[irecentmin]
+                    irecentmin = k + 1
+                end
+            end
+
+        else
+
+            # Update running minimum
+            if SWEbuffer[k + 1] < SWEbuffer[irecentmin]
+                irecentmin = k + 1
+            end
+
+            # Plateau detection
+            if diffSWEbuffer > Tf(-0.1)
+                plateau_days += 1
             else
-                ifinal = iloop + 1
+                plateau_days = 0
+            end
+
+            if plateau_days >= 2
+                break
             end
         end
-        irecentmin = argmin(@view SWEbuffer[1:ifinal])
+    end
+
+    recent_max = maximum(@view snowdepthbuffer[maxidx:irecentmin])
+
+end
+
+# Snow depth at recent minimum
+snowdepthmin_recent = snowdepthbuffer[irecentmin]
 
         # use indices to determine snowdepth amounts
         snowdepthmin_buffer = snowdepthbuffer[iabsmin]
@@ -80,7 +154,13 @@ function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::Date
         if (dsnowdepth_recent < eps(Tf))
             dsnowdepth_recent = Tf(0)
         end
-
+        dsnowdepth_recent_max = max.(recent_max .- snowdepthmin_recent, 0)
+        if (dsnowdepth_recent_max < eps(Tf))
+            dsnowdepth_recent_max = Tf(0)
+        end
+        if (dsnowdepth_recent_max < dsnowdepth_recent)
+            dsnowdepth_recent_max = dsnowdepth_recent
+        end
         # state variables interpeting the whole SWEtmp history, not only the past 14 days in the buffer
         # Set swemax and swemin equal to zero if no snow, same with corresponding snow depth values
         if (SWEtmp < eps(Tf))
@@ -140,7 +220,8 @@ function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::Date
         sd_snowdepth0_dhs = dsnowdepthmax^Tf(0.84)
         # calculate snow covered fraction of nsnow
         if (dsnowdepthmax > eps(Tf))
-            fsnow_nsnow = tanh(dsnowdepth^Tf(0.14) + dsnowdepth / Tf(0.13))
+        #    fsnow_nsnow = tanh(dsnowdepth^Tf(0.14) + dsnowdepth / Tf(0.13))
+            fsnow_nsnow = tanh(dsnowdepth/sd_snowdepth0_dhs + dsnowdepth / sd_snowdepth0_dhs^(0.2/0.84)/Tf(0.30))
         end
         #######
 
@@ -148,10 +229,12 @@ function snowcoverfraction!(fsm::FSM{Tf, Ti}, snowdepth::Tf, SWEtmp::Tf, t::Date
         # calculate standard deviation of dsnowdepth_recent, taking Luca's formula (flat field approximation)
         fsnow_nsnow_recent = Tf(0)
 
-        sd_snowdepth0_dhs_recent = dsnowdepth_recent^Tf(0.84)
+        # sd_snowdepth0_dhs_recent = dsnowdepth_recent^Tf(0.84)
+        sd_snowdepth0_dhs_recent = dsnowdepth_recent_max^Tf(0.84)
         # calculate snow covered fraction of nsnow with recent dswe, converting SWEtmp into snow depth
-        if (dsnowdepth_recent > eps(Tf))
-            fsnow_nsnow_recent = tanh(dsnowdepth_recent^Tf(0.14) + dsnowdepth_recent / Tf(0.13))
+        if (dsnowdepth_recent > eps(Tf)&& (dsnowdepth_recent_max > Tf(1e-3)))
+        #    fsnow_nsnow_recent = tanh(dsnowdepth_recent^Tf(0.14) + dsnowdepth_recent / Tf(0.13))
+            fsnow_nsnow_recent = tanh(dsnowdepth_recent/sd_snowdepth0_dhs_recent + dsnowdepth_recent /sd_snowdepth0_dhs_recent^(0.2/0.84)/ Tf(0.30))
         end
 
 
