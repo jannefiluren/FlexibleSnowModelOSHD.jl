@@ -90,8 +90,8 @@ else
 
         if !started
 
-            # First meaningful decrease starts the event
-            if diffSWEbuffer < Tf(-0.5)
+            # First meaningful decrease starts the event 
+            if diffSWEbuffer < Tf(-0.5)  # not considering 0.5mm SWE gain a new snowfall TZ 10.26
                 started = true
 
                 if SWEbuffer[k + 1] < SWEbuffer[irecentmin]
@@ -113,7 +113,7 @@ else
                 plateau_days = 0
             end
 
-            if plateau_days >= 2
+            if plateau_days >= 2    #one day of no increase does not stop the recent calculation TZ 10.26
                 break
             end
         end
@@ -123,13 +123,11 @@ else
 
 end
 
-# Snow depth at recent minimum
-snowdepthmin_recent = snowdepthbuffer[irecentmin]
-
         # use indices to determine snowdepth amounts
         snowdepthmin_buffer = snowdepthbuffer[iabsmin]
         snowdepthmax_buffer = snowdepthbuffer[iabsmax]
         snowdepthmin_recent = snowdepthbuffer[irecentmin]
+        snowdepthmax_recent = recent_max
 
         # Compute storage of new snow on old snow in snowdepthbuffer
         dsnowdepth = snowdepth - snowdepthmin_buffer
@@ -137,13 +135,13 @@ snowdepthmin_recent = snowdepthbuffer[irecentmin]
             dsnowdepth = Tf(0)
         end
 
-        # compute dswemax in SWEbuffer
+        # compute maximum new snow depth (dswemax) in SWEbuffer
         dsnowdepthmax = snowdepthmax_buffer - snowdepthmin_buffer
         if (dsnowdepthmax < eps(Tf))
             dsnowdepthmax = Tf(0)
         end
 
-        # don't accept dsnowdepthmax to be larger then dsnowdepth, otherwise larger fnsnow values
+        # don't accept dsnowdepthmax to be smaller then dsnowdepth, otherwise larger fnsnow values; necessary due to swe search
         # todo: think about doing this for snowdepthmin and snowdepthmax as well, and swemin and swemax
         if (dsnowdepthmax < dsnowdepth)
             dsnowdepthmax = dsnowdepth
@@ -154,10 +152,11 @@ snowdepthmin_recent = snowdepthbuffer[irecentmin]
         if (dsnowdepth_recent < eps(Tf))
             dsnowdepth_recent = Tf(0)
         end
-        dsnowdepth_recent_max = max.(recent_max .- snowdepthmin_recent, 0)
+        dsnowdepth_recent_max = max.(snowdepthmax_recent .- snowdepthmin_recent, 0)
         if (dsnowdepth_recent_max < eps(Tf))
             dsnowdepth_recent_max = Tf(0)
         end
+        # don't accept dsnowdepthmax to be smaller then dsnowdepth, otherwise larger fnsnow values
         if (dsnowdepth_recent_max < dsnowdepth_recent)
             dsnowdepth_recent_max = dsnowdepth_recent
         end
@@ -214,45 +213,29 @@ snowdepthmin_recent = snowdepthbuffer[irecentmin]
         coeff_vari = sd_snowdepth0 / snowdepthmax[i, j]
 
         ## scf based on dswe of last 14 days
-        # calculate standard deviation of dhs, taking Luca's formula (flat field approximation)
+        # use an adjustment to Helbig 2021 by an additive term  which is less dependent on maximum snowdepth to better account for a slower decay
         fsnow_nsnow = Tf(0)
 
         sd_snowdepth0_dhs = dsnowdepthmax^Tf(0.84)
         # calculate snow covered fraction of nsnow
         if (dsnowdepthmax > eps(Tf))
         #    fsnow_nsnow = tanh(dsnowdepth^Tf(0.14) + dsnowdepth / Tf(0.13))
-            fsnow_nsnow = tanh(dsnowdepth/sd_snowdepth0_dhs + dsnowdepth / sd_snowdepth0_dhs^(0.2/0.84)/Tf(0.30))
+            fsnow_nsnow = tanh(dsnowdepth/sd_snowdepth0_dhs + dsnowdepth / dsnowdepthmax^0.2/Tf(0.30))
         end
         #######
 
-        ####### scf based on dswe_recent since last minimum
-        # calculate standard deviation of dsnowdepth_recent, taking Luca's formula (flat field approximation)
+        ####### scf based on dswe_recent snowfall after since last minimum
+        # similar to the calculation of fsnow_nsnow, based on Helbig + additive term 
         fsnow_nsnow_recent = Tf(0)
 
         # sd_snowdepth0_dhs_recent = dsnowdepth_recent^Tf(0.84)
         sd_snowdepth0_dhs_recent = dsnowdepth_recent_max^Tf(0.84)
         # calculate snow covered fraction of nsnow with recent dswe, converting SWEtmp into snow depth
-        if (dsnowdepth_recent > eps(Tf)&& (dsnowdepth_recent_max > Tf(1e-3)))
+        # consider only meaningful snow height increases, needed due to swe search 
+        if (dsnowdepth_recent > eps(Tf)&& (dsnowdepth_recent_max > Tf(1e-3)))  
         #    fsnow_nsnow_recent = tanh(dsnowdepth_recent^Tf(0.14) + dsnowdepth_recent / Tf(0.13))
-            fsnow_nsnow_recent = tanh(dsnowdepth_recent/sd_snowdepth0_dhs_recent + dsnowdepth_recent /sd_snowdepth0_dhs_recent^(0.2/0.84)/ Tf(0.30))
+            fsnow_nsnow_recent = tanh(dsnowdepth_recent/sd_snowdepth0_dhs_recent + dsnowdepth_recent /dsnowdepth_recent_max^0.2/ Tf(0.30))
         end
-
-
-        # if i == 121 && j == 446
-        #     fname = "D:\\julia\\debug_scf\\" * Dates.format(t, "yyyymmddHH") * "_julia.txt"
-        #     open(fname, "w") do io
-        #         println(io, "i: ", i)
-        #         println(io, "j: ", j)
-        #         println(io, "snowdepth: ", snowdepth)
-        #         println(io, "SWEbuffer: ", SWEbuffer)
-        #         println(io, "snowdepthbuffer: ", snowdepthbuffer)
-        #         println(io, "irecentmin: ", irecentmin)
-        #         println(io, "snowdepthmin_recent: ", snowdepthmin_recent)
-        #         println(io, "dsnowdepth_recent: ", dsnowdepth_recent)
-        #         println(io, "fsnow_nsnow_recent: ", fsnow_nsnow_recent)
-        #     end
-        # end
-
 
         # take maximum between the two new snow scf, similar to taking the maximum of all three regimes at the end (done)
         fsnow_nsnow = max(fsnow_nsnow, fsnow_nsnow_recent)
