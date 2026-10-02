@@ -99,80 +99,78 @@ Base.@propagate_inbounds function snow_covered_fraction!(
     iabsmin = first_argmin(SWEbuffer, 15)
 
     # maximum between today and the minimum (inclusive)
-    iabsmax = first_argmax(@view SWEbuffer[1:iabsmin], iabsmin)
+    # iabsmax = first_argmax(@view SWEbuffer[1:iabsmin], iabsmin)
+    iabsmax = first_argmax(view(SWEbuffer, 1:iabsmin), iabsmin)
 
-   
-    irecentmin = first_argmin(SWEbuffer, ifinal)
 
-    
-        # -------------------------------------------------------------
-        # Find recent SWE maximum (today -> older)
-        # -------------------------------------------------------------
-        maxidx = 1
+    # -------------------------------------------------------------
+    # Find recent SWE maximum (today -> older)
+    # -------------------------------------------------------------
+    maxidx = 1
 
-        for k in 1:14
+    for k in 1:14
+        diffSWEbuffer = SWEbuffer[k + 1] - SWEbuffer[k]
+
+        # Continue while SWE is increasing or nearly flat
+        if diffSWEbuffer >= Tf(-0.5)
+            maxidx = k + 1
+        else
+            break
+        end
+    end
+
+    # -------------------------------------------------------------
+    # Find preceding SWE minimum with plateau hysteresis
+    # -------------------------------------------------------------
+    if maxidx == 15
+
+        irecentmin = 15
+        recent_max = snowdepthbuffer[15]
+
+    else
+
+        irecentmin = maxidx
+        plateau_days = 0
+        started = false
+
+        for k in maxidx:14
+
             diffSWEbuffer = SWEbuffer[k + 1] - SWEbuffer[k]
 
-            # Continue while SWE is increasing or nearly flat
-            if diffSWEbuffer >= Tf(-0.5)
-                maxidx = k + 1
-            else
-                break
-            end
-        end
+            if !started
 
-        # -------------------------------------------------------------
-        # Find preceding SWE minimum with plateau hysteresis
-        # -------------------------------------------------------------
-        if maxidx == 15
+                # First meaningful decrease starts the event
+                if diffSWEbuffer < Tf(-0.5)  # not considering 0.5mm SWE gain a new snowfall TZ 10.26
+                    started = true
 
-            irecentmin = 15
-            recent_max = snowdepthbuffer[15]
-
-        else
-
-            irecentmin = maxidx
-            plateau_days = 0
-            started = false
-
-            for k in maxidx:14
-
-                diffSWEbuffer = SWEbuffer[k + 1] - SWEbuffer[k]
-
-                if !started
-
-                    # First meaningful decrease starts the event
-                    if diffSWEbuffer < Tf(-0.5)  # not considering 0.5mm SWE gain a new snowfall TZ 10.26
-                        started = true
-
-                        if SWEbuffer[k + 1] < SWEbuffer[irecentmin]
-                            irecentmin = k + 1
-                        end
-                    end
-
-                else
-
-                    # Update running minimum
                     if SWEbuffer[k + 1] < SWEbuffer[irecentmin]
                         irecentmin = k + 1
                     end
+                end
 
-                    # Plateau detection
-                    if diffSWEbuffer > Tf(-0.1)
-                        plateau_days += 1
-                    else
-                        plateau_days = 0
-                    end
+            else
 
-                    if plateau_days >= 2    #one day of no increase does not stop the recent calculation TZ 10.26
-                        break
-                    end
+                # Update running minimum
+                if SWEbuffer[k + 1] < SWEbuffer[irecentmin]
+                    irecentmin = k + 1
+                end
+
+                # Plateau detection
+                if diffSWEbuffer > Tf(-0.1)
+                    plateau_days += 1
+                else
+                    plateau_days = 0
+                end
+
+                if plateau_days >= 2    #one day of no increase does not stop the recent calculation TZ 10.26
+                    break
                 end
             end
-
-            recent_max = maximum(@view snowdepthbuffer[maxidx:irecentmin])
-
         end
+
+        recent_max = maximum(@view snowdepthbuffer[maxidx:irecentmin])
+
+    end
 
     # use indices to determine snowdepth amounts
     snowdepthmin_buffer = snowdepthbuffer[iabsmin]
@@ -186,7 +184,7 @@ Base.@propagate_inbounds function snow_covered_fraction!(
         dsnowdepth = Tf(0)
     end
 
-     # compute maximum new snow depth (dswemax) in SWEbuffer
+    # compute maximum new snow depth (dswemax) in SWEbuffer
     dsnowdepthmax = snowdepthmax_buffer - snowdepthmin_buffer
     if (dsnowdepthmax < eps(Tf))
         dsnowdepthmax = Tf(0)
@@ -203,13 +201,14 @@ Base.@propagate_inbounds function snow_covered_fraction!(
         dsnowdepth_recent = Tf(0)
     end
 
-            dsnowdepth_recent_max = max.(snowdepthmax_recent .- snowdepthmin_recent, 0)
-        if (dsnowdepth_recent_max < eps(Tf))
-            dsnowdepth_recent_max = Tf(0)
-        end
-        # don't accept dsnowdepthmax to be smaller then dsnowdepth, otherwise larger fnsnow values
-        if (dsnowdepth_recent_max < dsnowdepth_recent)
-            dsnowdepth_recent_max = dsnowdepth_recent
+    dsnowdepth_recent_max = max.(snowdepthmax_recent .- snowdepthmin_recent, 0)
+    if (dsnowdepth_recent_max < eps(Tf))
+        dsnowdepth_recent_max = Tf(0)
+    end
+    # don't accept dsnowdepthmax to be smaller then dsnowdepth, otherwise larger fnsnow values
+    if (dsnowdepth_recent_max < dsnowdepth_recent)
+        dsnowdepth_recent_max = dsnowdepth_recent
+    end
     # state variables interpreting the whole SWEtmp history, not only the past 14 days in the buffer
     # Set swemax and swemin equal to zero if no snow, same with corresponding snow depth values
     if (SWEtmp < eps(Tf))
