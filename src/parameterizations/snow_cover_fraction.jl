@@ -1,15 +1,79 @@
-struct SeasonalSnowFraction{Tf} <: AbstractSnowFraction{Tf} end
-struct HelbigSnowFraction{Tf} <: AbstractSnowFraction{Tf} end
-struct HelbigMaxSnowFraction{Tf} <: AbstractSnowFraction{Tf} end
+"""
+$(TYPEDEF)
+
+Binary snow cover fraction parametrization for a point location (snow or no snow).
+"""
 struct PointSnowFraction{Tf} <: AbstractSnowFraction{Tf} end
+
+"""
+$(TYPEDEF)
+
+Snow cover fraction parametrization via a hyperbolic tangent function of snow depth
+`fsnow = tanh(snowdepth / hfsn)` adaptable via a single depth scale `hfsn`
+    
+
+```jldoctest
+using FlexibleSnowModelOSHD
+
+TanhSnowFraction{Float32}(; hfsn = 0.3)
+
+# output
+TanhSnowFraction
+└── hfsn: 0.3
+```
+
+# Fields
+
+$(TYPEDFIELDS)
+"""
 @kwdef struct TanhSnowFraction{Tf} <: AbstractSnowFraction{Tf}
-    hfsn::Tf = 0.1             # Snow-cover fraction depth scale (m)
+    "Snow-cover fraction depth scale (m)"
+    hfsn::Tf = 0.1
 end
 
-SeasonalSnowFraction{Tf}(grid::Grid; kwargs...) where {Tf} = SeasonalSnowFraction{Tf}()
-HelbigSnowFraction{Tf}(grid::Grid; kwargs...) where {Tf} = HelbigSnowFraction{Tf}()
-HelbigMaxSnowFraction{Tf}(grid::Grid; kwargs...) where {Tf} = HelbigMaxSnowFraction{Tf}()
+"""
+$(TYPEDEF)
+
+Seasonal snow cover fraction parametrization with a 14-day "new snow" and "recent snow" 
+memory. Based on [Helbig et al. (2021)](https://doi.org/10.5194/tc-15-4607-2021) and 
+[Egli and Jonas (2009)](https://doi.org/10.1029/2008GL035545).
+
+```jldoctest
+using FlexibleSnowModelOSHD
+
+SeasonalSnowFraction{Float32}(; nplateau = 3)
+
+# output
+SeasonalSnowFraction
+├── dswe_peak: 0.5
+├── dswe_plateau: 0.1
+├── nplateau: 3
+├── dhs_recent_min: 0.001
+├── a_nsnow: 0.2
+└── b_nsnow: 0.3
+```
+
+# Fields
+
+$(TYPEDFIELDS)
+"""
+@kwdef struct SeasonalSnowFraction{Tf} <: AbstractSnowFraction{Tf}
+    "SWE drop ending the search for the most recent peak (kg/m^2)"
+    dswe_peak::Tf = 0.5
+    "SWE drop below which a day counts as plateau (kg/m^2)"
+    dswe_plateau::Tf = 0.1
+    "Consecutive plateau days ending the search for the preceding minimum"
+    nplateau::Int = 2
+    "Minimum recent snow-depth gain for the recent fresh-snow SCF (m)"
+    dhs_recent_min::Tf = 1.0e-3
+    "Exponent on the maximum depth gain in the fresh-snow SCF (-)"
+    a_nsnow::Tf = 0.2
+    "Scale of the fresh-snow SCF (-)"
+    b_nsnow::Tf = 0.3
+end
+
 PointSnowFraction{Tf}(grid::Grid; kwargs...) where {Tf} = PointSnowFraction{Tf}()
+SeasonalSnowFraction{Tf}(grid::Grid; kwargs...) where {Tf} = SeasonalSnowFraction{Tf}(; kwargs...)
 TanhSnowFraction{Tf}(grid::Grid; kwargs...) where {Tf} = TanhSnowFraction{Tf}(; kwargs...)
 
 """
@@ -75,10 +139,29 @@ Base.@propagate_inbounds function snowcoverfraction_point!(
     return nothing
 end
 
-Base.@propagate_inbounds function snow_covered_fraction!(
-        ::SeasonalSnowFraction{Tf}, state, surface,
+@inline function snow_covered_fraction!(
+        ::PointSnowFraction{Tf}, state, surface,
         snowdepth::Tf, SWEtmp::Tf, i, j, update_hist::Bool
     ) where {Tf}
+    (; fsnow) = state
+    fsnow[i, j] = snowdepth > eps(Tf) ? Tf(1.0) : Tf(0.0)
+    return nothing
+end
+
+@inline function snow_covered_fraction!(
+        scheme::TanhSnowFraction{Tf}, state, surface,
+        snowdepth::Tf, SWEtmp::Tf, i, j, update_hist::Bool
+    ) where {Tf}
+    (; fsnow) = state
+    fsnow[i, j] = tanh(snowdepth / scheme.hfsn)
+    return nothing
+end
+
+Base.@propagate_inbounds function snow_covered_fraction!(
+        scheme::SeasonalSnowFraction{Tf}, state, surface,
+        snowdepth::Tf, SWEtmp::Tf, i, j, update_hist::Bool
+    ) where {Tf}
+    (; dswe_peak, dswe_plateau, nplateau, dhs_recent_min, a_nsnow, b_nsnow) = scheme
     (; fsnow, swehist, swemin, swemax, snowdepthhist, snowdepthmin, snowdepthmax) = state
     (; slopemu, xi, Ld) = surface
     # topo terms for the snow-depth standard deviation
@@ -95,88 +178,46 @@ Base.@propagate_inbounds function snow_covered_fraction!(
         snowdepthbuffer[k + 1] = snowdepthhist[k, i, j]
     end
 
-    # indices of the global min and max in the SWE buffer
+    # indices of the global min, and of the max between today and that min
     iabsmin = first_argmin(SWEbuffer, 15)
+    iabsmax = first_argmax(SWEbuffer, iabsmin)
 
-    # maximum between today and the minimum (inclusive)
-    # iabsmax = first_argmax(@view SWEbuffer[1:iabsmin], iabsmin)
-    iabsmax = first_argmax(view(SWEbuffer, 1:iabsmin), iabsmin)
-
-
-    # -------------------------------------------------------------
-    # Find recent SWE maximum (today -> older)
-    # -------------------------------------------------------------
+    # most recent SWE peak: walk back while SWE does not drop by more than dswe_peak
     maxidx = 1
-
     for k in 1:14
-        diffSWEbuffer = SWEbuffer[k + 1] - SWEbuffer[k]
-
-        # Continue while SWE is increasing or nearly flat
-        if diffSWEbuffer >= Tf(-0.5)
+        if SWEbuffer[k + 1] - SWEbuffer[k] >= -dswe_peak
             maxidx = k + 1
         else
             break
         end
     end
 
-    # -------------------------------------------------------------
-    # Find preceding SWE minimum with plateau hysteresis
-    # -------------------------------------------------------------
-    if maxidx == 15
-
-        irecentmin = 15
-        recent_max = snowdepthbuffer[15]
-
-    else
-
-        irecentmin = maxidx
+    # minimum preceding that peak; nplateau days with drop < dswe_plateau end the search
+    irecentmin = maxidx
+    if maxidx < 15
+        irecentmin = maxidx + 1
         plateau_days = 0
-        started = false
-
-        for k in maxidx:14
-
-            diffSWEbuffer = SWEbuffer[k + 1] - SWEbuffer[k]
-
-            if !started
-
-                # First meaningful decrease starts the event
-                if diffSWEbuffer < Tf(-0.5)  # not considering 0.5mm SWE gain a new snowfall TZ 10.26
-                    started = true
-
-                    if SWEbuffer[k + 1] < SWEbuffer[irecentmin]
-                        irecentmin = k + 1
-                    end
-                end
-
-            else
-
-                # Update running minimum
-                if SWEbuffer[k + 1] < SWEbuffer[irecentmin]
-                    irecentmin = k + 1
-                end
-
-                # Plateau detection
-                if diffSWEbuffer > Tf(-0.1)
-                    plateau_days += 1
-                else
-                    plateau_days = 0
-                end
-
-                if plateau_days >= 2    #one day of no increase does not stop the recent calculation TZ 10.26
-                    break
-                end
+        for k in (maxidx + 1):14
+            if SWEbuffer[k + 1] < SWEbuffer[irecentmin]
+                irecentmin = k + 1
+            end
+            plateau_days = SWEbuffer[k + 1] - SWEbuffer[k] > -dswe_plateau ? plateau_days + 1 : 0
+            if plateau_days >= nplateau
+                break
             end
         end
+    end
 
-        recent_max = maximum(@view snowdepthbuffer[maxidx:irecentmin])
-
+    # manual loop: a view-based maximum on the MVector scratch risks heap allocation
+    snowdepthmax_recent = snowdepthbuffer[maxidx]
+    for k in (maxidx + 1):irecentmin
+        snowdepthmax_recent = max(snowdepthmax_recent, snowdepthbuffer[k])
     end
 
     # use indices to determine snowdepth amounts
     snowdepthmin_buffer = snowdepthbuffer[iabsmin]
     snowdepthmax_buffer = snowdepthbuffer[iabsmax]
     snowdepthmin_recent = snowdepthbuffer[irecentmin]
-    snowdepthmax_recent = recent_max
 
     # Compute storage of new snow on old snow in snowdepthbuffer
     dsnowdepth = snowdepth - snowdepthmin_buffer
@@ -184,7 +225,7 @@ Base.@propagate_inbounds function snow_covered_fraction!(
         dsnowdepth = Tf(0)
     end
 
-    # compute maximum new snow depth (dswemax) in SWEbuffer
+    # compute dsnowdepthmax in snowdepthbuffer
     dsnowdepthmax = snowdepthmax_buffer - snowdepthmin_buffer
     if (dsnowdepthmax < eps(Tf))
         dsnowdepthmax = Tf(0)
@@ -201,11 +242,12 @@ Base.@propagate_inbounds function snow_covered_fraction!(
         dsnowdepth_recent = Tf(0)
     end
 
-    dsnowdepth_recent_max = max.(snowdepthmax_recent .- snowdepthmin_recent, 0)
+    dsnowdepth_recent_max = snowdepthmax_recent - snowdepthmin_recent
     if (dsnowdepth_recent_max < eps(Tf))
         dsnowdepth_recent_max = Tf(0)
     end
-    # don't accept dsnowdepthmax to be smaller then dsnowdepth, otherwise larger fnsnow values
+
+    # cap dsnowdepth_recent_max at dsnowdepth_recent, else fsnow inflates
     if (dsnowdepth_recent_max < dsnowdepth_recent)
         dsnowdepth_recent_max = dsnowdepth_recent
     end
@@ -262,19 +304,19 @@ Base.@propagate_inbounds function snow_covered_fraction!(
 
     sd_snowdepth0_dhs = dsnowdepthmax^Tf(0.84)
     if (dsnowdepthmax > eps(Tf))
-        fsnow_nsnow = tanh(dsnowdepth / sd_snowdepth0_dhs + dsnowdepth / dsnowdepthmax^0.2 / Tf(0.3))
+        fsnow_nsnow = tanh(dsnowdepth / sd_snowdepth0_dhs + dsnowdepth / dsnowdepthmax^a_nsnow / b_nsnow)
     end
 
     # SCF from new snow since the last minimum (flat-field standard deviation)
     fsnow_nsnow_recent = Tf(0)
 
-    sd_snowdepth0_dhs_recent = dsnowdepth_recent^Tf(0.84)
-    if (dsnowdepth_recent > eps(Tf)&& (dsnowdepth_recent_max > Tf(1.0e-3)))  #meaningful snowheight due to swee search
-        fsnow_nsnow_recent = tanh(dsnowdepth_recent / sd_snowdepth0_dhs_recent + dsnowdepth_recent / dsnowdepth_recent_max^0.2 / Tf(0.3))
+    sd_snowdepth0_dhs_recent = dsnowdepth_recent_max^Tf(0.84)
+    # minimum recent depth gain filters SWE-search noise
+    if (dsnowdepth_recent > eps(Tf) && dsnowdepth_recent_max > dhs_recent_min)
+        fsnow_nsnow_recent = tanh(dsnowdepth_recent / sd_snowdepth0_dhs_recent + dsnowdepth_recent / dsnowdepth_recent_max^a_nsnow / b_nsnow)
     end
 
     fsnow_nsnow = max(fsnow_nsnow, fsnow_nsnow_recent)
-
 
     fsnow[i, j] = max(fsnow_season, fsnow_nsnow)
 
@@ -287,62 +329,6 @@ Base.@propagate_inbounds function snow_covered_fraction!(
     end
 
     fsnow[i, j] = max(fsnow[i, j], Tf(0.01))
-    return nothing
-end
-
-@inline function snow_covered_fraction!(
-        ::HelbigSnowFraction{Tf}, state, surface,
-        snowdepth::Tf, SWEtmp::Tf, i, j, update_hist::Bool
-    ) where {Tf}
-    (; fsnow) = state
-    (; slopemu, xi, Ld) = surface
-    sd_snowdepth2 = snowdepth^Tf(0.549)
-    sd_snowdepth1 = exp(Tf(-1) / (Ld[i, j] / xi[i, j])^Tf(2))
-    sd_snowdepth3 = slopemu[i, j]^Tf(0.309)
-    sd_snowdepth0 = sd_snowdepth1 * sd_snowdepth2 * sd_snowdepth3
-
-    fsnow[i, j] = tanh(Tf(1.3) * snowdepth / sd_snowdepth0)
-    return nothing
-end
-
-@inline function snow_covered_fraction!(
-        ::HelbigMaxSnowFraction{Tf}, state, surface,
-        snowdepth::Tf, SWEtmp::Tf, i, j, update_hist::Bool
-    ) where {Tf}
-    (; fsnow, snowdepthmax) = state
-    (; slopemu, xi, Ld) = surface
-    if snowdepth == Tf(0)
-        snowdepthmax[i, j] = Tf(0.0)
-    end
-
-    if snowdepth > snowdepthmax[i, j]
-        snowdepthmax[i, j] = snowdepth
-    end
-
-    sd_snowdepth2 = snowdepthmax[i, j]^Tf(0.549)
-    sd_snowdepth1 = exp(Tf(-1) / (Ld[i, j] / xi[i, j])^Tf(2))
-    sd_snowdepth3 = slopemu[i, j]^Tf(0.309)
-    sd_snowdepth0 = sd_snowdepth1 * sd_snowdepth2 * sd_snowdepth3
-
-    fsnow[i, j] = tanh(Tf(1.3) * snowdepth / sd_snowdepth0)
-    return nothing
-end
-
-@inline function snow_covered_fraction!(
-        ::PointSnowFraction{Tf}, state, surface,
-        snowdepth::Tf, SWEtmp::Tf, i, j, update_hist::Bool
-    ) where {Tf}
-    (; fsnow) = state
-    fsnow[i, j] = snowdepth > eps(Tf) ? Tf(1.0) : Tf(0.0)
-    return nothing
-end
-
-@inline function snow_covered_fraction!(
-        scheme::TanhSnowFraction{Tf}, state, surface,
-        snowdepth::Tf, SWEtmp::Tf, i, j, update_hist::Bool
-    ) where {Tf}
-    (; fsnow) = state
-    fsnow[i, j] = tanh(snowdepth / scheme.hfsn)
     return nothing
 end
 
