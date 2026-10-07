@@ -19,7 +19,8 @@ TanhSnowFraction{Float32}(; hfsn = 0.3)
 
 # output
 TanhSnowFraction
-└── hfsn: 0.3
+├── hfsn: 0.3
+└── dfsnow_melt: 0.25
 ```
 
 # Fields
@@ -29,6 +30,8 @@ $(TYPEDFIELDS)
 @kwdef struct TanhSnowFraction{Tf} <: AbstractSnowFraction{Tf}
     "Snow-cover fraction depth scale (m)"
     hfsn::Tf = 0.1
+    "Increase of fsnow for melt and sublimation, so thin snow does not deplete too slowly (-)"
+    dfsnow_melt::Tf = 0.25
 end
 
 """
@@ -50,7 +53,8 @@ SeasonalSnowFraction
 ├── nplateau: 3
 ├── dhs_recent_min: 0.001
 ├── a_nsnow: 0.2
-└── b_nsnow: 0.3
+├── b_nsnow: 0.3
+└── dfsnow_melt: 0.25
 ```
 
 # Fields
@@ -70,6 +74,8 @@ $(TYPEDFIELDS)
     a_nsnow::Tf = 0.2
     "Scale of the fresh-snow SCF (-)"
     b_nsnow::Tf = 0.3
+    "Increase of fsnow for melt and sublimation, so thin snow does not deplete too slowly (-)"
+    dfsnow_melt::Tf = 0.25
 end
 
 PointSnowFraction{Tf}(grid::Grid; kwargs...) where {Tf} = PointSnowFraction{Tf}()
@@ -101,8 +107,9 @@ end
     melt_snow_fraction(scheme, i, j, state)
 
 Snow cover fraction used to scale melt and sublimation at cell `(i, j)`. Apart from the point
-model, `state.fsnow` is inflated to prevent that a thin snow cover deplets unrealistically
-slow. Implemented for every `AbstractSnowFraction`; called from the `snow!`.
+snow cover fraction parametriation, `state.fsnow` is inflated by the scheme's `dfsnow_melt` 
+to prevent that a thin snow cover depletes unrealistically slowly. Any new scheme needs either
+a `dfsnow_melt` field or its own method. Called from `snow!`.
 """
 function melt_snow_fraction end
 
@@ -111,9 +118,9 @@ function melt_snow_fraction end
     return fsnow[i, j]
 end
 
-@inline function melt_snow_fraction(::AbstractSnowFraction{Tf}, i, j, state) where {Tf}
+@inline function melt_snow_fraction(scheme::AbstractSnowFraction{Tf}, i, j, state) where {Tf}
     (; fsnow) = state
-    return min(fsnow[i, j] + Tf(0.25), Tf(1.0))
+    return min(fsnow[i, j] + scheme.dfsnow_melt, Tf(1.0))
 end
 
 """
