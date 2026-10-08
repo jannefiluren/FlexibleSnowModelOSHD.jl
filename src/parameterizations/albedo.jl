@@ -1,28 +1,150 @@
+"""
+$(TYPEDEF)
+
+Diagnostic snow albedo parameterization: the albedo is a linear function of the surface
+temperature, from `alb_min` at the melting point and above to `alb_max` at `T_cold` and
+below, without any memory of earlier time steps.
+
+```jldoctest
+using FlexibleSnowModelOSHD
+
+DiagnosticAlbedo{Float32}(; alb_max = 0.85)
+
+# output
+DiagnosticAlbedo
+├── alb_min: 0.6
+├── alb_max: 0.85
+└── T_cold: 271.15
+```
+
+# Fields
+
+$(TYPEDFIELDS)
+"""
 @kwdef struct DiagnosticAlbedo{Tf} <: AbstractAlbedo{Tf}
-    amin::Tf = 0.6                            # Minimum albedo for melting snow (-)
-    amax::Tf = 0.86                           # Maximum albedo for fresh snow (-)
-    Talb::Tf = -2                             # Albedo decay temperature threshold (C)
+    "Minimum albedo, reached at and above the melting point (-)"
+    alb_min::Tf = 0.6
+    "Maximum albedo, reached at and below `T_cold` (-)"
+    alb_max::Tf = 0.86
+    "Surface temperature at and below which the albedo is `alb_max`; must be below the melting point (K)"
+    T_cold::Tf = 271.15
 end
 
+"""
+$(TYPEDEF)
+
+Snow albedo parameterization with exponential decay towards `alb_min` and refresh towards
+`alb_fresh` by snowfall. Decay is faster for melting than for cold snow, fixed at
+`tau_summer` in the melt season, and adjusted below canopy by the transmitted shortwave
+and longwave radiation.
+
+```jldoctest
+using FlexibleSnowModelOSHD
+
+grid = Grid(Float64, Nx = 2, Ny = 2)
+DecayAlbedo{Float64}(grid; tau_summer = 50)
+
+# output
+DecayAlbedo
+├── alb_min: 0.6
+├── alb_fresh: (0.86, 0.86)
+├── tau_cold: 1000.0
+├── tau_melt: 100.0
+├── tau_summer: 50.0
+├── c_canopy_sw: 3.0
+├── c_canopy_lw: 2.0
+└── dswe_fresh: 10.0
+```
+
+# Fields
+
+$(TYPEDFIELDS)
+"""
 @kwdef struct DecayAlbedo{Tf, GT, MF <: AbstractMatrix{<:AbstractFloat}} <: AbstractAlbedo{Tf}
+    "Model grid, sizes the per-cell fields"
     grid::GT
-    amin::Tf = 0.6                            # Minimum albedo for melting snow (-)
-    tcld::Tf = 3600 * 1000                    # Cold snow albedo decay time scale (s)
-    tmlt::Tf = 3600 * 100                     # Melting snow albedo decay time scale (s)
-    adfs::Tf = 3                              # Albedo adjustment, shortwave (-)
-    adfl::Tf = 2                              # Albedo adjustment, longwave (-)
-    Sfmin::Tf = 10                            # Minimum snowfall over 24h to refresh albedo (kg/m^2)
-    afs::MF = 0.86 * ones(grid.Nx, grid.Ny)   # Maximum albedo for fresh snow (-)
+
+    # Albedo bounds
+    "Minimum albedo (-)"
+    alb_min::Tf = 0.6
+    "Fresh-snow albedo, per cell; must be at least `alb_min` (-)"
+    alb_fresh::MF = fill(0.86, grid.Nx, grid.Ny)
+
+    # Decay
+    "Decay time scale for cold snow (h)"
+    tau_cold::Tf = 1000
+    "Decay time scale for melting snow (h)"
+    tau_melt::Tf = 100
+    "Decay time scale in the melt season, overriding `tau_cold` and `tau_melt` (h)"
+    tau_summer::Tf = 70
+    "Canopy adjustment of the decay time, shortwave (-)"
+    c_canopy_sw::Tf = 3
+    "Canopy adjustment of the decay time, longwave (-)"
+    c_canopy_lw::Tf = 2
+
+    # Fresh snow
+    "Snowfall over which the albedo relaxes towards `alb_fresh` (e-folding amount) (kg/m^2)"
+    dswe_fresh::Tf = 10
 end
 
+"""
+$(TYPEDEF)
+
+Prognostic snow albedo parameterization: the albedo decays exponentially towards `alb_min`
+for melting snow and linearly for cold snow, and is refreshed towards `alb_fresh` by snowfall.
+With `aspect_tuning`, both decay times are shortened on slopes receiving more direct shortwave
+radiation than flat ground, by the ratio `Sdird / Sdir`. For thin snow (SWE below `swe_thin`)
+the fresh-snow albedo is scaled by `c_thin`.
+
+```jldoctest
+using FlexibleSnowModelOSHD
+
+grid = Grid(Float64, Nx = 2, Ny = 2)
+PrognosticAlbedo{Float64}(grid; tau_melt = 200)
+
+# output
+PrognosticAlbedo
+├── alb_min: 0.6
+├── alb_fresh: (0.86, 0.86)
+├── tau_melt: 200.0
+├── tau_cold: (1000.0, 1000.0)
+├── aspect_tuning: true
+├── dswe_fresh: 10.0
+├── swe_thin: 75.0
+└── c_thin: 0.8
+```
+
+# Fields
+
+$(TYPEDFIELDS)
+"""
 @kwdef struct PrognosticAlbedo{Tf, GT, MF <: AbstractMatrix{<:AbstractFloat}} <: AbstractAlbedo{Tf}
+    "Model grid, sizes the per-cell fields"
     grid::GT
-    ALRADT::Bool = true                       # Aspect-dependent decay tuning
-    adm::Tf = 100                             # Melting snow albedo decay time (h)
-    amin::Tf = 0.6                            # Minimum albedo for melting snow (-)
-    Sfmin::Tf = 10                            # Minimum snowfall over 24h to refresh albedo (kg/m^2)
-    afs::MF = 0.86 * ones(grid.Nx, grid.Ny)   # Maximum albedo for fresh snow (-)
-    adc::MF = 1000 * ones(grid.Nx, grid.Ny)   # Cold snow albedo decay time (h)
+
+    # Albedo bounds
+    "Minimum albedo (-)"
+    alb_min::Tf = 0.6
+    "Fresh-snow albedo, per cell (-)"
+    alb_fresh::MF = fill(0.86, grid.Nx, grid.Ny)
+
+    # Decay
+    "Decay time scale for melting snow (h)"
+    tau_melt::Tf = 100
+    "Decay time scale for cold snow, per cell (h)"
+    tau_cold::MF = fill(1000, grid.Nx, grid.Ny)
+    "Shorten the decay times on slopes by the flat-to-inclined direct radiation ratio `Sdird / Sdir`"
+    aspect_tuning::Bool = true
+
+    # Fresh snow
+    "Snowfall scale of the refresh towards `alb_fresh`; a larger 24 h snowfall resets the albedo (kg/m^2)"
+    dswe_fresh::Tf = 10
+
+    # Thin snow
+    "SWE below which the fresh-snow albedo is reduced for thin and patchy snow (kg/m^2)"
+    swe_thin::Tf = 75
+    "Scaling of the fresh-snow albedo for thin snow (-)"
+    c_thin::Tf = 0.8
 end
 
 DiagnosticAlbedo{Tf}(grid::Grid; kwargs...) where {Tf} = DiagnosticAlbedo{Tf}(; kwargs...)
@@ -35,19 +157,17 @@ PrognosticAlbedo{Tf}(grid::Grid; kwargs...) where {Tf} = PrognosticAlbedo{Tf, ty
 """
     snow_albedo!(scheme, i, j, state, surface, meteo, params, summer_decay)
 
-Update snow albedo `albs[i, j]` for cell `(i, j)` implemented for every 
-`AbstractAlbedo`.
+Update the snow albedo `albs[i, j]` of cell `(i, j)`. Implemented for every `AbstractAlbedo`.
 """
 function snow_albedo! end
 
 @inline function snow_albedo!(scheme::DiagnosticAlbedo{Tf}, i, j, state, surface, meteo, params, summer_decay) where {Tf}
     @unpack_constants(Tf)
     (; albs, Tsrf) = state
-    afs_loc = scheme.amax
-    a = scheme.amin + (afs_loc - scheme.amin) * (Tsrf[i, j] - Tm) / scheme.Talb
-    a = max(a, min(afs_loc, scheme.amin))
-    a = min(a, max(afs_loc, scheme.amin))
-    albs[i, j] = a
+    (; alb_min, alb_max, T_cold) = scheme
+
+    a = alb_min + (alb_max - alb_min) * (Tsrf[i, j] - Tm) / (T_cold - Tm)
+    albs[i, j] = clamp(a, alb_min, alb_max)
     return nothing
 end
 
@@ -57,36 +177,36 @@ end
     (; fveg, trcn, fsky) = surface
     (; Sdir, Sdif, Sf, Tv) = meteo
     (; dt) = params
-    afs_loc = scheme.afs[i, j]
+    (; alb_min, tau_cold, tau_melt, tau_summer, c_canopy_sw, c_canopy_lw, dswe_fresh) = scheme
+    alb_fresh = scheme.alb_fresh[i, j]
 
-    tau = scheme.tcld
-    if (Tsrf[i, j] >= Tm)
-        tau = scheme.tmlt
-    end
-
-    # Melt-season decay is a fixed 70 h, overriding both scheme timescales
+    # Decay time scale (s): the fixed melt-season value takes precedence over the
+    # temperature-dependent values for cold and melting snow
     if summer_decay
-        tau = Tf(70.0) * Tf(3600.0)
+        tau = Tf(3600) * tau_summer
+    else
+        tau = Tf(3600) * (Tsrf[i, j] >= Tm ? tau_melt : tau_cold)
     end
 
-    if fveg[i, j] > Tf(0) && Sdir[i, j] > eps(Tf)
-        tau = tau / ((Tf(1) - trcn[i, j] * fsky[i, j]) * (Tf(1) + scheme.adfl * Tv[i, j]) + scheme.adfs * Tv[i, j])
-    elseif fveg[i, j] > Tf(0) && Sdif[i, j] > eps(Tf)
-        tau = tau / ((Tf(1) - trcn[i, j] * fsky[i, j]) + scheme.adfs * trcn[i, j] * fsky[i, j])
-    elseif (fveg[i, j] > Tf(0) && (Sdir[i, j] + Sdif[i, j] <= eps(Tf)))
-        tau = tau / (Tf(2.0) - trcn[i, j] * fsky[i, j])
+    # Canopy adjustment of the decay time scale
+    if fveg[i, j] > Tf(0)
+        if Sdir[i, j] > eps(Tf)
+            tau = tau / ((Tf(1) - trcn[i, j] * fsky[i, j]) * (Tf(1) + c_canopy_lw * Tv[i, j]) + c_canopy_sw * Tv[i, j])
+        elseif Sdif[i, j] > eps(Tf)
+            tau = tau / ((Tf(1) - trcn[i, j] * fsky[i, j]) + c_canopy_sw * trcn[i, j] * fsky[i, j])
+        elseif Sdir[i, j] + Sdif[i, j] <= eps(Tf)
+            tau = tau / (Tf(2) - trcn[i, j] * fsky[i, j])
+        end
     end
 
-    rt = Tf(1) / tau + Sf[i, j] / scheme.Sfmin
-    alim = (scheme.amin / tau + Sf[i, j] * afs_loc / scheme.Sfmin) / rt
-    a = alim + (albs[i, j] - alim) * exp(-rt * dt)
-    if (a < min(afs_loc, scheme.amin))
-        a = min(afs_loc, scheme.amin)
-    end
-    if (a > max(afs_loc, scheme.amin))
-        a = max(afs_loc, scheme.amin)
-    end
-    albs[i, j] = a
+    # Albedo budget d(albedo)/dt = -(albedo - alb_min) / tau - Sf / dswe_fresh * (albedo - alb_fresh):
+    # decay towards alb_min plus refresh towards alb_fresh, i.e. relaxation towards the equilibrium
+    # albedo alb_eq at the combined rate. Solved exactly over the time step, so it is stable for any dt.
+    rate = Tf(1) / tau + Sf[i, j] / dswe_fresh
+    alb_eq = (alb_min / tau + Sf[i, j] * alb_fresh / dswe_fresh) / rate
+    a = alb_eq + (albs[i, j] - alb_eq) * exp(-rate * dt)
+
+    albs[i, j] = clamp(a, alb_min, alb_fresh)
     return nothing
 end
 
@@ -95,55 +215,40 @@ end
     (; albs, Tsrf, Sice, Sliq) = state
     (; Sdir, Sdird, Sf, Sf24h) = meteo
     (; dt) = params
-    adc_loc = scheme.adc[i, j]
-    adm_loc = scheme.adm
-    afs_loc = scheme.afs[i, j]
+    (; alb_min, tau_melt, dswe_fresh, swe_thin, c_thin) = scheme
+    tau_cold = scheme.tau_cold[i, j]
+    alb_fresh = scheme.alb_fresh[i, j]
 
-    SWEtmp = zero(Tf)
-    for si in 1:size(Sice, 1)
-        SWEtmp += Sice[si, i, j] + Sliq[si, i, j]
+    # Aspect tuning: faster decay on slopes receiving more direct radiation than flat ground
+    if scheme.aspect_tuning && Sdir[i, j] > eps(Tf) && Sdird[i, j] < Sdir[i, j]
+        tau_melt = max(tau_melt * Sdird[i, j] / Sdir[i, j], eps(Tf))
+        tau_cold = max(tau_cold * Sdird[i, j] / Sdir[i, j], eps(Tf))
     end
 
-    # Aspect-dependent albedo tuning
-    if scheme.ALRADT
-        if ((Sdir[i, j] > eps(Tf)) && (Sdird[i, j] < Sdir[i, j]))
-            adm_loc = adm_loc * (Sdird[i, j]) / (Sdir[i, j])
-            adc_loc = adc_loc * (Sdird[i, j]) / (Sdir[i, j])
-            if (adm_loc < eps(Tf))
-                adm_loc = eps(Tf)
-            end
-            if (adc_loc < eps(Tf))
-                adc_loc = eps(Tf)
-            end
-        end
-    end
-
-    # Temperature dependent albedo update
+    # Exponential decay for melting snow, linear decay for cold snow
     a = albs[i, j]
-    if (Tsrf[i, j] >= Tm)
-        a = (a - scheme.amin) * exp(-(dt / Tf(3600)) / adm_loc) + scheme.amin
+    if Tsrf[i, j] >= Tm
+        a = (a - alb_min) * exp(-(dt / Tf(3600)) / tau_melt) + alb_min
     else
-        a = a - (dt / Tf(3600)) / adc_loc
+        a = a - (dt / Tf(3600)) / tau_cold
     end
 
-    # Reduce albedo for thin and patchy snow cover
-    if (SWEtmp < Tf(75.0))
-        afs_loc *= Tf(0.8)
+    # Reduced fresh-snow albedo for thin and patchy snow
+    swe = zero(Tf)
+    for k in axes(Sice, 1)
+        swe += Sice[k, i, j] + Sliq[k, i, j]
+    end
+    if swe < swe_thin
+        alb_fresh *= c_thin
     end
 
-    # Reset to fresh snow albedo
-    if ((Sf[i, j] * dt) > Tf(0.0) && Sf24h[i, j] > scheme.Sfmin)
-        a = afs_loc
+    # Refresh by snowfall: reset after a large 24 h snowfall, partial refresh otherwise
+    if Sf[i, j] * dt > Tf(0) && Sf24h[i, j] > dswe_fresh
+        a = alb_fresh
     else
-        a = a + (afs_loc - a) * Sf[i, j] * dt / scheme.Sfmin
+        a = a + (alb_fresh - a) * Sf[i, j] * dt / dswe_fresh
     end
 
-    if (a > afs_loc)
-        a = afs_loc
-    end
-    if (a < scheme.amin)
-        a = scheme.amin
-    end
-    albs[i, j] = a
+    albs[i, j] = max(min(a, alb_fresh), alb_min)
     return nothing
 end
