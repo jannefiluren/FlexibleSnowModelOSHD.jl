@@ -93,8 +93,10 @@ $(TYPEDEF)
 Prognostic snow albedo parameterization: the albedo decays exponentially towards `alb_min`
 for melting snow and linearly for cold snow, and is refreshed towards `alb_fresh` by snowfall.
 With `aspect_tuning`, both decay times are shortened on slopes receiving more direct shortwave
-radiation than flat ground, by the ratio `Sdird / Sdir`. For thin snow (SWE below `swe_thin`)
-the fresh-snow albedo is scaled by `c_thin`.
+radiation than flat ground, by the ratio `Sdird / Sdir`. With a nonzero `aspect_pert`, the decay
+increment is scaled by [`aspect_perturbation`](@ref): faster decay on sunny slopes, slower on shaded
+ones. Both can be combined; `aspect_tuning` then shortens the decay times before the increment is
+scaled. For thin snow (SWE below `swe_thin`) the fresh-snow albedo is scaled by `c_thin`.
 
 ```jldoctest
 using FlexibleSnowModelOSHD
@@ -109,6 +111,8 @@ PrognosticAlbedo
 ├── tau_melt: 200.0
 ├── tau_cold: (1000.0, 1000.0)
 ├── aspect_tuning: true
+├── aspect_pert: 0.0
+├── aspect_pert_base: 20.0
 ├── dswe_fresh: 10.0
 ├── swe_thin: 75.0
 └── c_thin: 0.8
@@ -133,8 +137,12 @@ $(TYPEDFIELDS)
     tau_melt::Tf = 100
     "Decay time scale for cold snow, per cell (h)"
     tau_cold::MF = fill(1000, grid.Nx, grid.Ny)
-    "Shorten the decay times on slopes by the flat-to-inclined direct radiation ratio `Sdird / Sdir`"
+    "Shorten the decay times on slopes by the flat-to-inclined direct SW radiation ratio `Sdird / Sdir`"
     aspect_tuning::Bool = true
+    "Steepness of the aspect perturbation of the decay increment; 0 disables it (-)"
+    aspect_pert::Tf = 0
+    "Base of the aspect perturbation factor, which ranges over [1 / base, base] (-)"
+    aspect_pert_base::Tf = 20
 
     # Fresh snow
     "Snowfall scale of the refresh towards `alb_fresh`; a larger 24 h snowfall resets the albedo (kg/m^2)"
@@ -153,6 +161,26 @@ PrognosticAlbedo{Tf}(grid::Grid; kwargs...) where {Tf} = PrognosticAlbedo{Tf, ty
 
 @adapt_structure DecayAlbedo
 @adapt_structure PrognosticAlbedo
+
+"""
+$(TYPEDSIGNATURES)
+
+Factor scaling the albedo decay increment by the ratio of direct short wave radiation on the 
+inclined and the flat surface: `base^(atan(steepness * log(sw_dir_incl / sw_dir_hor)) / (pi / 2))`, 
+in [1 / base, base]. Without direct radiation on both surfaces the factor is 1; on only one 
+of them it defaults to the upper/lower bounds (`1 / base` without radiation on the slope, 
+`base` without radiation on flat ground).
+"""
+@inline function aspect_perturbation(steepness::Tf, base::Tf, sw_dir_incl::Tf, sw_dir_hor::Tf) where {Tf}
+    if sw_dir_incl < eps(Tf)
+        x = sw_dir_hor < eps(Tf) ? zero(Tf) : -one(Tf)
+    elseif sw_dir_hor < eps(Tf)
+        x = one(Tf)
+    else
+        x = atan(steepness * log(sw_dir_incl / sw_dir_hor)) / (Tf(pi) / 2)
+    end
+    return base^x
+end
 
 """
     snow_albedo!(scheme, i, j, state, surface, meteo, params, summer_decay)
@@ -215,7 +243,7 @@ end
     (; albs, Tsrf, Sice, Sliq) = state
     (; Sdir, Sdird, Sf, Sf24h) = meteo
     (; dt) = params
-    (; alb_min, tau_melt, dswe_fresh, swe_thin, c_thin) = scheme
+    (; alb_min, tau_melt, aspect_pert, aspect_pert_base, dswe_fresh, swe_thin, c_thin) = scheme
     tau_cold = scheme.tau_cold[i, j]
     alb_fresh = scheme.alb_fresh[i, j]
 
@@ -225,13 +253,18 @@ end
         tau_cold = max(tau_cold * Sdird[i, j] / Sdir[i, j], eps(Tf))
     end
 
-    # Exponential decay for melting snow, linear decay for cold snow
-    a = albs[i, j]
+    # Decay increment: exponential towards alb_min for melting snow, linear for cold snow
     if Tsrf[i, j] >= Tm
-        a = (a - alb_min) * exp(-(dt / Tf(3600)) / tau_melt) + alb_min
+        dalb = (albs[i, j] - alb_min) * (exp(-(dt / Tf(3600)) / tau_melt) - Tf(1))
     else
-        a = a - (dt / Tf(3600)) / tau_cold
+        dalb = -(dt / Tf(3600)) / tau_cold
     end
+
+    # Aspect perturbation: faster decay on sunny slopes, slower on shaded ones
+    if aspect_pert != Tf(0)
+        dalb *= aspect_perturbation(aspect_pert, aspect_pert_base, Sdir[i, j], Sdird[i, j])
+    end
+    a = albs[i, j] + dalb
 
     # Reduced fresh-snow albedo for thin and patchy snow
     swe = zero(Tf)
