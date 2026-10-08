@@ -102,8 +102,8 @@ $(TYPEDFIELDS)
 end
 
 PointSnowFraction{Tf}(grid::Grid; kwargs...) where {Tf} = PointSnowFraction{Tf}()
-SeasonalSnowFraction{Tf}(grid::Grid; kwargs...) where {Tf} = SeasonalSnowFraction{Tf}(; kwargs...)
 TanhSnowFraction{Tf}(grid::Grid; kwargs...) where {Tf} = TanhSnowFraction{Tf}(; kwargs...)
+SeasonalSnowFraction{Tf}(grid::Grid; kwargs...) where {Tf} = SeasonalSnowFraction{Tf}(; kwargs...)
 
 """
     ground_roughness(scheme, i, j, state, surface)
@@ -191,8 +191,10 @@ Base.@propagate_inbounds function snow_covered_fraction!(
         scheme::SeasonalSnowFraction{Tf}, state, surface,
         snowdepth::Tf, SWEtmp::Tf, i, j, update_hist::Bool
     ) where {Tf}
-    (; sd_exp_hs, sd_exp_slope, sd_exp_flat, c_season) = scheme
-    (; dswe_peak, dswe_plateau, nplateau, a_nsnow, b_nsnow, dhs_min, fsnow_min) = scheme
+    (;
+        sd_exp_hs, sd_exp_slope, sd_exp_flat, c_season,
+        dswe_peak, dswe_plateau, nplateau, a_nsnow, b_nsnow, dhs_min, fsnow_min,
+    ) = scheme
     (; fsnow, swehist, swemin, swemax, snowdepthhist, snowdepthmin, snowdepthmax) = state
     (; slopemu, xi, Ld) = surface
 
@@ -236,7 +238,7 @@ Base.@propagate_inbounds function snow_covered_fraction!(
         end
     end
 
-    # manual loop: a view-based maximum on the MVector scratch risks heap allocation
+    # Manual loop: a view-based maximum on the MVector scratch risks heap allocation
     snowdepthmax_recent = snowdepthbuffer[imax_recent]
     for k in (imax_recent + 1):imin_recent
         snowdepthmax_recent = max(snowdepthmax_recent, snowdepthbuffer[k])
@@ -261,7 +263,7 @@ Base.@propagate_inbounds function snow_covered_fraction!(
         dsnowdepth_recent_max = Tf(0)
     end
 
-    # a max snow depth increase below the current increase would inflate fsnow
+    # A max snow depth increase below the current increase would inflate fsnow
     dsnowdepth_14d_max = max(dsnowdepth_14d_max, dsnowdepth_14d)
     dsnowdepth_recent_max = max(dsnowdepth_recent_max, dsnowdepth_recent)
 
@@ -279,7 +281,7 @@ Base.@propagate_inbounds function snow_covered_fraction!(
         swemax[i, j] = SWEtmp
         swemin[i, j] = SWEtmp
     end
-    # snowdepth can exceed snowdepthmax since the max index is chosen on SWE
+    # Snowdepth can exceed snowdepthmax since the max index is chosen on SWE
     if (snowdepth >= snowdepthmax[i, j])
         snowdepthmax[i, j] = snowdepth
         snowdepthmin[i, j] = snowdepth
@@ -298,8 +300,8 @@ Base.@propagate_inbounds function snow_covered_fraction!(
     sd_snowdepth2 = snowdepthmax[i, j]^sd_exp_hs
     sd_snowdepth3 = slopemu[i, j]^sd_exp_slope
     sd_snowdepth0 = sd_snowdepth1 * sd_snowdepth2 * sd_snowdepth3
-    # Flat pixels use a slope-free standard deviation (Egli and Jonas, 2009)
     if (!(slopemu[i, j] > eps(Tf)))
+        # Flat pixels use a slope-free standard deviation (Egli and Jonas, 2009)
         sd_snowdepth0 = snowdepthmax[i, j]^sd_exp_flat
     end
     if (snowdepthmax[i, j] > eps(Tf))
@@ -312,13 +314,13 @@ Base.@propagate_inbounds function snow_covered_fraction!(
         sd_snowdepth0_14d = dsnowdepth_14d_max^sd_exp_flat
         fsnow_new_14d = tanh(dsnowdepth_14d / sd_snowdepth0_14d + dsnowdepth_14d / dsnowdepth_14d_max^a_nsnow / b_nsnow)
     end
-
     fsnow_new_recent = Tf(0)
     if (dsnowdepth_recent > eps(Tf) && dsnowdepth_recent_max > dhs_min)
         sd_snowdepth0_recent = dsnowdepth_recent_max^sd_exp_flat
         fsnow_new_recent = tanh(dsnowdepth_recent / sd_snowdepth0_recent + dsnowdepth_recent / dsnowdepth_recent_max^a_nsnow / b_nsnow)
     end
 
+    # Effective SCF
     fsnow[i, j] = max(fsnow_season, fsnow_new_14d, fsnow_new_recent, fsnow_min)
 
     # Roll the 14-day SWE/depth history
