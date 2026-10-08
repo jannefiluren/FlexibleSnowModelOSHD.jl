@@ -40,28 +40,28 @@ Update snow albedo `albs[i, j]` for cell `(i, j)` implemented for every
 """
 function snow_albedo! end
 
-@inline function snow_albedo!(c::DiagnosticAlbedo{Tf}, i, j, state, surface, meteo, params, summer_decay) where {Tf}
+@inline function snow_albedo!(scheme::DiagnosticAlbedo{Tf}, i, j, state, surface, meteo, params, summer_decay) where {Tf}
     @unpack_constants(Tf)
     (; albs, Tsrf) = state
-    afs_loc = c.amax
-    a = c.amin + (afs_loc - c.amin) * (Tsrf[i, j] - Tm) / c.Talb
-    a = max(a, min(afs_loc, c.amin))
-    a = min(a, max(afs_loc, c.amin))
+    afs_loc = scheme.amax
+    a = scheme.amin + (afs_loc - scheme.amin) * (Tsrf[i, j] - Tm) / scheme.Talb
+    a = max(a, min(afs_loc, scheme.amin))
+    a = min(a, max(afs_loc, scheme.amin))
     albs[i, j] = a
     return nothing
 end
 
-@inline function snow_albedo!(c::DecayAlbedo{Tf}, i, j, state, surface, meteo, params, summer_decay) where {Tf}
+@inline function snow_albedo!(scheme::DecayAlbedo{Tf}, i, j, state, surface, meteo, params, summer_decay) where {Tf}
     @unpack_constants(Tf)
     (; albs, Tsrf) = state
     (; fveg, trcn, fsky) = surface
     (; Sdir, Sdif, Sf, Tv) = meteo
     (; dt) = params
-    afs_loc = c.afs[i, j]
+    afs_loc = scheme.afs[i, j]
 
-    tau = c.tcld
+    tau = scheme.tcld
     if (Tsrf[i, j] >= Tm)
-        tau = c.tmlt
+        tau = scheme.tmlt
     end
 
     # Melt-season decay is a fixed 70 h, overriding both scheme timescales
@@ -70,34 +70,34 @@ end
     end
 
     if fveg[i, j] > Tf(0) && Sdir[i, j] > eps(Tf)
-        tau = tau / ((Tf(1) - trcn[i, j] * fsky[i, j]) * (Tf(1) + c.adfl * Tv[i, j]) + c.adfs * Tv[i, j])
+        tau = tau / ((Tf(1) - trcn[i, j] * fsky[i, j]) * (Tf(1) + scheme.adfl * Tv[i, j]) + scheme.adfs * Tv[i, j])
     elseif fveg[i, j] > Tf(0) && Sdif[i, j] > eps(Tf)
-        tau = tau / ((Tf(1) - trcn[i, j] * fsky[i, j]) + c.adfs * trcn[i, j] * fsky[i, j])
+        tau = tau / ((Tf(1) - trcn[i, j] * fsky[i, j]) + scheme.adfs * trcn[i, j] * fsky[i, j])
     elseif (fveg[i, j] > Tf(0) && (Sdir[i, j] + Sdif[i, j] <= eps(Tf)))
         tau = tau / (Tf(2.0) - trcn[i, j] * fsky[i, j])
     end
 
-    rt = Tf(1) / tau + Sf[i, j] / c.Sfmin
-    alim = (c.amin / tau + Sf[i, j] * afs_loc / c.Sfmin) / rt
+    rt = Tf(1) / tau + Sf[i, j] / scheme.Sfmin
+    alim = (scheme.amin / tau + Sf[i, j] * afs_loc / scheme.Sfmin) / rt
     a = alim + (albs[i, j] - alim) * exp(-rt * dt)
-    if (a < min(afs_loc, c.amin))
-        a = min(afs_loc, c.amin)
+    if (a < min(afs_loc, scheme.amin))
+        a = min(afs_loc, scheme.amin)
     end
-    if (a > max(afs_loc, c.amin))
-        a = max(afs_loc, c.amin)
+    if (a > max(afs_loc, scheme.amin))
+        a = max(afs_loc, scheme.amin)
     end
     albs[i, j] = a
     return nothing
 end
 
-@inline function snow_albedo!(c::PrognosticAlbedo{Tf}, i, j, state, surface, meteo, params, summer_decay) where {Tf}
+@inline function snow_albedo!(scheme::PrognosticAlbedo{Tf}, i, j, state, surface, meteo, params, summer_decay) where {Tf}
     @unpack_constants(Tf)
     (; albs, Tsrf, Sice, Sliq) = state
     (; Sdir, Sdird, Sf, Sf24h) = meteo
     (; dt) = params
-    adc_loc = c.adc[i, j]
-    adm_loc = c.adm
-    afs_loc = c.afs[i, j]
+    adc_loc = scheme.adc[i, j]
+    adm_loc = scheme.adm
+    afs_loc = scheme.afs[i, j]
 
     SWEtmp = zero(Tf)
     for si in 1:size(Sice, 1)
@@ -105,7 +105,7 @@ end
     end
 
     # Aspect-dependent albedo tuning
-    if c.ALRADT
+    if scheme.ALRADT
         if ((Sdir[i, j] > eps(Tf)) && (Sdird[i, j] < Sdir[i, j]))
             adm_loc = adm_loc * (Sdird[i, j]) / (Sdir[i, j])
             adc_loc = adc_loc * (Sdird[i, j]) / (Sdir[i, j])
@@ -121,7 +121,7 @@ end
     # Temperature dependent albedo update
     a = albs[i, j]
     if (Tsrf[i, j] >= Tm)
-        a = (a - c.amin) * exp(-(dt / Tf(3600)) / adm_loc) + c.amin
+        a = (a - scheme.amin) * exp(-(dt / Tf(3600)) / adm_loc) + scheme.amin
     else
         a = a - (dt / Tf(3600)) / adc_loc
     end
@@ -132,17 +132,17 @@ end
     end
 
     # Reset to fresh snow albedo
-    if ((Sf[i, j] * dt) > Tf(0.0) && Sf24h[i, j] > c.Sfmin)
+    if ((Sf[i, j] * dt) > Tf(0.0) && Sf24h[i, j] > scheme.Sfmin)
         a = afs_loc
     else
-        a = a + (afs_loc - a) * Sf[i, j] * dt / c.Sfmin
+        a = a + (afs_loc - a) * Sf[i, j] * dt / scheme.Sfmin
     end
 
     if (a > afs_loc)
         a = afs_loc
     end
-    if (a < c.amin)
-        a = c.amin
+    if (a < scheme.amin)
+        a = scheme.amin
     end
     albs[i, j] = a
     return nothing

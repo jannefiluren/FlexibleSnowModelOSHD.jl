@@ -30,11 +30,11 @@ place to the compacted density, for every layer.
 """
 function compact_snow! end
 
-@inline function compact_snow!(c::AgeCompaction{Tf}, i, j, state, params) where {Tf}
+@inline function compact_snow!(scheme::AgeCompaction{Tf}, i, j, state, params) where {Tf}
     @unpack_constants(Tf)
     (; Ds, Sice, Sliq, fsnow, Nsnow, Tsnow) = state
     (; dt) = params
-    (; rmlt, rcld, trho) = c
+    (; rmlt, rcld, trho) = scheme
     for k in 1:Nsnow[i, j]
         if (Ds[k, i, j] > eps(Tf))
             rhos = (Sice[k, i, j] + Sliq[k, i, j]) / Ds[k, i, j] / fsnow[i, j]
@@ -53,11 +53,11 @@ function compact_snow! end
     return nothing
 end
 
-@inline function compact_snow!(c::OverburdenCompaction{Tf}, i, j, state, params) where {Tf}
+@inline function compact_snow!(scheme::OverburdenCompaction{Tf}, i, j, state, params) where {Tf}
     @unpack_constants(Tf)
     (; Ds, Sice, Sliq, fsnow, Nsnow, Tsnow) = state
     (; dt) = params
-    (; eta0, snda, rhos_max) = c
+    (; eta0, snda, rhos_max) = scheme
     mass = Tf(0.0)
     for k in 1:Nsnow[i, j]
         mass = mass + Tf(0.5) * (Sice[k, i, j] + Sliq[k, i, j]) / fsnow[i, j]
@@ -72,11 +72,11 @@ end
     return nothing
 end
 
-@inline function compact_snow!(c::CrocusCompaction{Tf}, i, j, state, params) where {Tf}
+@inline function compact_snow!(scheme::CrocusCompaction{Tf}, i, j, state, params) where {Tf}
     @unpack_constants(Tf)
     (; Ds, Sice, Sliq, fsnow, Nsnow, Tsnow) = state
     (; dt) = params
-    (; eta1, a_eta, b_eta, c_eta, rhos_max) = c
+    (; eta1, a_eta, b_eta, c_eta, rhos_max) = scheme
     mass = Tf(0.0)
     for k in 1:Nsnow[i, j]
         mass = mass + Tf(0.5) * (Sice[k, i, j] + Sliq[k, i, j]) / fsnow[i, j]

@@ -228,12 +228,12 @@ Base.@propagate_inbounds function relayer_snow!(::OriginalLayering{Tf}, i, j, st
     return nothing
 end
 
-Base.@propagate_inbounds function relayer_snow!(s::DensityLayering{Tf}, i, j, state, diag, grid, params, snowdepth, Tsnow0, ::Val{Nsmax}) where {Tf, Nsmax}
+Base.@propagate_inbounds function relayer_snow!(scheme::DensityLayering{Tf}, i, j, state, diag, grid, params, snowdepth, Tsnow0, ::Val{Nsmax}) where {Tf, Nsmax}
     @unpack_constants(Tf)
     (; Ds, Sice, Sliq, Tsnow, histowet, Nsnow, fsnow) = state
     (; Ds0, Sice0) = diag
     (; rho0, Ds_min) = params
-    (; Ds_surflay) = s
+    (; Ds_surflay) = scheme
 
     # Kernel-local scratch
     rho = zero(MVector{Nsmax + 1, Tf})

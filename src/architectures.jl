@@ -63,10 +63,10 @@ function on_architecture(arch::GPU, a::AbstractArray)
     return out
 end
 
-function on_architecture(arch::AbstractArchitecture, s::AbstractParameterization)
-    isbitstype(typeof(s)) && return s
-    T = typeof(s).name.wrapper
-    return T(map(f -> on_architecture(arch, getfield(s, f)), fieldnames(typeof(s)))...)
+function on_architecture(arch::AbstractArchitecture, parameterization::AbstractParameterization)
+    isbitstype(typeof(parameterization)) && return parameterization
+    T = typeof(parameterization).name.wrapper
+    return T(map(f -> on_architecture(arch, getfield(parameterization, f)), fieldnames(typeof(parameterization)))...)
 end
 
 on_architecture(::AbstractArchitecture, p::Parameters) = p

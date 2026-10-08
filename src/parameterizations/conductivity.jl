@@ -17,16 +17,16 @@ implemented for every `AbstractConductivity`.
 """
 function snow_conductivity! end
 
-@inline function snow_conductivity!(c::FixedConductivity, i, j, state, diag, params)
+@inline function snow_conductivity!(scheme::FixedConductivity, i, j, state, diag, params)
     (; Nsnow) = state
     (; ksnow) = diag
     for k in 1:Nsnow[i, j]
-        ksnow[k, i, j] = c.kfix
+        ksnow[k, i, j] = scheme.kfix
     end
     return nothing
 end
 
-@inline function snow_conductivity!(c::DensityConductivity{Tf}, i, j, state, diag, params) where {Tf}
+@inline function snow_conductivity!(scheme::DensityConductivity{Tf}, i, j, state, diag, params) where {Tf}
     @unpack_constants(Tf)
     (; Ds, Sice, Sliq, fsnow, Nsnow) = state
     (; ksnow) = diag
@@ -36,7 +36,7 @@ end
         if ((Ds[k, i, j] > eps(Tf)) && fsnow[i, j] > eps(Tf))
             rhos = (Sice[k, i, j] + Sliq[k, i, j]) / Ds[k, i, j] / fsnow[i, j]
         end
-        ksnow[k, i, j] = hcon_ice * (rhos / rho_ice)^c.bthr
+        ksnow[k, i, j] = hcon_ice * (rhos / rho_ice)^scheme.bthr
     end
     return nothing
 end

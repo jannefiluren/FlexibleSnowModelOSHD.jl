@@ -30,10 +30,10 @@ Fill the soil heat capacity `diag.csoil[1:Nsoil, i, j]`, thermal conductivity
 """
 function soil_properties! end
 
-@inline function soil_properties!(s::IceSubstrate{Tf}, i, j, state, diag, surface, grid, params) where {Tf}
+@inline function soil_properties!(substrate::IceSubstrate{Tf}, i, j, state, diag, surface, grid, params) where {Tf}
     @unpack_constants(Tf)
     (; Dzsoil, Nsoil) = grid
-    (; gsat) = s
+    (; gsat) = substrate
     (; csoil, ksoil, gs1) = diag
 
     for k in 1:Nsoil
@@ -46,10 +46,10 @@ function soil_properties! end
     return nothing
 end
 
-@inline function soil_properties!(s::SoilSubstrate{Tf}, i, j, state, diag, surface, grid, params) where {Tf}
+@inline function soil_properties!(substrate::SoilSubstrate{Tf}, i, j, state, diag, surface, grid, params) where {Tf}
     @unpack_constants(Tf)
     (; Dzsoil, Nsoil) = grid
-    (; gsat) = s
+    (; gsat) = substrate
     (; b, hcap_soil, hcon_soil, sathh, Vcrit, Vsat) = surface
     (; theta, Tsoil) = state
     (; csoil, ksoil, gs1) = diag
@@ -96,11 +96,11 @@ end
     return nothing
 end
 
-@inline function soil_properties!(m::MixedSubstrate, i, j, state, diag, surface, grid, params)
-    if m.icecells[i, j]
-        soil_properties!(m.ice, i, j, state, diag, surface, grid, params)
+@inline function soil_properties!(substrate::MixedSubstrate, i, j, state, diag, surface, grid, params)
+    if substrate.icecells[i, j]
+        soil_properties!(substrate.ice, i, j, state, diag, surface, grid, params)
     else
-        soil_properties!(m.soil, i, j, state, diag, surface, grid, params)
+        soil_properties!(substrate.soil, i, j, state, diag, surface, grid, params)
     end
     return nothing
 end
@@ -126,11 +126,11 @@ function cap_soil_temperature! end
     return nothing
 end
 
-@inline function cap_soil_temperature!(m::MixedSubstrate, i, j, state, grid)
-    if m.icecells[i, j]
-        cap_soil_temperature!(m.ice, i, j, state, grid)
+@inline function cap_soil_temperature!(substrate::MixedSubstrate, i, j, state, grid)
+    if substrate.icecells[i, j]
+        cap_soil_temperature!(substrate.ice, i, j, state, grid)
     else
-        cap_soil_temperature!(m.soil, i, j, state, grid)
+        cap_soil_temperature!(substrate.soil, i, j, state, grid)
     end
     return nothing
 end
@@ -153,9 +153,9 @@ function cap_initial_temperatures!(::IceSubstrate{Tf}, state, surface, grid) whe
     return nothing
 end
 
-function cap_initial_temperatures!(m::MixedSubstrate, state, surface, grid)
+function cap_initial_temperatures!(substrate::MixedSubstrate, state, surface, grid)
     Tm = get_constants(eltype(state.Tsrf)).Tm
-    glacier = m.icecells
+    glacier = substrate.icecells
     state.Tsrf[glacier] .= min.(state.Tsrf[glacier], Tm)
     for k in 1:grid.Nsoil
         Tsoilk = @view state.Tsoil[k, :, :]

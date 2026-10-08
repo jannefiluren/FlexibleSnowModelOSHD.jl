@@ -48,9 +48,9 @@ MixedLandCover(open::OpenCover{Tf}, forest::ForestCover{Tf}, forestcells::Abstra
     MixedLandCover{Tf, typeof(open), typeof(forest), typeof(forestcells)}(open, forest, forestcells)
 @adapt_structure MixedLandCover
 
-canopy_fsar(c::ForestCover) = c.fsar
-canopy_avg0(c::ForestCover) = c.avg0
-canopy_avgs(c::ForestCover) = c.avgs
+canopy_fsar(land_cover::ForestCover) = land_cover.fsar
+canopy_avg0(land_cover::ForestCover) = land_cover.avg0
+canopy_avgs(land_cover::ForestCover) = land_cover.avgs
 
 """
     forest_cells(land_cover, grid)
@@ -62,7 +62,7 @@ function forest_cells end
 
 forest_cells(::AbstractLandCover, grid) = falses(grid.Nx, grid.Ny)
 forest_cells(::ForestCover, grid) = trues(grid.Nx, grid.Ny)
-forest_cells(m::MixedLandCover, grid) = m.forestcells
+forest_cells(land_cover::MixedLandCover, grid) = land_cover.forestcells
 
 """
     canopy_snow!(land_cover, i, j, state, diag, surface, params)
@@ -136,7 +136,7 @@ terrain uses them directly, a canopy offsets them by the canopy height.
 """
 function exchange_coefficients! end
 
-@inline function exchange_coefficients!(c::OpenCover{Tf}, i, j, state, diag, surface, params, meteo, z0g) where {Tf}
+@inline function exchange_coefficients!(land_cover::OpenCover{Tf}, i, j, state, diag, surface, params, meteo, z0g) where {Tf}
     @unpack_constants(Tf)
     (; zU, zT) = params
     (; Sice, Tsrf) = state
@@ -149,7 +149,7 @@ function exchange_coefficients! end
     CD = (vkman / log(zU / z0))^Tf(2)
     ustar = sqrt(CD) * Uaeff[i, j]
 
-    fh = stability_factor(c.stability, CD, z0, Ta[i, j], Tsrf[i, j], Uaeff[i, j], zU, zT)
+    fh = stability_factor(land_cover.stability, CD, z0, Ta[i, j], Tsrf[i, j], Uaeff[i, j], zU, zT)
 
     # Eddy diffusivities
     KH[i, j] = fh * vkman * ustar / log(zT / z0h)
@@ -162,10 +162,10 @@ function exchange_coefficients! end
     return nothing
 end
 
-@inline function exchange_coefficients!(c::ForestCover{Tf}, i, j, state, diag, surface, params, meteo, z0g) where {Tf}
+@inline function exchange_coefficients!(land_cover::ForestCover{Tf}, i, j, state, diag, surface, params, meteo, z0g) where {Tf}
     @unpack_constants(Tf)
     (; zU, zT) = params
-    (; zsub, gsnf) = c
+    (; zsub, gsnf) = land_cover
     (; fveg, fves, VAI, hcan) = surface
     (; Sveg, Tsrf, Tveg, Qcan) = state
     (; KHa, KHg, KHv, KWg, KWv, Usc, gs1, Uaeff) = diag
@@ -176,26 +176,26 @@ end
     zT1 = zT + hcan[i, j]
 
     # Roughness lengths, friction velocity and canopy wind profile
-    z0g = (c.zgf + c.zgr * fveg[i, j]) * z0g
+    z0g = (land_cover.zgf + land_cover.zgr * fveg[i, j]) * z0g
     z0h = Tf(0.1) * z0g
-    dh = c.rchd * hcan[i, j]
-    z0v = c.rchz * hcan[i, j]
+    dh = land_cover.rchd * hcan[i, j]
+    z0v = land_cover.rchz * hcan[i, j]
     ustar = vkman * Uaeff[i, j] / log((zU1 - dh) / z0v)
     Uh = (ustar / vkman) * log((hcan[i, j] - dh) / z0v)
     KHh = vkman * ustar * (hcan[i, j] - dh)
-    Usf = exp(c.wcan * (zsub / hcan[i, j] - Tf(1))) * Uh
+    Usf = exp(land_cover.wcan * (zsub / hcan[i, j] - Tf(1))) * Uh
 
     Uso = Uaeff[i, j] * log(zsub / z0g) / log(zU / z0g)
 
     # Eddy diffusivities
-    rad = (log((zT1 - dh) / (hcan[i, j] - dh)) / (vkman * ustar) + hcan[i, j] * (exp(c.wcan * (Tf(1) - (z0v + dh) / hcan[i, j])) - Tf(1)) / (c.wcan * KHh)) / c.khcf
+    rad = (log((zT1 - dh) / (hcan[i, j] - dh)) / (vkman * ustar) + hcan[i, j] * (exp(land_cover.wcan * (Tf(1) - (z0v + dh) / hcan[i, j])) - Tf(1)) / (land_cover.wcan * KHh)) / land_cover.khcf
     KHa[i, j] = sqrt(fves[i, j]) / rad
     Usub = sqrt(fves[i, j]) * Usf + (Tf(1) - sqrt(fves[i, j])) * Uso
     Usub = max(Usub, Tf(0.1))
     rgd = Tf(1) / (vkman^Tf(2) * Usub) * log(zsub / z0h) * log(zsub / z0g)
     KHg[i, j] = Tf(1) / rgd
-    Uc = exp(c.wcan * ((z0v + dh) / hcan[i, j] - Tf(1))) * Uh
-    KHv[i, j] = VAI[i, j] * sqrt(Uc) / c.cveg
+    Uc = exp(land_cover.wcan * ((z0v + dh) / hcan[i, j] - Tf(1))) * Uh
+    KHv[i, j] = VAI[i, j] * sqrt(Uc) / land_cover.cveg
     # Usc leaves the model only through the OSHDinternal output catalog (uaca)
     Usc[i, j] = Usub
 
@@ -224,7 +224,7 @@ to already hold the bare-ground albedo where the snow has gone.
 """
 function solar_radiation! end
 
-@inline function solar_radiation!(c::OpenCover{Tf}, i, j, state, diag, surface, meteo) where {Tf}
+@inline function solar_radiation!(::OpenCover{Tf}, i, j, state, diag, surface, meteo) where {Tf}
     (; albs) = state
     (; SWveg, SWsrf, SWsci) = diag
     (; Sdif, Sdir) = meteo
@@ -236,7 +236,7 @@ function solar_radiation! end
     return nothing
 end
 
-@inline function solar_radiation!(c::ForestCover{Tf}, i, j, state, diag, surface, meteo) where {Tf}
+@inline function solar_radiation!(land_cover::ForestCover{Tf}, i, j, state, diag, surface, meteo) where {Tf}
     (; albs, fsnow, Sveg) = state
     (; SWveg, SWsrf, SWsci) = diag
     (; fveg, fsky, fsky_terr, scap, trcn) = surface
@@ -244,14 +244,14 @@ end
 
     asrf = albs[i, j]
     if (fsnow[i, j] > eps(Tf))
-        asrf *= Tf(1) - fveg[i, j] * canopy_fsar(c)
+        asrf *= Tf(1) - fveg[i, j] * canopy_fsar(land_cover)
     end
 
     fcans = Tf(0.0)
     if (scap[i, j] > eps(Tf))
         fcans = Sveg[i, j] / scap[i, j]
     end
-    aveg = (Tf(1) - fcans) * canopy_avg0(c) + fcans * canopy_avgs(c)
+    aveg = (Tf(1) - fcans) * canopy_avg0(land_cover) + fcans * canopy_avgs(land_cover)
 
     Sdif_aux = fsky[i, j] / fsky_terr[i, j] * Sdif[i, j]
     tdif = trcn[i, j]
@@ -270,7 +270,7 @@ emission is computed here, while in forested cells `energy_balance!` accounts fo
 """
 function thermal_radiation! end
 
-@inline function thermal_radiation!(c::OpenCover{Tf}, i, j, diag, surface, meteo) where {Tf}
+@inline function thermal_radiation!(::OpenCover{Tf}, i, j, diag, surface, meteo) where {Tf}
     @unpack_constants(Tf)
     (; LWeff) = diag
     (; fsky_terr) = surface
@@ -280,7 +280,7 @@ function thermal_radiation! end
     return nothing
 end
 
-@inline function thermal_radiation!(c::ForestCover{Tf}, i, j, diag, surface, meteo) where {Tf}
+@inline function thermal_radiation!(::ForestCover{Tf}, i, j, diag, surface, meteo) where {Tf}
     @unpack_constants(Tf)
     (; LWeff) = diag
     (; fsky) = surface
@@ -557,49 +557,49 @@ end
 # `forestcells` mask. Both branches call concrete, inlined methods (no dynamic dispatch),
 # so this stays GPU-safe.
 
-@inline function canopy_snow!(m::MixedLandCover, i, j, state, diag, surface, params)
-    if m.forestcells[i, j]
-        canopy_snow!(m.forest, i, j, state, diag, surface, params)
+@inline function canopy_snow!(land_cover::MixedLandCover, i, j, state, diag, surface, params)
+    if land_cover.forestcells[i, j]
+        canopy_snow!(land_cover.forest, i, j, state, diag, surface, params)
     else
-        canopy_snow!(m.open, i, j, state, diag, surface, params)
+        canopy_snow!(land_cover.open, i, j, state, diag, surface, params)
     end
     return nothing
 end
 
-@inline function exchange_coefficients!(m::MixedLandCover, i, j, state, diag, surface, params, meteo, z0g)
-    if m.forestcells[i, j]
-        exchange_coefficients!(m.forest, i, j, state, diag, surface, params, meteo, z0g)
+@inline function exchange_coefficients!(land_cover::MixedLandCover, i, j, state, diag, surface, params, meteo, z0g)
+    if land_cover.forestcells[i, j]
+        exchange_coefficients!(land_cover.forest, i, j, state, diag, surface, params, meteo, z0g)
     else
-        exchange_coefficients!(m.open, i, j, state, diag, surface, params, meteo, z0g)
+        exchange_coefficients!(land_cover.open, i, j, state, diag, surface, params, meteo, z0g)
     end
     return nothing
 end
 
-@inline function solar_radiation!(m::MixedLandCover, i, j, state, diag, surface, meteo)
-    if m.forestcells[i, j]
-        solar_radiation!(m.forest, i, j, state, diag, surface, meteo)
+@inline function solar_radiation!(land_cover::MixedLandCover, i, j, state, diag, surface, meteo)
+    if land_cover.forestcells[i, j]
+        solar_radiation!(land_cover.forest, i, j, state, diag, surface, meteo)
     else
-        solar_radiation!(m.open, i, j, state, diag, surface, meteo)
+        solar_radiation!(land_cover.open, i, j, state, diag, surface, meteo)
     end
     return nothing
 end
 
-@inline function thermal_radiation!(m::MixedLandCover, i, j, diag, surface, meteo)
-    if m.forestcells[i, j]
-        thermal_radiation!(m.forest, i, j, diag, surface, meteo)
+@inline function thermal_radiation!(land_cover::MixedLandCover, i, j, diag, surface, meteo)
+    if land_cover.forestcells[i, j]
+        thermal_radiation!(land_cover.forest, i, j, diag, surface, meteo)
     else
-        thermal_radiation!(m.open, i, j, diag, surface, meteo)
+        thermal_radiation!(land_cover.open, i, j, diag, surface, meteo)
     end
     return nothing
 end
 
-Base.@propagate_inbounds function energy_balance!(m::MixedLandCover, substrate::MixedSubstrate, i, j, state, diag, surface, params, meteo)
-    if m.forestcells[i, j]
-        energy_balance!(m.forest, substrate.soil, i, j, state, diag, surface, params, meteo)
+Base.@propagate_inbounds function energy_balance!(land_cover::MixedLandCover, substrate::MixedSubstrate, i, j, state, diag, surface, params, meteo)
+    if land_cover.forestcells[i, j]
+        energy_balance!(land_cover.forest, substrate.soil, i, j, state, diag, surface, params, meteo)
     elseif substrate.icecells[i, j]
-        energy_balance!(m.open, substrate.ice, i, j, state, diag, surface, params, meteo)
+        energy_balance!(land_cover.open, substrate.ice, i, j, state, diag, surface, params, meteo)
     else
-        energy_balance!(m.open, substrate.soil, i, j, state, diag, surface, params, meteo)
+        energy_balance!(land_cover.open, substrate.soil, i, j, state, diag, surface, params, meteo)
     end
     return nothing
 end

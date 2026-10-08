@@ -31,11 +31,11 @@ function snow_hydrology! end
     return nothing
 end
 
-@inline function snow_hydrology!(c::BucketHydrology{Tf}, i, j, state, diag, params) where {Tf}
+@inline function snow_hydrology!(scheme::BucketHydrology{Tf}, i, j, state, diag, params) where {Tf}
     @unpack_constants(Tf)
     (; Ds, Sice, Sliq, Tsnow, histowet, fsnow, Nsnow) = state
     (; Roff_snow, meltflux_out) = diag
-    (; Wirr) = c
+    (; Wirr) = scheme
     for k in 1:Nsnow[i, j]
         phi = Tf(0.0)
         if (Ds[k, i, j] > eps(Tf))
