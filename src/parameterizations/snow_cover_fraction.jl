@@ -106,24 +106,46 @@ TanhSnowFraction{Tf}(grid::Grid; kwargs...) where {Tf} = TanhSnowFraction{Tf}(; 
 SeasonalSnowFraction{Tf}(grid::Grid; kwargs...) where {Tf} = SeasonalSnowFraction{Tf}(; kwargs...)
 
 """
-    ground_roughness(scheme, i, j, state, surface)
+    ground_roughness(scheme, i, j, state, surface, params)
 
 Roughness length of the ground at cell `(i, j)`: the snow value where the cell counts as
-snow covered, the snow-free value otherwise. Implemented for every `AbstractSnowFraction`;
-called from the `surface_exchange_coefficients!` kernel.
+snow covered, the snow-free value otherwise. The snow value is scaled by
+[`wet_snow_roughness`](@ref). Implemented for every `AbstractSnowFraction`.
 """
 function ground_roughness end
 
-@inline function ground_roughness(::PointSnowFraction{Tf}, i, j, state, surface) where {Tf}
+@inline function ground_roughness(::PointSnowFraction{Tf}, i, j, state, surface, params) where {Tf}
     (; Ds) = state
-    (; z0_snow, z0sf) = surface
-    return column_sum(Ds, i, j) <= Tf(0.05) ? z0sf[i, j] : z0_snow[i, j]
+    (; z0sf) = surface
+    return column_sum(Ds, i, j) <= Tf(0.05) ? z0sf[i, j] : wet_snow_roughness(i, j, state, surface, params)
 end
 
-@inline function ground_roughness(::AbstractSnowFraction{Tf}, i, j, state, surface) where {Tf}
+@inline function ground_roughness(::AbstractSnowFraction{Tf}, i, j, state, surface, params) where {Tf}
     (; fsnow) = state
-    (; z0_snow, z0sf) = surface
-    return fsnow[i, j] <= eps(Tf) ? z0sf[i, j] : z0_snow[i, j]
+    (; z0sf) = surface
+    return fsnow[i, j] <= eps(Tf) ? z0sf[i, j] : wet_snow_roughness(i, j, state, surface, params)
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Snow roughness length at cell `(i, j)`: `z0_snow` blended towards `c_z0_wet * z0_snow` with the
+volumetric liquid water content `theta = Sliq / (rho_wat * Ds * fsnow)` of the top snow layer, reached in
+full at `theta_z0_sat`: `z0_snow * (1 + (c_z0_wet - 1) * min(theta / theta_z0_sat, 1))`.
+"""
+@inline function wet_snow_roughness(i, j, state, surface, params::Parameters{Tf}) where {Tf}
+    @unpack_constants(Tf)
+    (; Ds, Sliq, fsnow) = state
+    (; z0_snow) = surface
+    (; c_z0_wet, theta_z0_sat) = params
+
+    # Early return keeps the disabled path bit-identical to the unscaled roughness
+    if c_z0_wet == one(Tf) || Ds[1, i, j] * fsnow[i, j] <= eps(Tf)
+        return z0_snow[i, j]
+    end
+    # Ds is the depth over the snow-covered fraction, Sliq the cell mean
+    theta = Sliq[1, i, j] / (rho_wat * Ds[1, i, j] * fsnow[i, j])
+    return z0_snow[i, j] * (one(Tf) + (c_z0_wet - one(Tf)) * min(theta / theta_z0_sat, one(Tf)))
 end
 
 """

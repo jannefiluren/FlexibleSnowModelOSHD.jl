@@ -37,6 +37,10 @@ $(TYPEDFIELDS)
     rhos_min::Tf = 50
     "Minimum possible snow layer thickness (m)"
     Ds_min::Tf = 0.01
+    "Ratio of wet- to dry-snow roughness length; 1 disables the wet-snow scaling (-)"
+    c_z0_wet::Tf = 1
+    "Volumetric liquid water content of the top snow layer at which `c_z0_wet` applies in full (-)"
+    theta_z0_sat::Tf = 0.01
     "Initial soil moisture as fraction of saturation"
     fsat::Tf = 0.5
     "Initial soil layer temperatures (K)"

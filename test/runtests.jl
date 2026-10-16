@@ -51,6 +51,10 @@ end
     include("test_albedo.jl")
 end
 
+@testset "Roughness" begin
+    include("test_roughness.jl")
+end
+
 @testset "Regression Tests" begin
     include("test_regression.jl")
 end

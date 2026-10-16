@@ -36,7 +36,7 @@ end
 
     if active[i, j]
 
-        z0g = ground_roughness(snow_fraction, i, j, state, surface)
+        z0g = ground_roughness(snow_fraction, i, j, state, surface, params)
 
         exchange_coefficients!(land_cover, i, j, state, diag, surface, params, meteo, z0g)
 
