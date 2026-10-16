@@ -95,7 +95,8 @@ for melting snow and linearly for cold snow, and is refreshed towards `alb_fresh
 With `aspect_tuning`, both decay times are shortened on slopes receiving more direct shortwave
 radiation than flat ground, by the ratio `Sdird / Sdir`. With a nonzero `aspect_pert`, the decay
 increment is scaled by [`aspect_perturbation`](@ref): faster decay on sunny slopes, slower on shaded
-ones. Both can be combined; `aspect_tuning` then shortens the decay times before the increment is
+ones, with separate amplitudes `aspect_pert_base_sunny` and `aspect_pert_base_shaded`. Both can be
+combined; `aspect_tuning` then shortens the decay times before the increment is
 scaled. For thin snow (SWE below `swe_thin`) the fresh-snow albedo is scaled by `c_thin`.
 
 ```jldoctest
@@ -112,7 +113,8 @@ PrognosticAlbedo
 ├── tau_cold: (1000.0, 1000.0)
 ├── aspect_tuning: true
 ├── aspect_pert: 0.0
-├── aspect_pert_base: 20.0
+├── aspect_pert_base_sunny: 20.0
+├── aspect_pert_base_shaded: 20.0
 ├── dswe_fresh: 10.0
 ├── swe_thin: 75.0
 └── c_thin: 0.8
@@ -141,8 +143,10 @@ $(TYPEDFIELDS)
     aspect_tuning::Bool = true
     "Steepness of the aspect perturbation of the decay increment; 0 disables it (-)"
     aspect_pert::Tf = 0
-    "Base of the aspect perturbation factor, which ranges over [1 / base, base] (-)"
-    aspect_pert_base::Tf = 20
+    "Base of the aspect perturbation on slopes sunnier than flat ground, upper bound of the factor; 1 disables that side (-)"
+    aspect_pert_base_sunny::Tf = 20
+    "Base of the aspect perturbation on slopes shadier than flat ground, 1 / base is the lower bound of the factor; 1 disables that side (-)"
+    aspect_pert_base_shaded::Tf = 5
 
     # Fresh snow
     "Snowfall scale of the refresh towards `alb_fresh`; a larger 24 h snowfall resets the albedo (kg/m^2)"
@@ -157,7 +161,16 @@ end
 
 DiagnosticAlbedo{Tf}(grid::Grid; kwargs...) where {Tf} = DiagnosticAlbedo{Tf}(; kwargs...)
 DecayAlbedo{Tf}(grid::Grid; kwargs...) where {Tf} = DecayAlbedo{Tf, typeof(grid), Matrix{Tf}}(; grid, kwargs...)
-PrognosticAlbedo{Tf}(grid::Grid; kwargs...) where {Tf} = PrognosticAlbedo{Tf, typeof(grid), Matrix{Tf}}(; grid, kwargs...)
+function PrognosticAlbedo{Tf}(grid::Grid; kwargs...) where {Tf}
+    # this check might be overkill... (TBD)
+    # otherwise we need to check all vales for all parameterizations
+    # I'll leave it for now, but should be addressed before we merge into main
+    scheme = PrognosticAlbedo{Tf, typeof(grid), Matrix{Tf}}(; grid, kwargs...)
+    for name in (:aspect_pert_base_sunny, :aspect_pert_base_shaded)
+        getfield(scheme, name) >= 1 || throw(ArgumentError("PrognosticAlbedo `$name` must be >= 1, got $(getfield(scheme, name))"))
+    end
+    return scheme
+end
 
 @adapt_structure DecayAlbedo
 @adapt_structure PrognosticAlbedo
@@ -165,13 +178,14 @@ PrognosticAlbedo{Tf}(grid::Grid; kwargs...) where {Tf} = PrognosticAlbedo{Tf, ty
 """
 $(TYPEDSIGNATURES)
 
-Factor scaling the albedo decay increment by the ratio of direct short wave radiation on the 
-inclined and the flat surface: `base^(atan(steepness * log(sw_dir_incl / sw_dir_hor)) / (pi / 2))`, 
-in [1 / base, base]. Without direct radiation on both surfaces the factor is 1; on only one 
-of them it defaults to the upper/lower bounds (`1 / base` without radiation on the slope, 
-`base` without radiation on flat ground).
+Factor scaling the albedo decay increment by the ratio of direct short wave radiation on the
+inclined and the flat surface: `base^x` with `x = atan(steepness * log(sw_dir_incl / sw_dir_hor)) / (pi / 2)`
+in [-1, 1], where `base` is `base_sunny` for `x >= 0` and `base_shaded` otherwise. The factor lies in
+[1 / base_shaded, base_sunny] and is 1 for equal radiation. Without direct radiation on both surfaces
+the factor is 1; on only one of them it takes the bound (`1 / base_shaded` without radiation on the
+slope, `base_sunny` without radiation on flat ground).
 """
-@inline function aspect_perturbation(steepness::Tf, base::Tf, sw_dir_incl::Tf, sw_dir_hor::Tf) where {Tf}
+@inline function aspect_perturbation(steepness::Tf, base_sunny::Tf, base_shaded::Tf, sw_dir_incl::Tf, sw_dir_hor::Tf) where {Tf}
     if sw_dir_incl < eps(Tf)
         x = sw_dir_hor < eps(Tf) ? zero(Tf) : -one(Tf)
     elseif sw_dir_hor < eps(Tf)
@@ -179,7 +193,7 @@ of them it defaults to the upper/lower bounds (`1 / base` without radiation on t
     else
         x = atan(steepness * log(sw_dir_incl / sw_dir_hor)) / (Tf(pi) / 2)
     end
-    return base^x
+    return x >= zero(Tf) ? base_sunny^x : base_shaded^x
 end
 
 """
@@ -243,7 +257,7 @@ end
     (; albs, Tsrf, Sice, Sliq) = state
     (; Sdir, Sdird, Sf, Sf24h) = meteo
     (; dt) = params
-    (; alb_min, tau_melt, aspect_pert, aspect_pert_base, dswe_fresh, swe_thin, c_thin) = scheme
+    (; alb_min, tau_melt, aspect_pert, aspect_pert_base_sunny, aspect_pert_base_shaded, dswe_fresh, swe_thin, c_thin) = scheme
     tau_cold = scheme.tau_cold[i, j]
     alb_fresh = scheme.alb_fresh[i, j]
 
@@ -262,7 +276,7 @@ end
 
     # Aspect perturbation: faster decay on sunny slopes, slower on shaded ones
     if aspect_pert != Tf(0)
-        dalb *= aspect_perturbation(aspect_pert, aspect_pert_base, Sdir[i, j], Sdird[i, j])
+        dalb *= aspect_perturbation(aspect_pert, aspect_pert_base_sunny, aspect_pert_base_shaded, Sdir[i, j], Sdird[i, j])
     end
     a = albs[i, j] + dalb
 
