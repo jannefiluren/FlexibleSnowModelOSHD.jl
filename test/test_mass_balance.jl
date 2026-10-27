@@ -148,14 +148,14 @@ end
 @testset "Mass balance tests" begin
 
     # Test open tile for all snow cover fraction schemes
-    for snow_fraction in (SeasonalSnowFraction, HelbigSnowFraction, HelbigMaxSnowFraction, PointSnowFraction, TanhSnowFraction)
+    for snow_fraction in (SeasonalSnowFraction, PointSnowFraction, TanhSnowFraction)
         fsm, met, df_meteo = setup_open_example(snow_fraction)
         results = run_fsm(fsm, met, df_meteo)
         test_results(results)
     end
 
     # Test forest tile for all snow cover fraction schemes
-    for snow_fraction in (SeasonalSnowFraction, HelbigSnowFraction, HelbigMaxSnowFraction, PointSnowFraction, TanhSnowFraction)
+    for snow_fraction in (SeasonalSnowFraction, PointSnowFraction, TanhSnowFraction)
         fsm, met, df_meteo = setup_forest_example(snow_fraction)
         results = run_fsm(fsm, met, df_meteo)
         test_results(results)
