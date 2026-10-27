@@ -93,9 +93,14 @@ $(TYPEDEF)
 Prognostic snow albedo parameterization: the albedo decays exponentially towards `alb_min`
 for melting snow and linearly for cold snow, and is refreshed towards `alb_fresh` by snowfall.
 
-With `aspect_decay_ratio`, both decay times are shortened by the ratio of the direct shortwave
-radiation per horizontal (`Sdird`) to per inclined (`Sdir`) surface area on slopes receiving more
-direct shortwave radiation than flat ground.
+Two optional aspect effects use the direct shortwave radiation per inclined (`Sdir`) and per
+horizontal (`Sdird`) surface area:
+- With `aspect_decay_ratio`, both decay times are shortened by the ratio `Sdird / Sdir` on slopes
+  receiving more direct shortwave radiation than flat ground.
+- With a nonzero `aspect_scaling_steepness`, the decay increment is scaled by
+  [`aspect_scaling`](@ref): faster decay on sunny slopes, slower on shaded ones, bounded by
+  `aspect_scaling_max_sunny` and `1 / aspect_scaling_max_shaded`.
+Both can be combined; the decay times are then shortened before the increment is scaled.
 
 For thin snow (SWE below `swe_thin`) the fresh-snow albedo is scaled by `c_thin`.
 
@@ -112,6 +117,9 @@ PrognosticAlbedo
 ├── tau_melt: 200.0
 ├── tau_cold: (1000.0, 1000.0)
 ├── aspect_decay_ratio: false
+├── aspect_scaling_steepness: 0.0
+├── aspect_scaling_max_sunny: 20.0
+├── aspect_scaling_max_shaded: 5.0
 ├── dswe_fresh: 10.0
 ├── swe_thin: 75.0
 └── c_thin: 0.8
@@ -138,6 +146,12 @@ $(TYPEDFIELDS)
     tau_cold::MF = fill(1000, grid.Nx, grid.Ny)
     "Shorten both decay times by `Sdird / Sdir` on slopes receiving more direct shortwave radiation than flat ground"
     aspect_decay_ratio::Bool = false
+    "Steepness of the aspect scaling of the decay increment; 0 disables it (-)"
+    aspect_scaling_steepness::Tf = 0
+    "Upper bound of the aspect scaling, reached on slopes much sunnier than flat ground; must be at least 1, 1 disables that side (-)"
+    aspect_scaling_max_sunny::Tf = 20
+    "Inverse lower bound of the aspect scaling, reached on slopes much shadier than flat ground; must be at least 1, 1 disables that side (-)"
+    aspect_scaling_max_shaded::Tf = 5
 
     # Fresh snow
     "Snowfall scale of the refresh towards `alb_fresh`; a larger 24 h snowfall resets the albedo (kg/m^2)"
@@ -156,6 +170,27 @@ PrognosticAlbedo{Tf}(grid::Grid; kwargs...) where {Tf} = PrognosticAlbedo{Tf, ty
 
 @adapt_structure DecayAlbedo
 @adapt_structure PrognosticAlbedo
+
+"""
+$(TYPEDSIGNATURES)
+
+Factor scaling the albedo decay increment by the ratio of direct shortwave radiation on the
+inclined and the flat surface: `max^x` with `x = atan(steepness * log(sw_dir_incl / sw_dir_hor)) / (pi / 2)`
+in [-1, 1], where `max` is `max_sunny` for `x >= 0` and `max_shaded` otherwise. The factor lies in
+[1 / max_shaded, max_sunny] and is 1 for equal radiation. Without direct radiation on both surfaces
+the factor is 1; on only one of them it takes the bound (`1 / max_shaded` without radiation on the
+slope, `max_sunny` without radiation on flat ground).
+"""
+@inline function aspect_scaling(steepness::Tf, max_sunny::Tf, max_shaded::Tf, sw_dir_incl::Tf, sw_dir_hor::Tf) where {Tf}
+    if sw_dir_incl < eps(Tf)
+        x = sw_dir_hor < eps(Tf) ? zero(Tf) : -one(Tf)
+    elseif sw_dir_hor < eps(Tf)
+        x = one(Tf)
+    else
+        x = atan(steepness * log(sw_dir_incl / sw_dir_hor)) / (Tf(pi) / 2)
+    end
+    return x >= zero(Tf) ? max_sunny^x : max_shaded^x
+end
 
 """
     snow_albedo!(scheme, i, j, state, surface, meteo, params, summer_decay)
@@ -218,7 +253,7 @@ end
     (; albs, Tsrf, Sice, Sliq) = state
     (; Sdir, Sdird, Sf, Sf24h) = meteo
     (; dt) = params
-    (; alb_min, tau_melt, dswe_fresh, swe_thin, c_thin) = scheme
+    (; alb_min, tau_melt, aspect_scaling_steepness, aspect_scaling_max_sunny, aspect_scaling_max_shaded, dswe_fresh, swe_thin, c_thin) = scheme
     tau_cold = scheme.tau_cold[i, j]
     alb_fresh = scheme.alb_fresh[i, j]
 
@@ -233,6 +268,11 @@ end
         dalb = (albs[i, j] - alb_min) * (exp(-(dt / Tf(3600)) / tau_melt) - Tf(1))
     else
         dalb = -(dt / Tf(3600)) / tau_cold
+    end
+
+    # Aspect scaling: faster decay on sunny slopes, slower on shaded ones
+    if aspect_scaling_steepness != Tf(0)
+        dalb *= aspect_scaling(aspect_scaling_steepness, aspect_scaling_max_sunny, aspect_scaling_max_shaded, Sdir[i, j], Sdird[i, j])
     end
     a = albs[i, j] + dalb
 
