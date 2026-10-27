@@ -40,6 +40,7 @@ include("parameterizations/fresh_snow_density.jl")
 include("parameterizations/compaction.jl")
 include("parameterizations/hydrology.jl")
 include("parameterizations/snow_cover_fraction.jl")
+include("parameterizations/roughness.jl")
 include("parameterizations/layering.jl")
 
 # Methods for constructing a model from landuse data
@@ -79,6 +80,7 @@ export AbstractCompaction, AgeCompaction, OverburdenCompaction, CrocusCompaction
 export AbstractHydrology, FreeDrainingHydrology, BucketHydrology, DensityBucketHydrology, snow_hydrology!
 export AbstractLayering, OriginalLayering, DensityLayering, relayer_snow!
 export AbstractSnowFraction, SeasonalSnowFraction, PointSnowFraction, TanhSnowFraction, snow_covered_fraction!
+export AbstractSnowRoughness, FixedSnowRoughness, WetSnowRoughness
 export AbstractArchitecture, CPU, GPU, on_architecture
 export canopy_mass_balance!, radiation!, thermal!, surface_exchange_coefficients!, snow!, soil!, snow_cover_fraction!
 export qsat, tridiag!, ludcmp!

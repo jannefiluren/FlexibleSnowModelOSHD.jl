@@ -106,27 +106,6 @@ TanhSnowFraction{Tf}(grid::Grid; kwargs...) where {Tf} = TanhSnowFraction{Tf}(; 
 SeasonalSnowFraction{Tf}(grid::Grid; kwargs...) where {Tf} = SeasonalSnowFraction{Tf}(; kwargs...)
 
 """
-    ground_roughness(scheme, i, j, state, surface)
-
-Roughness length of the ground at cell `(i, j)`: the snow value where the cell counts as
-snow covered, the snow-free value otherwise. Implemented for every `AbstractSnowFraction`;
-called from the `surface_exchange_coefficients!` kernel.
-"""
-function ground_roughness end
-
-@inline function ground_roughness(::PointSnowFraction{Tf}, i, j, state, surface) where {Tf}
-    (; Ds) = state
-    (; z0_snow, z0sf) = surface
-    return column_sum(Ds, i, j) <= Tf(0.05) ? z0sf[i, j] : z0_snow[i, j]
-end
-
-@inline function ground_roughness(::AbstractSnowFraction{Tf}, i, j, state, surface) where {Tf}
-    (; fsnow) = state
-    (; z0_snow, z0sf) = surface
-    return fsnow[i, j] <= eps(Tf) ? z0sf[i, j] : z0_snow[i, j]
-end
-
-"""
     melt_snow_fraction(scheme, i, j, state)
 
 Snow cover fraction used to scale melt and sublimation at cell `(i, j)`. Apart from the point

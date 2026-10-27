@@ -63,6 +63,7 @@ const SCHEME_MATRIX = Pair{String, Vector{Any}}[
     "compaction" => [AgeCompaction, OverburdenCompaction, CrocusCompaction],
     "hydrology" => [FreeDrainingHydrology, BucketHydrology, DensityBucketHydrology],
     "snow_fraction" => [SeasonalSnowFraction, PointSnowFraction, TanhSnowFraction],
+    "snow_roughness" => [FixedSnowRoughness, WetSnowRoughness],
     "fresh_snow_density" => [FixedFreshSnowDensity, ClimateFreshSnowDensity, ElevationFreshSnowDensity],
     "layering" => [OriginalLayering, DensityLayering],
 ]
