@@ -77,7 +77,7 @@ are exempt — classify a new function by its shape, not by name:
 - **Schemes own their parameters — scalars, or per-cell grids.** Scalar
   parameters keep the scheme isbits (it crosses into a kernel by value). A per-cell
   parameter is a grid field sized from the model grid, exactly like `Surface`
-  (e.g. `afs`, `adc` on the albedo schemes): the scheme takes a `grid` at
+  (e.g. `alb_fresh`, `tau_cold` on the albedo schemes): the scheme takes a `grid` at
   construction (`Scheme{Tf}(grid; ...)`, threaded by `build_scheme`) and gets
   `@adapt_structure` (see radiation.jl) so Adapt moves the arrays to the device.
   Reserve the `Surface` field container for domain inputs and setup-derived per-cell

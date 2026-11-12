@@ -7,6 +7,7 @@ abstract type AbstractFreshSnowDensity{Tf} <: AbstractParameterization{Tf} end
 abstract type AbstractHydrology{Tf} <: AbstractParameterization{Tf} end
 abstract type AbstractLayering{Tf} <: AbstractParameterization{Tf} end
 abstract type AbstractSnowFraction{Tf} <: AbstractParameterization{Tf} end
+abstract type AbstractSnowRoughness{Tf} <: AbstractParameterization{Tf} end
 abstract type AbstractStabilityCorrection{Tf} <: AbstractParameterization{Tf} end
 
 abstract type AbstractLandCover{Tf} <: AbstractParameterization{Tf} end

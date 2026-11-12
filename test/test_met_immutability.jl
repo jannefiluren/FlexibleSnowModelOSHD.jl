@@ -35,7 +35,7 @@ function setup_immutability_example(tile)
     met = MET{Float32}()
 
     # Wind speed below the 0.1 m/s minimum to exercise the clamping in drive!,
-    # snowfall with Sf24h above Sfmin to exercise the albedo refresh in radiation!
+    # snowfall with Sf24h above dswe_fresh to exercise the albedo refresh in radiation!
     met.Sdir .= 400
     met.Sdif .= 100
     met.Sdird .= 350

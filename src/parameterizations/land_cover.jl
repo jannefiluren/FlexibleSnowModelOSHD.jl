@@ -8,6 +8,9 @@ struct OpenCover{Tf, S <: AbstractStabilityCorrection{Tf}} <: AbstractLandCover{
     # Atmospheric stability correction for the open-terrain eddy diffusivity. A type parameter
     # (so the scheme stays isbits); its default is on the constructor, since S follows the value.
     stability::S
+    # Direct shortwave radiation per horizontal (Sdird) instead of per inclined (Sdir) surface
+    # area, for point stations that are flat regardless of the surrounding terrain slope
+    horizontal_sw::Bool
 end
 
 @kwdef struct ForestCover{Tf} <: AbstractLandCover{Tf}
@@ -31,8 +34,8 @@ end
 
 # Default to the Louis (1982) stability correction over open terrain, the realistic choice used
 # across the model; pass stability = NoStabilityCorrection{Tf}() for a neutral surface layer.
-OpenCover{Tf}(; stability = LouisStabilityCorrection{Tf}()) where {Tf} =
-    OpenCover{Tf, typeof(stability)}(stability)
+OpenCover{Tf}(; stability = LouisStabilityCorrection{Tf}(), horizontal_sw = false) where {Tf} =
+    OpenCover{Tf, typeof(stability)}(stability, horizontal_sw)
 OpenCover{Tf}(grid::Grid; kwargs...) where {Tf} = OpenCover{Tf}(; kwargs...)
 ForestCover{Tf}(grid::Grid; kwargs...) where {Tf} = ForestCover{Tf}(; kwargs...)
 
@@ -224,15 +227,16 @@ to already hold the bare-ground albedo where the snow has gone.
 """
 function solar_radiation! end
 
-@inline function solar_radiation!(::OpenCover{Tf}, i, j, state, diag, surface, meteo) where {Tf}
+@inline function solar_radiation!(land_cover::OpenCover{Tf}, i, j, state, diag, surface, meteo) where {Tf}
     (; albs) = state
     (; SWveg, SWsrf, SWsci) = diag
-    (; Sdif, Sdir) = meteo
+    (; Sdif) = meteo
+    Sdir = land_cover.horizontal_sw ? meteo.Sdird : meteo.Sdir
 
-    asrf = albs[i, j]
+    SWin = Sdir[i, j] + Sdif[i, j]
     SWveg[i, j] = Tf(0)
-    SWsrf[i, j] = (Tf(1) - asrf) * (Sdir[i, j] + Sdif[i, j])
-    SWsci[i, j] = Sdif[i, j] + Sdir[i, j]
+    SWsrf[i, j] = (Tf(1) - albs[i, j]) * SWin
+    SWsci[i, j] = SWin
     return nothing
 end
 

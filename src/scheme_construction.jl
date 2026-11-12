@@ -37,7 +37,7 @@ $(TYPEDSIGNATURES)
 Return a physics parameterization ready for the model: a scheme **type** is default-constructed at
 the grid's precision (`Scheme{eltype(grid)}(grid)`), while a ready-made **instance** is returned
 unchanged. Non-default schemes are constructed by the caller, e.g.
-`PrognosticAlbedo{Float32}(grid; adm = 200, adc = my_array)`.
+`PrognosticAlbedo{Float32}(grid; tau_melt = 200, tau_cold = my_array)`.
 """
 instantiate(scheme::Type, grid) = scheme{eltype(grid)}(grid)
 instantiate(scheme, grid) = scheme

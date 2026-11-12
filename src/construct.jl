@@ -21,6 +21,7 @@ function FSM(
         hydrology = DensityBucketHydrology{Tf}(),
         layering = OriginalLayering{Tf}(),
         snow_fraction = PointSnowFraction{Tf}(),
+        snow_roughness = FixedSnowRoughness{Tf}(),
     ) where {Tf}
 
     physics = (;
@@ -33,6 +34,7 @@ function FSM(
         hydrology = instantiate(hydrology, grid),
         layering = instantiate(layering, grid),
         snow_fraction = instantiate(snow_fraction, grid),
+        snow_roughness = instantiate(snow_roughness, grid),
     )
 
     all(s -> s isa AbstractParameterization{Tf}, values(physics)) ||

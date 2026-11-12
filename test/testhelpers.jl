@@ -17,6 +17,7 @@ function bare_fsm(
         hydrology = DensityBucketHydrology{Tf}(),
         layering = OriginalLayering{Tf}(),
         snow_fraction = PointSnowFraction{Tf}(),
+        snow_roughness = FixedSnowRoughness{Tf}(),
     ) where {Tf}
 
     check_layer_thicknesses(grid)
@@ -27,7 +28,7 @@ function bare_fsm(
     diag = Diagnostics{GT, Matrix{Tf}, Array{Tf, 3}}(; grid = grid)
     physics = (;
         land_cover, substrate, snow_albedo, conductivity, fresh_snow_density,
-        compaction, hydrology, layering, snow_fraction,
+        compaction, hydrology, layering, snow_fraction, snow_roughness,
     )
     return FSM(grid, params, surface, state, diag, physics)
 end

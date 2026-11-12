@@ -47,6 +47,14 @@ end
     include("test_transport_step.jl")
 end
 
+@testset "Albedo" begin
+    include("test_albedo.jl")
+end
+
+@testset "Roughness" begin
+    include("test_roughness.jl")
+end
+
 @testset "Regression Tests" begin
     include("test_regression.jl")
 end
