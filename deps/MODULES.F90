@@ -83,8 +83,6 @@ end module MODPERT
 !-----------------------------------------------------------------------
 module MODTILE
 ! Model tiles                                   : Possible values
-logical:: &
-  tiled_trans_run      ! Tiled trans run flag   : .true., .false.
 character(len=20) :: &
   TILE           ! model tile                   : 'open', 'forest', 'glacier' 
 real :: & 
@@ -437,8 +435,7 @@ real, allocatable :: &
 ! Tile properties 
 real, allocatable :: &
   tilefrac(:,:),     &! Tile fraction 
-  glacierfrac(:,:),  &! Glacier flag
-  forestfrac(:,:)     ! Forest fraction
+  glacierfrac(:,:)    ! Glacier fraction
 
 end module LANDUSE
 
@@ -449,31 +446,22 @@ module PARAM_SNOWTRAN3D
 
 logical, parameter :: &
 
-  ! Define whether the threshold surface shear velocity will be
-  ! constant during the simulation (flag_variable_Utau_t = .FALSE.), or whether
-  ! it will evolve as a funtion of air temperature and wind speed
-  ! (flag_variable_Utau_t = .TRUE.).
-  !!! (recommended default value: flag_variable_Utau_t = .TRUE.)
-  flag_variable_Utau_t = .TRUE.,   &! Flag for variable threshold friction velocitiy (.TRUE.) or constant (.FALSE.)
-
-  
   ! Define whether you want the upwind boundaries to have zero
   ! incoming transport flux, or the equilibrium transport flux.
   ! flag_boundary_condition = .FALSE. corresponds to a zero flux, and flag_boundary_condition = .TRUE.
   ! corresponds to the equilibrium flux.
-  !!! (recommended default value: flag_boundary_condition = .FALSE.)
-  flag_boundary_condition = .FALSE. ! Boundary condition flag
+  !!! (default value: flag_boundary_condition = .FALSE.)
+  flag_boundary_condition = .FALSE., &! Boundary condition flag
+
+  ! Flag to relax suspension fluxes along the wind direction
+  !!! (default value: flag_relax_suspension = .FALSE.)
+  flag_relax_suspension = .TRUE.      ! Flag to relax suspension fluxes along the wind direction
 
 real, parameter :: &
 
-  ! For the case of flag_variable_Utau_t = 0.0, define what the threshold
-  ! surface shear velocity (m/s) will be during the simulation.
-  !!! (recommended default value: Utau_t_const = 0.25)
-  Utau_t_const = 0.25,             &! Constant threshold friction velocity (m/s) used if flag_variable_Utau_t = 0.0
-
   ! Density of snow deposited by snowdrift
-  !!! (recommended default value: rho_snow = 300.0)
-  rho_snow = 300.0,                &! Constant snow density (kg/m^3)
+  !!! (default value: rho_snow = 300.0)
+  rho_snow = 300.0,                  &! Constant snowdrift deposition density (kg/m^3)
 
   ! The blowby parameter is implemented to account for the erosion
   ! of the tops of deep snow accumulations.  It corrects a
@@ -484,8 +472,8 @@ real, parameter :: &
   ! peaked the drift accumulation profile is.  blowby = 0.0 is the
   ! original model.  The Tabler surfaces can be used to do the
   ! same kind of thing.
-  !!! (recommended default value: blowby = 0.0)
-  blowby = 0.75                     ! Fraction of the saltation flux transferred downwind
+  !!! (default value: blowby = 0.0)
+  blowby = 0.5                        ! Fraction of the saltation flux transferred downwind
   
 end module PARAM_SNOWTRAN3D
 
@@ -496,8 +484,10 @@ module CONSTANTS_SNOWTRAN3D
 real, parameter :: &
 
   ! Constants related to surface shear stress and saltation transport.
-  fetch = 500.0,        &! Equilibrium fetch distance (m)
+  fetch = 600.0,        &! Equilibrium fetch distance (m)
   xmu = 3.0,            &! Scaling constant for non-equilibrium saltation transport
+  fetch_susp = 1200.0,  &! Equilibrium fetch distance of the suspension layer (m)
+  xmu_susp   = 3.0,     &! Scaling constant for non-equilibrium suspension transport
   C_z = 0.12,           &! Coefficient 0.12 in Liston and Sturm (1998) eq. 5 p. 500
   h_const = 1.6,        &! Coefficient 1.6 in Liston and Sturm (1998) eq. 14 p. 501
   wind_min = 4.0,       &! Minimum wind speed to compute snow transport (m/s)
@@ -510,6 +500,147 @@ real, parameter :: &
   Ur_const = 0.5         ! Constant coefficient beta in L&S 1998, eq. 13
   
 end module CONSTANTS_SNOWTRAN3D
+
+!-----------------------------------------------------------------------
+! Side functions for SnowTran3D
+!-----------------------------------------------------------------------
+module FUNCTIONS_SNOWTRAN3D
+
+implicit none
+
+contains
+
+function get_kstart(wnd_dir, n, k, index_array, dim1_size, dim2_size) result(res)
+
+integer, intent(in) :: &
+  wnd_dir,            &! Wind direction index (1=west, 2=east, 3=south, 4=north)
+  n,                  &! Grid index
+  k                    ! Wind index counter
+
+integer, intent(in) :: &
+  dim1_size, dim2_size ! Sizes of dimensions 1 and 2
+
+integer, intent(in) :: &
+  index_array(dim1_size,2*dim2_size+1) ! Wind index array
+
+integer :: &
+  res                 ! Resulting kstart
+
+select case (wnd_dir)
+case (1,3) ! Westerly and Southerly winds
+  res = index_array(n,k*2)+1
+case (2,4) ! Easterly and Northerly winds
+  res = index_array(n,k*2+1)-1
+end select
+
+end function get_kstart
+
+function get_kend(wnd_dir, n, k, index_array, dim1_size, dim2_size) result(res)
+
+integer, intent(in) :: &
+  wnd_dir,            &! Wind direction index (1=west, 2=east, 3=south, 4=north)
+  n,                  &! Grid index
+  k                    ! Wind index counter
+
+integer, intent(in) :: &
+  dim1_size, dim2_size ! Sizes of dimensions 1 and 2
+
+integer, intent(in) :: &
+  index_array(dim1_size,2*dim2_size+1) ! Wind index array
+
+integer :: &
+  res                 ! Resulting kend
+
+select case (wnd_dir)
+case (1,3) ! Westerly and Southerly winds
+  res = index_array(n,k*2+1)
+case (2,4) ! Easterly and Northerly winds
+  res = index_array(n,k*2)
+end select
+
+end function get_kend
+
+function get_i_upwind(wnd_dir, i) result(res)
+
+integer, intent(in) :: &
+  wnd_dir,            &! Wind direction index (1=west, 2=east, 3=south, 4=north)
+  i                    ! Grid index
+
+integer :: &
+  res                  ! Resulting upwind indexes
+
+select case (wnd_dir)
+case (1,2) ! Westerly and Easterly winds
+  res = i
+case (3) ! Southerly winds
+  res = i-1
+case (4) ! Northerly winds
+  res = i+1
+end select
+
+end function get_i_upwind
+
+function get_j_upwind(wnd_dir, j) result(res)
+
+integer, intent(in) :: &
+  wnd_dir,            &! Wind direction index (1=west, 2=east, 3=south, 4=north)
+  j                    ! Grid index
+
+integer :: &
+  res                  ! Resulting upwind indexes
+
+select case (wnd_dir)
+case (1) ! Westerly winds
+  res = j-1
+case (2) ! Easterly winds
+  res = j+1
+case (3,4) ! Southerly and Northerly winds
+  res = j
+end select
+
+end function get_j_upwind
+
+function get_i_downwind(wnd_dir, i) result(res)
+
+integer, intent(in) :: &
+  wnd_dir,            &! Wind direction index (1=west, 2=east, 3=south, 4=north)
+  i                    ! Grid index
+
+integer :: &
+  res                  ! Resulting downwind indexes
+
+select case (wnd_dir)
+case (1,2) ! Westerly and Easterly winds
+  res = i
+case (3) ! Southerly winds
+  res = i+1
+case (4) ! Northerly winds
+  res = i-1
+end select
+
+end function get_i_downwind
+
+function get_j_downwind(wnd_dir, j) result(res)
+
+integer, intent(in) :: &
+  wnd_dir,            &! Wind direction index (1=west, 2=east, 3=south, 4=north)
+  j                    ! Grid index
+
+integer :: &
+  res                  ! Resulting downwind indexes
+
+select case (wnd_dir)
+case (1) ! Westerly winds
+  res = j+1
+case (2) ! Easterly winds
+  res = j-1
+case (3,4) ! Southerly and Northerly winds
+  res = j
+end select
+
+end function get_j_downwind
+  
+end module FUNCTIONS_SNOWTRAN3D
 
 !-----------------------------------------------------------------------
 ! Parameters for SnowSlide
@@ -525,10 +656,6 @@ real, parameter :: &
   !!! (recommended default value: trig_ratio = 1.0)
   trig_ratio = 1.5,  &! Hysteretic triggering snow holding depth ratio
 
-  ! Density of snow deposits by avalanches
-  !!! (recommended default value: rho_snow = 300.0)
-  rho_deposit = 300.0,  &! Constant snow avalanche deposit density (kg/m^3)  
-
   ! Snow slide can only be triggered above a certain slope
   !!! (recommended default value: slope_min = 25 deg)
   slope_min = 25.0,     &! Minimum slope for snow slide occurrence (deg)
@@ -538,3 +665,32 @@ real, parameter :: &
   Shd_min = 0.05         ! Minimum snow holding depth (m)
   
 end module PARAM_SNOWSLIDE
+
+!-----------------------------------------------------------------------
+! Side functions for SnowSlide
+!-----------------------------------------------------------------------
+module FUNCTIONS_SNOWSLIDE
+
+implicit none
+
+contains
+
+function DEPOSIT_DENSITY(rho_init) result(res)
+
+!-----------------------------------------------------------------------
+! Determine density of avalanche deposit depending on initial density 
+! of sliding snow, following a ln fit of the measurements from 
+! Sovilla et al. (2006) with R2 = 0.80
+!-----------------------------------------------------------------------
+
+real, intent(in) :: &
+  rho_init     ! Initial density of sliding snow (kg/m3)
+
+real :: &
+  res          ! Density of avalanche snow deposit (kg/m3)
+
+res = max(160.68 * LOG(rho_init) - 461.37,rho_init)
+
+end function
+
+end module FUNCTIONS_SNOWSLIDE

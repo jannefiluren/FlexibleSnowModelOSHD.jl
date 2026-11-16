@@ -40,6 +40,13 @@ function setup_transport(
         w.forestfrac .= Tf.(landuse["forest"]["data"])
     end
 
+    # Open-tile and glacier fractions for the transport open-fraction weighting.
+    # SnowTran3D/SnowSlide treat glaciers as open: openfrac = tilefrac + glacierfrac.
+    if haskey(landuse, "glacier")
+        w.glacierfrac .= Tf.(landuse["glacier"]["data"])
+    end
+    w.tilefrac .= Tf(1) .- w.forestfrac .- w.glacierfrac
+
     # Slope (deg) — required
     haskey(landuse, "slope") ||
         throw(ArgumentError("setup_transport requires 'slope' data in the landuse dictionary"))

@@ -35,6 +35,8 @@
     Shd::Matrix{Tf} = fill(Tf(NaN), Nx, Ny)                 # Snow holding depth for gravitational transport (m)
     vegsnowd_xy::Matrix{Tf} = fill(Tf(0.1), Nx, Ny)         # Vegetation snow holding capacity (m)
     forestfrac::Matrix{Tf} = zeros(Tf, Nx, Ny)              # Forest fraction (-)
+    tilefrac::Matrix{Tf} = ones(Tf, Nx, Ny)                 # Open-tile fraction (-)
+    glacierfrac::Matrix{Tf} = zeros(Tf, Nx, Ny)             # Glacier fraction (-)
     index_sorted_dem::Matrix{Int} = zeros(Int, Nx * Ny, 2)    # DEM indices sorted by decreasing elevation
 
     # Cumulative SWE-change accumulators (kg/m^2)

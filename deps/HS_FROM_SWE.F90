@@ -25,7 +25,7 @@ real, intent(in) :: &
   swe                 ! SWE on the top of the snowpack (kg/m^2)
 
 real, intent(out) :: &
-  hs                  ! Snow depth on the top of the snowpack (kg/m^2)
+  hs                  ! Snow depth on the top of the snowpack (m)
 
 integer, intent(in) :: &
   i,j                 ! Point counters
@@ -46,6 +46,7 @@ integer :: &
 eps = 1e-4
 rho_avg = rho_snow
 hs = 0.0
+Ds_tmp = 0.0
 
 swe_tot = sum(Sice(:,i,j)+Sliq(:,i,j))
 

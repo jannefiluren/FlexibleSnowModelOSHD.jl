@@ -11,14 +11,13 @@
 ! compile-time constants in MODULES.F90 and are therefore not arguments.
 !-----------------------------------------------------------------------
 subroutine SNOWSLIDE_WRAPPER(Nx_arg, Ny_arg, Nsmax_arg, Ds_min_arg,      &
-                             rhos_min_arg, rhos_max_arg, tiled_arg,      &
+                             rhos_min_arg, rhos_max_arg,                 &
                              snowdepth0, Sice0, dSWE_slide,              &
                              fsnow_arg, Ds_arg, Sice_arg, Sliq_arg,      &
                              Tsnow_arg, histowet_arg, Nsnow_arg,         &
                              dSWE_tot_slide_arg, index_sorted_dem_arg,   &
-                             dem_arg, slope_arg, Shd_arg, forestfrac_arg)
-
-use MODTILE, only: tiled_trans_run
+                             cellsize_arg, dem_arg, slope_arg, Shd_arg,  &
+                             tilefrac_arg, glacierfrac_arg)
 
 use GRID, only: Nx, Ny, Nsmax, Ds_min
 
@@ -28,14 +27,13 @@ use STATE_VARIABLES, only: &
   fsnow, Ds, Sice, Sliq, Tsnow, histowet, Nsnow, &
   dSWE_tot_slide, index_sorted_dem
 
-use LANDUSE, only: dem, slope, Shd, forestfrac
+use LANDUSE, only: cellsize, dem, slope, Shd, tilefrac, glacierfrac
 
 implicit none
 
 integer, intent(in) :: &
   Nx_arg, Ny_arg,          &! Grid dimensions
-  Nsmax_arg,               &! Maximum number of snow layers
-  tiled_arg                 ! Tiled trans run flag (0 = false, 1 = true)
+  Nsmax_arg                 ! Maximum number of snow layers
 
 real, intent(in) :: &
   Ds_min_arg,              &! Minimum possible snow layer thickness (m)
@@ -60,13 +58,15 @@ integer, intent(inout) :: &
   Nsnow_arg(Nx_arg,Ny_arg)                ! Number of snow layers
 
 integer, intent(in) :: &
-  index_sorted_dem_arg(Nx_arg*Ny_arg,2)   ! Location (i,j) of sorted grid points
+  index_sorted_dem_arg(Nx_arg*Ny_arg,2)   ! Location (i,j) of grid points sorted by decreasing elevation
 
 real, intent(in) :: &
+  cellsize_arg(Nx_arg,Ny_arg),   &! Grid cell size (m)
   dem_arg(Nx_arg,Ny_arg),        &! Terrain elevation (m)
   slope_arg(Nx_arg,Ny_arg),      &! Slope (deg)
   Shd_arg(Nx_arg,Ny_arg),        &! Snow holding depth (m)
-  forestfrac_arg(Nx_arg,Ny_arg)   ! Forest fraction
+  tilefrac_arg(Nx_arg,Ny_arg),   &! Grid cell tile (open) fraction
+  glacierfrac_arg(Nx_arg,Ny_arg)  ! Glacier fraction
 
 ! Set scalar module variables
 Nx = Nx_arg
@@ -75,7 +75,6 @@ Nsmax = Nsmax_arg
 Ds_min = Ds_min_arg
 rhos_min = rhos_min_arg
 rhos_max = rhos_max_arg
-tiled_trans_run = (tiled_arg /= 0)
 
 ! Copy state into module arrays (allocation on assignment)
 fsnow = fsnow_arg
@@ -87,10 +86,12 @@ histowet = histowet_arg
 Nsnow = Nsnow_arg
 dSWE_tot_slide = dSWE_tot_slide_arg
 index_sorted_dem = index_sorted_dem_arg
+cellsize = cellsize_arg
 dem = dem_arg
 slope = slope_arg
 Shd = Shd_arg
-forestfrac = forestfrac_arg
+tilefrac = tilefrac_arg
+glacierfrac = glacierfrac_arg
 
 ! Call the upstream routine
 call SNOWSLIDE(snowdepth0, Sice0, dSWE_slide)

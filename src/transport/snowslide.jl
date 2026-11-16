@@ -26,10 +26,10 @@ function snowslide!(
 
     (; Nx, Ny, Nsmax) = fsm.grid
     (; Ds_min) = fsm.params
-    (; rhos_min, rhos_max, tiled_trans_run) = w
+    (; rhos_min, rhos_max) = w
     (; fsnow, Ds, Sice, Sliq, Tsnow, histowet, Nsnow) = fsm.state
-    (; dSWE_tot_slide, index_sorted_dem, slope, Shd, forestfrac) = w
-    (; dem) = fsm.surface
+    (; dSWE_tot_slide, index_sorted_dem, slope, Shd, tilefrac, glacierfrac) = w
+    (; dem, Ld) = fsm.surface
 
     # The Fortran wrapper is compiled for 4-byte integers. Nsnow is in-out (staged as an Int32
     # copy and read back); index_sorted_dem is read-only (a throwaway Int32 copy). Integer
@@ -42,20 +42,22 @@ function snowslide!(
         Cvoid,
         (
             Ref{Int32}, Ref{Int32}, Ref{Int32}, Ref{Tf},  # Nx, Ny, Nsmax, Ds_min
-            Ref{Tf}, Ref{Tf}, Ref{Int32},                 # rhos_min, rhos_max, tiled_trans_run
+            Ref{Tf}, Ref{Tf},                             # rhos_min, rhos_max
             Ptr{Tf}, Ptr{Tf}, Ptr{Tf},                    # snowdepth0, Sice0, dSWE_slide
             Ptr{Tf}, Ptr{Tf}, Ptr{Tf}, Ptr{Tf},           # fsnow, Ds, Sice, Sliq
             Ptr{Tf}, Ptr{Tf}, Ptr{Int32},                 # Tsnow, histowet, Nsnow
             Ptr{Tf}, Ptr{Int32},                          # dSWE_tot_slide, index_sorted_dem
-            Ptr{Tf}, Ptr{Tf}, Ptr{Tf}, Ptr{Tf},           # dem, slope, Shd, forestfrac
+            Ptr{Tf}, Ptr{Tf}, Ptr{Tf}, Ptr{Tf},           # cellsize, dem, slope, Shd
+            Ptr{Tf}, Ptr{Tf},                             # tilefrac, glacierfrac
         ),
         Nx, Ny, Nsmax, Ds_min,
-        rhos_min, rhos_max, Int32(tiled_trans_run),
+        rhos_min, rhos_max,
         snowdepth0, Sice0, dSWE_slide,
         fsnow, Ds, Sice, Sliq,
         Tsnow, histowet, Nsnow32,
         dSWE_tot_slide, index_sorted_dem32,
-        dem, slope, Shd, forestfrac
+        Ld, dem, slope, Shd,
+        tilefrac, glacierfrac
     )
 
     Nsnow .= Nsnow32
