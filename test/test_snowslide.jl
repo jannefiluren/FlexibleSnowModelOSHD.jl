@@ -73,6 +73,10 @@ function setup_snowslide_case(; forest = false, tiled = false)
 
     end
 
+    # Open-tile and glacier fractions drive the new openfrac weighting
+    # (openfrac = tilefrac + glacierfrac); the forest pattern reduces the open tile.
+    w.tilefrac .= 1.0f0 .- w.forestfrac
+
     # Processing order from highest to lowest pixel
     FlexibleSnowModelOSHD.sort_dem_indices!(w.index_sorted_dem, fsm.surface.dem)
 
@@ -146,10 +150,10 @@ total_swe(fsm, Sice0) = sum(fsm.state.Sice) + sum(fsm.state.Sliq) + sum(Sice0)
 
         # Mass balance: the change in total SWE (apart from the injected
         # deposit) equals the net dSWE_slide, which is negative because edge
-        # pixels dump snow out of the domain. In a tiled run the transferred
-        # SWE is intentionally re-weighted for the later tile combination, so
-        # mass is not conserved within the run.
-        if !tiled
+        # pixels dump snow out of the domain. With an open fraction below 1
+        # (forest), the transferred SWE is intentionally re-weighted by openfrac
+        # for the later tile combination, so mass is not conserved within the run.
+        if !forest
             swe_after = total_swe(fsm_j, Sice0_j)
             @test swe_after - swe_before - swe_injected ≈ sum(w_j.dSWE_tot_slide) rtol = 1.0f-4
             @test sum(w_j.dSWE_tot_slide) < 0

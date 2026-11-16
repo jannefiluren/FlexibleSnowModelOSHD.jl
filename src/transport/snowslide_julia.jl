@@ -263,6 +263,18 @@ end
 """
 $(TYPEDSIGNATURES)
 
+Density of an avalanche deposit (kg/m^3) given the initial density `rho_init`
+(kg/m^3) of the sliding snow, from a log fit of Sovilla et al. (2006).
+
+Pure Julia translation of the Fortran function `DEPOSIT_DENSITY` (FUNCTIONS_SNOWSLIDE).
+"""
+@inline function deposit_density(rho_init::Tf) where {Tf <: Real}
+    return max(Tf(160.68) * log(rho_init) - Tf(461.37), rho_init)
+end
+
+"""
+$(TYPEDSIGNATURES)
+
 Lateral redistribution of snow through gravity using the SnowSlide model.
 
 Pure Julia implementation of the Bernhardt and Schulz (2010) SnowSlide model,
@@ -286,18 +298,23 @@ function snowslide_julia!(
 
     (; Nx, Ny) = fsm.grid
     (; fsnow, Ds) = fsm.state
-    (; dem) = fsm.surface
-    (; dSWE_tot_slide, index_sorted_dem, slope, Shd, forestfrac) = w
-    (; dyn_ratio, trig_ratio, rho_deposit, slope_min, Shd_min) = w
-    (; tiled_trans_run, snow_depo, Shd_corr) = w
+    (; dem, Ld) = fsm.surface
+    (; dSWE_tot_slide, index_sorted_dem, slope, Shd, tilefrac, glacierfrac) = w
+    (; dyn_ratio, trig_ratio, slope_min, Shd_min) = w
+    (; snow_depo, Shd_corr, openfrac) = w
+
+    cellsize = Ld
 
     # Constants
     Tm = Tf(273.15)     # TODO get from constants function...
 
-    # Neighbour offsets in the order S, N, W, E, SW, SE, NW, NE
+    # Neighbour offsets S, N, W, E, SW, SE, NW, NE, and their centre-to-centre distance factors
     offsets = ((-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1))
+    dfactor = map(((di, dj),) -> sqrt(Tf(di^2 + dj^2)), offsets)
 
-    # Boolean to identify pixels where snow is deposited
+    # For snow transport, glaciers are considered open.
+    @. openfrac = tilefrac + glacierfrac
+
     fill!(snow_depo, false)
 
     # Threshold the snow holding depth with Shd_min
@@ -311,8 +328,7 @@ function snowslide_julia!(
 
         # Start slide processes only if slope higher than the defined minimum.
         # If it is a pixel receiving avalanche snow, no slope threshold.
-        # No sliding if more than 50% forest
-        if (slope[i, j] >= slope_min || snow_depo[i, j]) && forestfrac[i, j] < Tf(0.5)
+        if slope[i, j] >= slope_min || snow_depo[i, j]
 
             # Update snowdepth in case snow has been transported to this pixel earlier in the loop
             snowdepth_updated = layer_sum(Ds, i, j) * fsnow[i, j] + snowdepth0[i, j]
@@ -328,12 +344,6 @@ function snowslide_julia!(
 
             # Compute the depth of snow available for avalanche transport
             snowdepth_available = max(zero(Tf), snowdepth_updated - Shd_corr[i, j])
-
-            # Only the open part of the pixel can slide
-            # In case of tiled run, the weighting is done later when combining tiles.
-            if !tiled_trans_run
-                snowdepth_available = snowdepth_available * (one(Tf) - forestfrac[i, j])
-            end
 
             # In absence of current avalanche, an hysteretic ratio of the snow holding depth
             # must be overcome to trigger a new avalanche.
@@ -358,46 +368,43 @@ function snowslide_julia!(
                     dSWE_tot_slide[i, j] = dSWE_tot_slide[i, j] - swe_available
 
                 else
-                    # Case 2: inner domain pixels. Excess snow is routed to lower pixels if there are.
-                    # Mass transfers are weighted by elevation (snowdepth included) differences.
-                    # The forest fraction reduces the weight of the pixel. No snow is
-                    # transferred to fully forested pixels.
+                    # Case 2: inner domain pixels. Excess snow is routed to lower pixels, weighted
+                    # by the slope towards each neighbour and the neighbour's open fraction.
 
-                    wts = map(offsets) do (di, dj)
+                    wts = map(offsets, dfactor) do (di, dj), df
                         @inbounds elev_nb = dem[i + di, j + dj] +
                             layer_sum(Ds, i + di, j + dj) * fsnow[i + di, j + dj] +
                             snowdepth0[i + di, j + dj]
-                        @inbounds return max(zero(Tf), elev - elev_nb) *
-                            (one(Tf) - forestfrac[i + di, j + dj])
+                        delta = (cellsize[i, j] + cellsize[i + di, j + dj]) * df / Tf(2)
+                        @inbounds return max(zero(Tf), atan((elev - elev_nb) / delta)) *
+                            openfrac[i + di, j + dj]
                     end
 
-                    delev_tot = sum(wts)
-                    # if delev_tot == 0 then it's a "sink", no avalanche possible.
+                    weight_tot = sum(wts)
+                    # if weight_tot == 0 then it's a "sink", no avalanche possible.
 
-                    if delev_tot > eps(Tf)
+                    if weight_tot > eps(Tf)
 
                         swe_available = remove_slide_snow!(
                             fsm, w, snowdepth0, Sice0, snowdepth_available, i, j, Tm
                         )
 
+                        # Avalanche deposit density from the initial density of the sliding snow
+                        rho_init = swe_available / snowdepth_available
+                        rho_deposit = deposit_density(rho_init)
+
                         dSWE_slide[i, j] = dSWE_slide[i, j] - swe_available
                         dSWE_tot_slide[i, j] = dSWE_tot_slide[i, j] - swe_available
 
-                        # Transport to neighbour pixels, weighted by elevation difference
-                        # Higher pixels have a weight of 0
+                        # Transport to lower neighbour pixels (higher pixels have weight 0)
                         for ((di, dj), wk) in zip(offsets, wts)
-                            wk = wk / delev_tot
+                            wk = wk / weight_tot
                             if wk > eps(Tf)
                                 dswe = wk * swe_available
-                                # The lower pixel only receives snow from the open part of the
-                                # higher pixel. If not tiled run, snow transfer has already been
-                                # weighted. If tiled run, the SWE transfer is concentrated on the
-                                # open part of the pixel, hence division by open fraction to
-                                # cancel counter-weighting later when combining tiles.
-                                if tiled_trans_run
-                                    dswe = dswe * (one(Tf) - forestfrac[i, j]) /
-                                        (one(Tf) - forestfrac[i + di, j + dj])
-                                end
+                                # The lower pixel only receives snow from the open part of the higher
+                                # pixel; dividing by the neighbour's open fraction cancels the later
+                                # counter-weighting when tiles are combined.
+                                dswe = dswe * openfrac[i, j] / openfrac[i + di, j + dj]
                                 Sice0[i + di, j + dj] = Sice0[i + di, j + dj] + dswe
                                 snowdepth0[i + di, j + dj] = snowdepth0[i + di, j + dj] + dswe / rho_deposit
                                 snow_depo[i + di, j + dj] = true
