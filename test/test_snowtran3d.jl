@@ -85,6 +85,10 @@ function setup_snowtran3d_case(Udir0; forest = false, tiled = false)
 
     end
 
+    # Open-tile and glacier fractions drive the new openfrac weighting
+    # (openfrac = tilefrac + glacierfrac); the forest pattern reduces the open tile.
+    w.tilefrac .= 1.0f0 .- w.forestfrac
+
     # The transport routines read the wind from fsm.diag.Uaeff, which drive!
     # computes from met.Ua; the tests call the routines directly, so mirror drive! here
     fsm.diag.Uaeff .= max.(met.Ua, 0.1f0)
@@ -159,18 +163,25 @@ total_swe_tran(fsm, Sice0) = sum(fsm.state.Sice) + sum(fsm.state.Sliq) + sum(Sic
 
                 # Snow was actually transported (the comparison is not trivial)
                 @test any(!=(0), dSWE_salt_j)
-                @test any(!=(0), dSWE_susp_j)
                 @test any(>(0), Sice0_j)
+
+                # Suspension moves snow in every case except the degenerate pure-northerly
+                # wind (Udir0 = 0), where net suspension deposition is exactly zero in both
+                # the Julia and Fortran paths (verified), so the state comparison still holds.
+                if Udir0 !== 0.0f0
+                    @test any(!=(0), dSWE_susp_j)
+                end
 
                 # Sublimation is a net loss
                 @test sum(dSWE_subl_j) <= 0
 
                 # Mass balance: the change in total SWE equals the net SWE
                 # change from saltation, suspension and sublimation (transport
-                # over the downwind domain edge leaves the domain). In a tiled
-                # run the transferred SWE is intentionally re-weighted for the
-                # later tile combination, so mass is not conserved within the run.
-                if !tiled
+                # over the downwind domain edge leaves the domain). With an open
+                # fraction below 1 (forest), the transferred SWE is intentionally
+                # re-weighted by openfrac for the later tile combination, so mass
+                # is not conserved within the run.
+                if !forest
                     swe_after = total_swe_tran(fsm_j, Sice0_j)
                     dswe_net = sum(dSWE_salt_j) + sum(dSWE_susp_j) + sum(dSWE_subl_j)
                     @test isapprox(swe_after - swe_before, dswe_net; rtol = 1.0f-3, atol = 0.1f0)
@@ -214,7 +225,7 @@ end
 @testset "Erosion down to the holding-depth floor (swe_from_hs loss path)" begin
 
     # Shallow, dry, fully-soft snow under a strong wind: erosion drives cells down to the
-    # vegetation snow-holding floor, exercising the getnewdepth / sublimation loss branches that
+    # vegetation snow-holding floor, exercising the mass-change / sublimation loss branches that
     # convert an eroded depth back to SWE via swe_from_hs. Regression guard - this path is not
     # reached by the moderate-wind cases above (it surfaced only on a full operational domain).
     fsm_f, met, w_f = setup_snowtran3d_case(270.0f0)

@@ -63,7 +63,10 @@ function make_transport_step_case(; wind = false, slide = false)
     met.Sf24h .= 0.0f0
     met.Ta .= 263.0f0
     met.RH .= 80.0f0
-    met.Ua .= 10.0f0
+    # Wind speed increases along the westerly fetch so the saltation flux builds
+    # up (the new SnowTran3D only grows the flux where the friction velocity
+    # increases downwind); a uniform wind would leave the flux at zero.
+    met.Ua .= Float32[2.0f0 + 14.0f0 * Float32(i + j) / Float32(Nx + Ny) for i in 1:Nx, j in 1:Ny]
     met.Ps .= 80000.0f0
     met.Tv .= 1.0f0
     met.Udir .= 270.0f0
