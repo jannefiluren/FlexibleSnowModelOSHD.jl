@@ -15,8 +15,10 @@ Allocate and initialise a [`SnowTransport`](@ref) workspace for `fsm`:
   `deps/MODULES.F90`).
 
 `wind`/`slide` select which processes [`transport!`](@ref) runs; `use_fortran` chooses the
-Fortran ccall path over the Julia port; `tiled` sets the tiled-transport flag. Transport is
-CPU-only, so `fsm` must hold host arrays.
+Fortran ccall path over the Julia port; `tiled` sets the tiled-transport flag. Transport runs in the
+open tile only, so the workspace is built with the open-tile fractions: `tilefrac = 1 − forest −
+glacier` with glacier lumped into the open fraction (`openfrac = tilefrac + glacierfrac`). Transport
+is CPU-only, so `fsm` must hold host arrays.
 """
 function setup_transport(
         fsm::FSM{Tf}, landuse::Dict;
@@ -40,8 +42,9 @@ function setup_transport(
         w.forestfrac .= Tf.(landuse["forest"]["data"])
     end
 
-    # Open-tile and glacier fractions for the transport open-fraction weighting.
-    # SnowTran3D/SnowSlide treat glaciers as open: openfrac = tilefrac + glacierfrac.
+    # Open-tile fractions for the open-fraction weighting: transport scales mass by
+    # openfrac = tilefrac + glacierfrac so it can be recombined with the forest tile. Glaciers are
+    # lumped into the open tile (matching the Fortran, which reads glacierfrac for the open tile).
     if haskey(landuse, "glacier")
         w.glacierfrac .= Tf.(landuse["glacier"]["data"])
     end

@@ -166,7 +166,7 @@ end
 
             snow_hydrology!(hydrology, i, j, state, diag, params)
 
-            compact_snow!(compaction, i, j, state, params)
+            compact_snow!(compaction, i, j, state, diag, surface, params)
 
         end  # Existing snowpack
 
