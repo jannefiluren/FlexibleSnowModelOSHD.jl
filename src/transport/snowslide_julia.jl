@@ -135,7 +135,7 @@ function snow_ablation!(
 
             while k <= Nsnow[i, j] && Ds_tmp < dDs
                 k += 1
-                k > Nsmax && break  # whole full pack eroded: Fortran reads past the column, value unused (Nsnow -> 0)
+                k > Nsmax && break  # whole full pack eroded (Fortran reads past the column here; value unused, Nsnow -> 0)
                 swe_layer = Sice[k, i, j] + Sliq[k, i, j]
                 Ds_tmp += Ds[k, i, j]
                 swe_tmp += swe_layer

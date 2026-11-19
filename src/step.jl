@@ -48,8 +48,10 @@ function step!(fsm::FSM{Tf}, met::MET{Tf}, t; transport = nothing) where {Tf}
     # 5. Canopy interception / unloading
     canopy_mass_balance!(fsm)
 
-    # 6. Snow processes
-    snow!(fsm, met, t)
+    # 6. Snow processes. With transport, the 14-day snow-cover history is rolled after the last
+    # transport relayer pass instead (post-transport state, as FSM2 SNOW.F90), not here.
+    transport_on = transport !== nothing && (transport.wind || transport.slide)
+    snow!(fsm, met, t; update_hist = !transport_on && 4.5 < hour(t) < 5.5)
 
     # 7. Soil thermal processes
     soil!(fsm)

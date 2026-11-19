@@ -5,8 +5,8 @@ using Dates
 # transport! is the step!-level snow-transport step. These tests check three things on a small
 # multi-cell open-tile domain: (1) transport! reproduces exactly the documented
 # operator-then-relayer sequence, (2) step! runs transport! when a workspace is passed and is a
-# no-op otherwise, (3) transport's relayer passes do not roll the 14-day history (update_hist is
-# false there). The Julia operators are used throughout so the tests need no Fortran build; the
+# no-op otherwise, (3) with transport the 14-day snow-cover history is rolled exactly once, by the
+# last relayer pass (post-transport state, as FSM2 SNOW.F90). The Julia operators are used throughout so the tests need no Fortran build; the
 # operators themselves are cross-validated against Fortran in test_snowslide/test_snowtran3d.
 
 const Nx, Ny = 8, 6
@@ -151,54 +151,48 @@ end
 
 end
 
-@testset "transport does not roll the 14-day history" begin
-
-    # At a history-roll hour, snow!'s new-snow pass rolls the 14-day buffers once; transport!'s
-    # relayer passes must not roll them again (update_hist = false)
-    t_roll = DateTime(2024, 1, 15, 5)
-    fsm, met, w = make_transport_step_case(; wind = true, slide = true)
-
-    swehist_before = copy(fsm.state.swehist)
-    snowdepthhist_before = copy(fsm.state.snowdepthhist)
-
-    transport!(fsm, met, w, t_roll)
-
-    @test fsm.state.swehist == swehist_before
-    @test fsm.state.snowdepthhist == snowdepthhist_before
-
-end
-
-@testset "fortran_hist_roll rolls the 14-day history once per relayer pass" begin
+@testset "transport rolls the 14-day history once, in the last relayer pass" begin
 
     t_roll = DateTime(2024, 1, 15, 5)
     for (wind, slide) in ((true, false), (false, true), (true, true))
         fsm, met, w = make_transport_step_case(; wind = wind, slide = slide)
-        w.fortran_hist_roll = true
         fsm.state.swehist .= reshape(Float32.(1:(14 * Nx * Ny)), 14, Nx, Ny)
         swehist_before = copy(fsm.state.swehist)
 
+        # Not a roll hour: transport! leaves the history untouched
         transport!(fsm, met, w, t_test)
         @test fsm.state.swehist == swehist_before
 
+        # Roll hour: shifted by exactly one, whatever the number of enabled processes
         transport!(fsm, met, w, t_roll)
-        nroll = wind + slide
-        @test fsm.state.swehist[(nroll + 1):14, :, :] == swehist_before[1:(14 - nroll), :, :]
+        @test fsm.state.swehist[2:14, :, :] == swehist_before[1:13, :, :]
     end
 
 end
 
-@testset "veg_shd sets the vegetation snow-holding depth" begin
+@testset "step! with transport rolls the history once, with the post-transport SWE" begin
 
-    _, _, w = make_transport_step_case(; wind = true)
-    @test all(==(0.1f0), w.vegsnowd_xy)
+    t_roll = DateTime(2024, 1, 15, 5)
+    for (wind, slide) in ((true, false), (false, true), (true, true))
+        fsm, met, w = make_transport_step_case(; wind = wind, slide = slide)
+        fsm.state.swehist .= reshape(Float32.(1:(14 * Nx * Ny)), 14, Nx, Ny)
+        swehist_before = copy(fsm.state.swehist)
 
-    fsm, _, _ = make_transport_step_case(; wind = true)
-    lus = Dict(
-        "elevation" => Dict("data" => zeros(Nx, Ny)),
-        "slope" => Dict("data" => fill(30.0, Nx, Ny)),
-    )
-    w0 = setup_transport(fsm, lus; wind = true, veg_shd = 0)
-    @test all(iszero, w0.vegsnowd_xy)
+        step!(fsm, met, t_roll; transport = w)
+
+        # One roll per step (snow! does not roll when transport follows)
+        @test fsm.state.swehist[2:14, :, :] == swehist_before[1:13, :, :]
+        # The newest entry is the snowpack SWE after transport
+        swe = dropdims(sum(fsm.state.Sice; dims = 1) .+ sum(fsm.state.Sliq; dims = 1); dims = 1)
+        @test fsm.state.swehist[1, :, :] ≈ swe rtol = 1.0f-5 atol = 1.0f-3
+    end
+
+    # Without transport, snow! still rolls the history once
+    fsm, met, _ = make_transport_step_case()
+    fsm.state.swehist .= reshape(Float32.(1:(14 * Nx * Ny)), 14, Nx, Ny)
+    swehist_before = copy(fsm.state.swehist)
+    step!(fsm, met, t_roll)
+    @test fsm.state.swehist[2:14, :, :] == swehist_before[1:13, :, :]
 
 end
 

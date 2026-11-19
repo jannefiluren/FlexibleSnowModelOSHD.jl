@@ -26,9 +26,10 @@ implementation per `w.use_fortran`. Each process zeroes the deposit arrays
 `fsm.diag.snowdepth0` / `Sice0`, runs the operator (which erodes the pack and writes incoming
 mass into the deposit), then relayers the deposit with [`relayer!`](@ref).
 
-The relayer passes do not roll the 14-day snow-cover history, so it is rolled once per day (by
-`snow!`). With `w.fortran_hist_roll` they roll it as well at the 05 UTC step, as the legacy FSM2
-does (`SNOW_LAYERING` after each transport process), giving one extra roll per enabled process.
+The 14-day snow-cover history is rolled once per day, at the 05 UTC step, by the **last** relayer
+pass (after SnowSlide if enabled, else after SnowTran3D), so it holds the post-transport state;
+`step!` then skips the roll in `snow!`. This matches FSM2 `SNOW.F90` (`update_hist` flag of
+`SNOW_LAYERING`).
 
 Transport is **CPU-only**; `fsm` must hold host `Array`s. Called from `step!` when a workspace
 is passed; a normal `step!` (no `transport`) does not run it.
@@ -41,7 +42,7 @@ function transport!(fsm::FSM{Tf}, met::MET{Tf}, w::SnowTransport{Tf}, t) where {
     (w.wind || w.slide) || return nothing
 
     (; snowdepth0, Sice0) = fsm.diag
-    update_hist = w.fortran_hist_roll && 4.5 < hour(t) < 5.5
+    hist_hour = 4.5 < hour(t) < 5.5   # roll the 14-day history only in the last relayer pass
 
     if w.wind
         fill!(snowdepth0, zero(Tf))
@@ -54,7 +55,7 @@ function transport!(fsm::FSM{Tf}, met::MET{Tf}, w::SnowTransport{Tf}, t) where {
         else
             snowtran3d_julia!(fsm, met, w, snowdepth0, Sice0, w.dSWE_salt, w.dSWE_susp, w.dSWE_subl)
         end
-        relayer!(fsm, met, t; update_hist = update_hist)
+        relayer!(fsm, met, t; update_hist = hist_hour && !w.slide)
     end
 
     if w.slide
@@ -66,7 +67,7 @@ function transport!(fsm::FSM{Tf}, met::MET{Tf}, w::SnowTransport{Tf}, t) where {
         else
             snowslide_julia!(fsm, w, snowdepth0, Sice0, w.dSWE_slide)
         end
-        relayer!(fsm, met, t; update_hist = update_hist)
+        relayer!(fsm, met, t; update_hist = hist_hour)
     end
 
     return nothing

@@ -1,5 +1,5 @@
 """
-    snow!(fsm, meteo, t)
+    snow!(fsm, meteo, t; update_hist = 4.5 < hour(t) < 5.5)
 
 Snow physics processes including heat conduction, melting, sublimation, hydraulics, and compaction.
 
@@ -7,13 +7,13 @@ Snow physics processes including heat conduction, melting, sublimation, hydrauli
 - `fsm::FSM`: Model state structure (modified in-place)
 - `meteo::MET`: Current meteorological conditions (read-only)
 - `t`: Current simulation time
+- `update_hist` (keyword): roll the 14-day SWE/snow-depth history of the snow cover fraction. The
+  default rolls it at the 05 UTC step (the 06 h values); `step!` passes `false` when snow
+  transport follows, since [`transport!`](@ref) then rolls it after the last relayer pass.
 """
-function snow!(fsm::FSM{Tf}, meteo::MET{Tf}, t) where {Tf <: Real}
+function snow!(fsm::FSM{Tf}, meteo::MET{Tf}, t; update_hist::Bool = 4.5 < hour(t) < 5.5) where {Tf <: Real}
 
     (; Nsmax) = fsm.grid
-
-    # Resolve dates here as they cannot cross into kernels
-    update_hist = 4.5 < hour(t) < 5.5
 
     backend = get_backend(fsm.state.Tsnow)
     kernel! = snow_kernel!(backend)
