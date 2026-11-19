@@ -167,3 +167,61 @@ end
     @test fsm.state.snowdepthhist == snowdepthhist_before
 
 end
+
+@testset "fortran_hist_roll rolls the 14-day history once per relayer pass" begin
+
+    t_roll = DateTime(2024, 1, 15, 5)
+    for (wind, slide) in ((true, false), (false, true), (true, true))
+        fsm, met, w = make_transport_step_case(; wind = wind, slide = slide)
+        w.fortran_hist_roll = true
+        fsm.state.swehist .= reshape(Float32.(1:(14 * Nx * Ny)), 14, Nx, Ny)
+        swehist_before = copy(fsm.state.swehist)
+
+        transport!(fsm, met, w, t_test)
+        @test fsm.state.swehist == swehist_before
+
+        transport!(fsm, met, w, t_roll)
+        nroll = wind + slide
+        @test fsm.state.swehist[(nroll + 1):14, :, :] == swehist_before[1:(14 - nroll), :, :]
+    end
+
+end
+
+@testset "veg_shd sets the vegetation snow-holding depth" begin
+
+    _, _, w = make_transport_step_case(; wind = true)
+    @test all(==(0.1f0), w.vegsnowd_xy)
+
+    fsm, _, _ = make_transport_step_case(; wind = true)
+    lus = Dict(
+        "elevation" => Dict("data" => zeros(Nx, Ny)),
+        "slope" => Dict("data" => fill(30.0, Nx, Ny)),
+    )
+    w0 = setup_transport(fsm, lus; wind = true, veg_shd = 0)
+    @test all(iszero, w0.vegsnowd_xy)
+
+end
+
+@testset "snow_ablation! removes a full pack eroded beyond its depth" begin
+
+    fsm, _, _ = make_transport_step_case(; wind = true)
+    (; Nsmax) = fsm.grid
+    state = fsm.state
+    i, j = 2, 2
+    state.Nsnow[i, j] = Nsmax
+    state.fsnow[i, j] = 1.0f0
+    for k in 1:Nsmax
+        state.Ds[k, i, j] = 0.1f0
+        state.Sice[k, i, j] = 20.0f0
+        state.Sliq[k, i, j] = 0.0f0
+    end
+    hs = sum(state.Ds[:, i, j])
+    swe = sum(state.Sice[:, i, j])
+
+    FlexibleSnowModelOSHD.snow_ablation!(fsm, hs + 0.01f0, swe + 1.0f0, i, j, 273.15f0)
+
+    @test state.Nsnow[i, j] == 0
+    @test all(iszero, state.Ds[:, i, j])
+    @test all(iszero, state.Sice[:, i, j])
+
+end

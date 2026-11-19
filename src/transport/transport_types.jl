@@ -18,6 +18,7 @@
     wind::Bool = false                                      # Run wind transport (SnowTran3D)
     slide::Bool = false                                     # Run snow slides (SnowSlide)
     use_fortran::Bool = false                               # Use the Fortran ccall path (else the Julia port)
+    fortran_hist_roll::Bool = false                         # Also roll the 14-day history in the relayer passes (legacy FSM2)
 
     # Tuning constants (defaults match deps/MODULES.F90)
     rhos_min::Tf = 50                                        # Minimum snow density (kg/m^3)

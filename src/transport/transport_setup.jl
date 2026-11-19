@@ -15,7 +15,13 @@ Allocate and initialise a [`SnowTransport`](@ref) workspace for `fsm`:
   `deps/MODULES.F90`).
 
 `wind`/`slide` select which processes [`transport!`](@ref) runs; `use_fortran` chooses the
-Fortran ccall path over the Julia port; `tiled` sets the tiled-transport flag. Transport runs in the
+Fortran ccall path over the Julia port; `tiled` sets the tiled-transport flag.
+`veg_shd` is the vegetation snow-holding depth (m): no saltation where the snowpack is not deeper,
+and wind erosion stops at this depth. The legacy FSM2 intends 0.1 m but leaves it uninitialised
+(effectively 0), so use `veg_shd = 0` to compare against that reference.
+`fortran_hist_roll = true` reproduces the legacy FSM2, which also rolls the 14-day snow-cover
+history in the relayer pass after each transport process (see [`transport!`](@ref)); use it only to
+compare against that reference. Transport runs in the
 open tile only, so the workspace is built with the open-tile fractions: `tilefrac = 1 − forest −
 glacier` with glacier lumped into the open fraction (`openfrac = tilefrac + glacierfrac`). Transport
 is CPU-only, so `fsm` must hold host arrays.
@@ -23,6 +29,7 @@ is CPU-only, so `fsm` must hold host arrays.
 function setup_transport(
         fsm::FSM{Tf}, landuse::Dict;
         wind::Bool = false, slide::Bool = false, use_fortran::Bool = false, tiled::Bool = false,
+        fortran_hist_roll::Bool = false, veg_shd::Real = 0.1,
     ) where {Tf}
 
     Nx = Int(fsm.grid.Nx)
@@ -33,9 +40,10 @@ function setup_transport(
     w.slide = slide
     w.use_fortran = use_fortran
     w.tiled_trans_run = tiled
+    w.fortran_hist_roll = fortran_hist_roll
 
     # Vegetation snow-holding capacity (constant on the operational setup)
-    w.vegsnowd_xy .= Tf(0.1)
+    w.vegsnowd_xy .= Tf(veg_shd)
 
     # Forest fraction (optional; defaults to zero)
     if haskey(landuse, "forest")
