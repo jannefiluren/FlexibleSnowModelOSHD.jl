@@ -35,6 +35,10 @@ end
     include("test_architectures.jl")
 end
 
+@testset "Compaction" begin
+    include("test_compaction.jl")
+end
+
 @testset "SnowSlide" begin
     include("test_snowslide.jl")
 end

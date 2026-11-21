@@ -10,17 +10,37 @@ end
     rhos_max::Tf = 750          # Maximum snow density (kg/m^3)
 end
 
+"""
+$(TYPEDEF)
+
+Crocus (B92) overburden compaction with an optional wind compaction of surface snow
+(Groot Zwaaftink et al., 2013).
+
+# Fields
+
+$(TYPEDFIELDS)
+"""
 @kwdef struct CrocusCompaction{Tf} <: AbstractCompaction{Tf}
-    eta1::Tf = 7.62237e6        # Reference snow viscosity for Crocus B92 compaction (Pa s)
-    a_eta::Tf = 0.1             # Temperature factor for Crocus B92 compaction (K^-1)
-    b_eta::Tf = 0.023           # First density factor for Crocus B92 compaction (m^3/kg)
-    c_eta::Tf = 250             # Second density factor for Crocus B92 compaction (kg/m^3)
-    rhos_max::Tf = 750          # Maximum snow density (kg/m^3)
-    f_liq::Tf = 600             # Liquid-water viscosity factor (600 for fixed layering, 60 for density layering)
-    wndens::Int = 0             # Wind compaction mode: 0 off, 1 cubic, 2 linear (Groot Zwaaftink 2013)
-    U_thresh::Tf = 5.0          # Threshold wind speed for wind compaction of surface snow (m/s)
-    A_enh0::Tf = 5.0            # Wind compaction enhancement parameter (s^3/m^3)
-    d_max::Tf = 0.07            # Maximal depth affected by wind compaction (m)
+    "Reference snow viscosity (Pa s)"
+    eta1::Tf = 7.62237e6
+    "Temperature factor (1/K)"
+    a_eta::Tf = 0.1
+    "First density factor (m^3/kg)"
+    b_eta::Tf = 0.023
+    "Second density factor (kg/m^3)"
+    c_eta::Tf = 250
+    "Maximum snow density (kg/m^3)"
+    rhos_max::Tf = 750
+    "Liquid-water viscosity factor (-)"
+    f_liq::Tf = 600
+    "Wind compaction mode: 0 off, 1 cubic, 2 linear in the excess wind speed"
+    wndens::Int = 0
+    "Threshold wind speed at 3 m for wind compaction (m/s)"
+    U_thresh::Tf = 5.0
+    "Wind compaction enhancement parameter (s^3/m^3)"
+    A_enh0::Tf = 5.0
+    "Maximum depth affected by wind compaction (m)"
+    d_max::Tf = 0.07
 end
 
 AgeCompaction{Tf}(grid::Grid; kwargs...) where {Tf} = AgeCompaction{Tf}(; kwargs...)
@@ -88,7 +108,7 @@ end
     (; z0_snow) = surface
     mass = Tf(0.0)
     d_bottom = Tf(0.0)
-    # Wind speed adjusted to 3 m, where the wind compaction parameterization is valid (only used when on)
+    # Wind speed at 3 m, where the wind compaction parameterization is valid
     U_new = wndens == 0 ? Tf(0) : Uaeff[i, j] * log(Tf(3) / z0_snow[i, j]) / log(zU / z0_snow[i, j])
     for k in 1:Nsnow[i, j]
         mass = mass + Tf(0.5) * (Sice[k, i, j] + Sliq[k, i, j]) / fsnow[i, j]

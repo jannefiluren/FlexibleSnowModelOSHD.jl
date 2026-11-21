@@ -24,18 +24,17 @@ deposits that partly re-slide without an underlying snowpack.
 
 With `forest = true`, a forest fraction pattern is added: mostly open pixels,
 some partly forested pixels that reduce the slide transfer, pixels above the
-50% no-slide threshold, and dense forest. `tiled` sets the tiled trans run
-flag, which changes how the forest weighting is applied.
+50% no-slide threshold, and dense forest.
 
 Returns the model `fsm` and its transport workspace `w`.
 """
-function setup_snowslide_case(; forest = false, tiled = false)
+function setup_snowslide_case(; forest = false)
 
     Nx, Ny = 12, 10
 
     fsm = bare_fsm(Grid(Float32; Nx = Nx, Ny = Ny))
-    w = SnowTransport{Float32}(Nx = Int32(Nx), Ny = Int32(Ny))
-    w.tiled_trans_run = tiled
+    w = SnowTransport{Float32}(Nx = Nx, Ny = Ny)
+    forestfrac = zeros(Float32, Nx, Ny)
 
     state = fsm.state
 
@@ -43,7 +42,7 @@ function setup_snowslide_case(; forest = false, tiled = false)
 
         if forest
             ff = (2 * i + 3 * j) % 8
-            w.forestfrac[i, j] =
+            forestfrac[i, j] =
                 ff < 5 ? 0.0f0 : (ff == 5 ? 0.3f0 : (ff == 6 ? 0.6f0 : 0.95f0))
         end
 
@@ -73,9 +72,9 @@ function setup_snowslide_case(; forest = false, tiled = false)
 
     end
 
-    # Open-tile and glacier fractions drive the new openfrac weighting
-    # (openfrac = tilefrac + glacierfrac); the forest pattern reduces the open tile.
-    w.tilefrac .= 1.0f0 .- w.forestfrac
+    # The forest pattern reduces the open fraction that weights the transferred mass
+    w.tilefrac .= 1.0f0 .- forestfrac
+    w.openfrac .= w.tilefrac .+ w.glacierfrac
 
     # Processing order from highest to lowest pixel
     FlexibleSnowModelOSHD.sort_dem_indices!(w.index_sorted_dem, fsm.surface.dem)
@@ -86,11 +85,10 @@ end
 
 total_swe(fsm, Sice0) = sum(fsm.state.Sice) + sum(fsm.state.Sliq) + sum(Sice0)
 
-@testset "Fortran vs Julia comparison (forest = $forest, tiled = $tiled)" for (forest, tiled) in
-    ((false, false), (true, false), (true, true))
+@testset "Fortran vs Julia comparison (forest = $forest)" for forest in (false, true)
 
     # Identical initial states for the two implementations
-    fsm_f, w_f = setup_snowslide_case(; forest, tiled)
+    fsm_f, w_f = setup_snowslide_case(; forest)
     fsm_j, w_j = deepcopy(fsm_f), deepcopy(w_f)
 
     Nx, Ny = fsm_f.grid.Nx, fsm_f.grid.Ny
@@ -115,9 +113,9 @@ total_swe(fsm, Sice0) = sum(fsm.state.Sice) + sum(fsm.state.Sliq) + sum(Sice0)
             for j in 4:6, i in 7:9
                 for (snowdepth0, Sice0) in ((snowdepth0_f, Sice0_f), (snowdepth0_j, Sice0_j))
                     snowdepth0[i, j] += 1.5f0
-                    Sice0[i, j] += 1.5f0 * w_f.rho_deposit
+                    Sice0[i, j] += 1.5f0 * 300.0f0
                 end
-                swe_injected += 1.5f0 * w_f.rho_deposit
+                swe_injected += 1.5f0 * 300.0f0
             end
         end
 

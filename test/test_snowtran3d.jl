@@ -22,19 +22,18 @@ some bare pixels. Layer densities lie within [rhos_min, rhos_max].
 
 With `forest = true`, a forest fraction pattern is added: mostly open pixels,
 some partly forested pixels that reduce the saltation flux, and dense forest
-pixels (> 0.9) that block it. `tiled` sets the tiled trans run flag, which
-changes how the forest weighting is applied.
+pixels (> 0.9) that block it.
 
 Returns the model `fsm`, the meteo `met`, and the transport workspace `w`.
 """
-function setup_snowtran3d_case(Udir0; forest = false, tiled = false)
+function setup_snowtran3d_case(Udir0; forest = false)
 
     Nx, Ny = 12, 10
 
     fsm = bare_fsm(Grid(Float32; Nx = Nx, Ny = Ny))
     met = MET{Float32}(Nx = Nx, Ny = Ny)
-    w = SnowTransport{Float32}(Nx = Int32(Nx), Ny = Int32(Ny))
-    w.tiled_trans_run = tiled
+    w = SnowTransport{Float32}(Nx = Nx, Ny = Ny)
+    forestfrac = zeros(Float32, Nx, Ny)
 
     state = fsm.state
 
@@ -42,7 +41,7 @@ function setup_snowtran3d_case(Udir0; forest = false, tiled = false)
 
         if forest
             ff = (3 * i + 5 * j) % 10
-            w.forestfrac[i, j] = ff < 6 ? 0.0f0 : (ff < 9 ? 0.3f0 : 0.95f0)
+            forestfrac[i, j] = ff < 6 ? 0.0f0 : (ff < 9 ? 0.3f0 : 0.95f0)
         end
 
         # Wind field: speed varies over the domain (2-16 m/s; suspension needs
@@ -85,9 +84,9 @@ function setup_snowtran3d_case(Udir0; forest = false, tiled = false)
 
     end
 
-    # Open-tile and glacier fractions drive the new openfrac weighting
-    # (openfrac = tilefrac + glacierfrac); the forest pattern reduces the open tile.
-    w.tilefrac .= 1.0f0 .- w.forestfrac
+    # The forest pattern reduces the open fraction that weights the transported mass
+    w.tilefrac .= 1.0f0 .- forestfrac
+    w.openfrac .= w.tilefrac .+ w.glacierfrac
 
     # The transport routines read the wind from fsm.diag.Uaeff, which drive!
     # computes from met.Ua; the tests call the routines directly, so mirror drive! here
@@ -101,12 +100,11 @@ total_swe_tran(fsm, Sice0) = sum(fsm.state.Sice) + sum(fsm.state.Sliq) + sum(Sic
 
 # Base wind directions: westerly, easterly, southerly, northerly, diagonal,
 # plus a swirling field with sign changes in both wind components; each with
-# and without forest, and the forest cases also as a tiled run
-@testset "Fortran vs Julia comparison (Udir = $Udir0, forest = $forest, tiled = $tiled)" for
-    Udir0 in (270.0f0, 90.0f0, 180.0f0, 0.0f0, 225.0f0, :swirl),
-        (forest, tiled) in ((false, false), (true, false), (true, true))
+# and without forest
+@testset "Fortran vs Julia comparison (Udir = $Udir0, forest = $forest)" for
+    Udir0 in (270.0f0, 90.0f0, 180.0f0, 0.0f0, 225.0f0, :swirl), forest in (false, true)
 
-    fsm_f, met, w_f = setup_snowtran3d_case(Udir0 === :swirl ? 270.0f0 : Udir0; forest, tiled)
+    fsm_f, met, w_f = setup_snowtran3d_case(Udir0 === :swirl ? 270.0f0 : Udir0; forest)
     Nx, Ny = fsm_f.grid.Nx, fsm_f.grid.Ny
     if Udir0 === :swirl
         for j in 1:Ny, i in 1:Nx
@@ -165,9 +163,7 @@ total_swe_tran(fsm, Sice0) = sum(fsm.state.Sice) + sum(fsm.state.Sliq) + sum(Sic
                 @test any(!=(0), dSWE_salt_j)
                 @test any(>(0), Sice0_j)
 
-                # Suspension moves snow in every case except the degenerate pure-northerly
-                # wind (Udir0 = 0), where net suspension deposition is exactly zero in both
-                # the Julia and Fortran paths (verified), so the state comparison still holds.
+                # Pure northerly wind (Udir0 = 0) gives zero net suspension in both paths
                 if Udir0 !== 0.0f0
                     @test any(!=(0), dSWE_susp_j)
                 end
@@ -224,10 +220,9 @@ end
 
 @testset "Erosion down to the holding-depth floor (swe_from_hs loss path)" begin
 
-    # Shallow, dry, fully-soft snow under a strong wind: erosion drives cells down to the
-    # vegetation snow-holding floor, exercising the mass-change / sublimation loss branches that
-    # convert an eroded depth back to SWE via swe_from_hs. Regression guard - this path is not
-    # reached by the moderate-wind cases above (it surfaced only on a full operational domain).
+    # Shallow, dry, fully-soft snow under a strong wind: erosion reaches the vegetation
+    # snow-holding floor, exercising the mass-change / sublimation branches that convert an
+    # eroded depth back to SWE via swe_from_hs (not reached by the moderate-wind cases above).
     fsm_f, met, w_f = setup_snowtran3d_case(270.0f0)
     Nx, Ny = fsm_f.grid.Nx, fsm_f.grid.Ny
 
@@ -259,5 +254,29 @@ end
             @test isapprox(a, b; rtol = 1.0f-4, atol = 1.0f-5)
         end
     end
+
+end
+
+@testset "snow_ablation! removes a full pack eroded beyond its depth" begin
+
+    fsm, _, _ = setup_snowtran3d_case(270.0f0)
+    (; Nsmax) = fsm.grid
+    state = fsm.state
+    i, j = 2, 2
+    state.Nsnow[i, j] = Nsmax
+    state.fsnow[i, j] = 1.0f0
+    for k in 1:Nsmax
+        state.Ds[k, i, j] = 0.1f0
+        state.Sice[k, i, j] = 20.0f0
+        state.Sliq[k, i, j] = 0.0f0
+    end
+    hs = sum(state.Ds[:, i, j])
+    swe = sum(state.Sice[:, i, j])
+
+    FlexibleSnowModelOSHD.snow_ablation!(fsm, hs + 0.01f0, swe + 1.0f0, i, j, 273.15f0)
+
+    @test state.Nsnow[i, j] == 0
+    @test all(iszero, state.Ds[:, i, j])
+    @test all(iszero, state.Sice[:, i, j])
 
 end

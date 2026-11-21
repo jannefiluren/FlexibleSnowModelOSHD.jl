@@ -5,6 +5,10 @@
 # a relayer! pass then accumulates the deposit into the snowpack, driven by a run-level
 # SnowTransport workspace.
 
+# Whether a transport workspace runs any process (`nothing`: no transport)
+transport_active(w::SnowTransport) = w.wind || w.slide
+transport_active(::Nothing) = false
+
 # Fall back to the Julia port (with a warning) when use_fortran is set but the shared library
 # was not built, so a run never hard-fails on a missing gfortran toolchain.
 function transport_use_fortran(w::SnowTransport, lib::String)
@@ -26,10 +30,9 @@ implementation per `w.use_fortran`. Each process zeroes the deposit arrays
 `fsm.diag.snowdepth0` / `Sice0`, runs the operator (which erodes the pack and writes incoming
 mass into the deposit), then relayers the deposit with [`relayer!`](@ref).
 
-The 14-day snow-cover history is rolled once per day, at the 05 UTC step, by the **last** relayer
-pass (after SnowSlide if enabled, else after SnowTran3D), so it holds the post-transport state;
-`step!` then skips the roll in `snow!`. This matches FSM2 `SNOW.F90` (`update_hist` flag of
-`SNOW_LAYERING`).
+At [`history_roll_hour`](@ref) the 14-day snow-cover history is rolled by the last relayer
+pass (after SnowSlide if enabled, else after SnowTran3D), so it holds the post-transport
+state; `step!` then skips the roll in `snow!`.
 
 Transport is **CPU-only**; `fsm` must hold host `Array`s. Called from `step!` when a workspace
 is passed; a normal `step!` (no `transport`) does not run it.
@@ -39,17 +42,14 @@ function transport!(fsm::FSM{Tf}, met::MET{Tf}, w::SnowTransport{Tf}, t) where {
     fsm.state.Ds isa Array ||
         throw(ArgumentError("snow transport is CPU-only; `fsm` must hold host Arrays (got $(typeof(fsm.state.Ds)))"))
 
-    (w.wind || w.slide) || return nothing
+    transport_active(w) || return nothing
 
     (; snowdepth0, Sice0) = fsm.diag
-    hist_hour = 4.5 < hour(t) < 5.5   # roll the 14-day history only in the last relayer pass
+    hist_hour = history_roll_hour(t)
 
     if w.wind
         fill!(snowdepth0, zero(Tf))
         fill!(Sice0, zero(Tf))
-        fill!(w.dSWE_salt, zero(Tf))
-        fill!(w.dSWE_susp, zero(Tf))
-        fill!(w.dSWE_subl, zero(Tf))
         if transport_use_fortran(w, "libsnowtran3d")
             snowtran3d!(fsm, met, w, snowdepth0, Sice0, w.dSWE_salt, w.dSWE_susp, w.dSWE_subl)
         else

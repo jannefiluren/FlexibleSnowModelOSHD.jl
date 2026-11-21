@@ -5,11 +5,10 @@ $(TYPEDSIGNATURES)
 
 Snow transport by wind using Liston's SnowTran3D model.
 
-Implementation of Liston and Sturm (1998) and Liston et al. (2007) SnowTran3D model via Fortran ccall.
-The upstream Fortran routines are kept verbatim in deps/ and are entered through
-the standalone wrapper in deps/SNOWTRAN3D_WRAPPER.F90. Model parameters
-(flag_variable_Utau_t, Utau_t_const, rho_snow, blowby, ...) are hardcoded
-constants in deps/MODULES.F90.
+Implementation of Liston and Sturm (1998) and Liston et al. (2007) SnowTran3D model via
+Fortran ccall. The upstream Fortran routines are kept verbatim in deps/ and are entered
+through the standalone wrapper in deps/SNOWTRAN3D_WRAPPER.F90. Model parameters (rho_snow,
+blowby, fetch, xmu, ...) are hardcoded constants in deps/MODULES.F90.
 
 # Arguments
 - `fsm::FSM`: Model state structure

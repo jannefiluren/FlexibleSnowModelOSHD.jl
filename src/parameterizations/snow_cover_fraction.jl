@@ -280,6 +280,14 @@ end
 """
 $(TYPEDSIGNATURES)
 
+Whether the step ending at `t` rolls the 14-day SWE/snow-depth history of the snow cover
+fraction: once a day, at the 05 UTC step, so the history holds the 06 h values.
+"""
+history_roll_hour(t) = 4.5 < hour(t) < 5.5
+
+"""
+$(TYPEDSIGNATURES)
+
 Snow cover fraction for one grid cell (host convenience wrapper around
 [`snowcoverfraction_point!`](@ref), kept for API compatibility).
 
@@ -288,8 +296,7 @@ function-local (they were always pure workspace).
 """
 function snow_cover_fraction!(fsm::FSM{Tf}, snowdepth::Tf, SWEtmp::Tf, t::DateTime, i::Int, j::Int, SWEbuffer::AbstractArray{Tf}, snowdepthbuffer::AbstractArray{Tf}, diffSWEbuffer::AbstractArray{Tf}) where {Tf <: Real}
 
-    # update history of SWE and hs only if they correspond to 6:00am values
-    update_hist = 4.5 < hour(t) < 5.5
+    update_hist = history_roll_hour(t)
 
     @inbounds snowcoverfraction_point!(
         fsm.physics.snow_fraction, fsm.state, fsm.surface,

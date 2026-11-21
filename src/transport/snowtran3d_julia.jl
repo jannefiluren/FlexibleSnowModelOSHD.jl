@@ -1,5 +1,5 @@
 """
-    hs_from_swe(fsm, swe, i, j)
+$(TYPEDSIGNATURES)
 
 Compute the snow depth (m) corresponding to the top `swe` kg/m^2 of the
 snowpack at pixel (i, j).
@@ -20,14 +20,14 @@ function hs_from_swe(
     hs = zero(Tf)
     Ds_tmp = zero(Tf)
 
-    swe_tot = sum(Sice[k, i, j] + Sliq[k, i, j] for k in axes(Sice, 1))
+    swe_tot = column_swe(Sice, Sliq, i, j)
 
     @inbounds if swe > eps(Tf) && swe <= swe_tot + eps_swe
 
         if swe >= swe_tot
 
             # Fix computing approximations to avoid instabilities
-            Ds_tmp = layer_sum(Ds, i, j)
+            Ds_tmp = column_sum(Ds, i, j)
 
         else
 
@@ -187,6 +187,7 @@ function compute_soft_snow!(
     (; Ds, Nsnow, histowet, Sliq) = fsm.state
     (; Ds_soft) = w
 
+    fill!(Ds_soft, zero(Tf))
     @inbounds for j in 1:Ny, i in 1:Nx
         k = 1
         while k <= Nsnow[i, j] && Sliq[k, i, j] < eps(Tf) && histowet[k, i, j] < Tf(0.5)
@@ -225,13 +226,7 @@ function update_soft_snow!(
 
             rho_layer = (Sice[k, i, j] + Sliq[k, i, j]) / Ds[k, i, j] / fsnow[i, j]
 
-            if rho_layer <= Tf(300)
-                Utau_t_layer = Tf(0.1) * exp(Tf(0.003) * rho_layer)
-            else
-                Utau_t_layer = Tf(0.005) * exp(Tf(0.013) * rho_layer)
-            end
-
-            if Utau[i, j] - Utau_t_layer > eps(Tf)
+            if Utau[i, j] - threshold_friction_velocity(rho_layer) > eps(Tf)
                 Ds_soft[i, j] += Ds[k, i, j]
             else
                 hard_layer_reached = true
@@ -244,6 +239,11 @@ function update_soft_snow!(
     end
 
     return nothing
+end
+
+# Threshold friction velocity (m/s) of snow with density `rho` (kg/m^3)
+@inline function threshold_friction_velocity(rho::Tf) where {Tf <: Real}
+    return rho <= Tf(300) ? Tf(0.1) * exp(Tf(0.003) * rho) : Tf(0.005) * exp(Tf(0.013) * rho)
 end
 
 """
@@ -269,11 +269,7 @@ function compute_threshold_friction_velocity!(
             rho_surf_snow = (Sice[1, i, j] + Sliq[1, i, j]) / Ds[1, i, j] / fsnow[i, j]
         end
 
-        if rho_surf_snow <= Tf(300)
-            Utau_t[i, j] = Tf(0.1) * exp(Tf(0.003) * rho_surf_snow)
-        else
-            Utau_t[i, j] = Tf(0.005) * exp(Tf(0.013) * rho_surf_snow)
-        end
+        Utau_t[i, j] = threshold_friction_velocity(rho_surf_snow)
 
     end
 
@@ -332,7 +328,7 @@ function friction_velocity_solver(
 
     end
 
-    @warn "friction_velocity_solver: max iteration exceeded when solving for Utau, Utau = $old"
+    @warn "friction_velocity_solver: max iteration exceeded, Utau = $old" maxlog = 10
 
     return xnew
 end
@@ -592,6 +588,19 @@ function suspension!(
     return nothing
 end
 
+# Flux leaving cell (ic, jc): zero unless both it and its downwind neighbour (idw, jdw) are
+# open (openfrac >= 0.1), then scaled by the downwind open fraction
+@inline function open_flux(Q::Tf, openfrac::Matrix{Tf}, ic, jc, idw, jdw) where {Tf <: Real}
+    Nx, Ny = size(openfrac)
+    if openfrac[ic, jc] < Tf(0.1)
+        Q = zero(Tf)
+    end
+    if idw >= 1 && idw <= Nx && jdw >= 1 && jdw <= Ny
+        Q = openfrac[idw, jdw] < Tf(0.1) ? zero(Tf) : Q * openfrac[idw, jdw]
+    end
+    return Q
+end
+
 """
 $(TYPEDSIGNATURES)
 
@@ -603,10 +612,9 @@ Translation of the Fortran subroutine `UPDATE_SUSPENSION_FLUX_PER_DIRECTION`.
 function update_suspension_flux_per_direction!(
         fsm::FSM{Tf}, w::SnowTransport{Tf},
         Qsusp_dir::Matrix{Tf}, Qsusp_eq_dir::Matrix{Tf},
-        wnd_dir::Int, index_array::Matrix{Int}, dim1_size::Int, dim2_size::Int
+        wnd_dir::Int, index_array::Matrix{Int}, dim1_size::Int
     ) where {Tf <: Real}
 
-    (; Nx, Ny) = fsm.grid
     (; Ld) = fsm.surface
     (; openfrac) = w
 
@@ -633,17 +641,7 @@ function update_suspension_flux_per_direction!(
                 Qsusp_dir_in = Qsusp_dir[iuw, juw]
                 Qsusp_dir[ic, jc] = Qsusp_dir_in + scale * (Qsusp_eq_dir[ic, jc] - Qsusp_dir_in)
 
-                if openfrac[ic, jc] < Tf(0.1)
-                    Qsusp_dir[ic, jc] = zero(Tf)
-                end
-
-                if idw >= 1 && idw <= Nx && jdw >= 1 && jdw <= Ny
-                    if openfrac[idw, jdw] < Tf(0.1)
-                        Qsusp_dir[ic, jc] = zero(Tf)
-                    else
-                        Qsusp_dir[ic, jc] = Qsusp_dir[ic, jc] * openfrac[idw, jdw]
-                    end
-                end
+                Qsusp_dir[ic, jc] = open_flux(Qsusp_dir[ic, jc], openfrac, ic, jc, idw, jdw)
 
             end
         end
@@ -671,10 +669,10 @@ function relax_suspension_flux!(
     fill!(Qsusp_u, zero(Tf))
     fill!(Qsusp_v, zero(Tf))
 
-    update_suspension_flux_per_direction!(fsm, w, Qsusp_u, Qsusp_eq_u, 1, index_uw, Nx, Ny)
-    update_suspension_flux_per_direction!(fsm, w, Qsusp_u, Qsusp_eq_u, 2, index_ue, Nx, Ny)
-    update_suspension_flux_per_direction!(fsm, w, Qsusp_v, Qsusp_eq_v, 3, index_vs, Ny, Nx)
-    update_suspension_flux_per_direction!(fsm, w, Qsusp_v, Qsusp_eq_v, 4, index_vn, Ny, Nx)
+    update_suspension_flux_per_direction!(fsm, w, Qsusp_u, Qsusp_eq_u, 1, index_uw, Nx)
+    update_suspension_flux_per_direction!(fsm, w, Qsusp_u, Qsusp_eq_u, 2, index_ue, Nx)
+    update_suspension_flux_per_direction!(fsm, w, Qsusp_v, Qsusp_eq_v, 3, index_vs, Ny)
+    update_suspension_flux_per_direction!(fsm, w, Qsusp_v, Qsusp_eq_v, 4, index_vn, Ny)
 
     return nothing
 end
@@ -691,10 +689,9 @@ Translation of the Fortran subroutine `UPDATE_SALTATION_FLUX_PER_DIRECTION`.
 function update_saltation_flux_per_direction!(
         fsm::FSM{Tf}, w::SnowTransport{Tf},
         Qsalt_dir::Matrix{Tf}, Qsalt_max_dir::Matrix{Tf},
-        wnd_dir::Int, index_array::Matrix{Int}, dim1_size::Int, dim2_size::Int
+        wnd_dir::Int, index_array::Matrix{Int}, dim1_size::Int
     ) where {Tf <: Real}
 
-    (; Nx, Ny) = fsm.grid
     (; Ld) = fsm.surface
     (; Utau, openfrac) = w
 
@@ -732,17 +729,7 @@ function update_saltation_flux_per_direction!(
                     end
                 end
 
-                if openfrac[ic, jc] < Tf(0.1)
-                    Qsalt_dir[ic, jc] = zero(Tf)
-                end
-
-                if idw >= 1 && idw <= Nx && jdw >= 1 && jdw <= Ny
-                    if openfrac[idw, jdw] < Tf(0.1)
-                        Qsalt_dir[ic, jc] = zero(Tf)
-                    else
-                        Qsalt_dir[ic, jc] = Qsalt_dir[ic, jc] * openfrac[idw, jdw]
-                    end
-                end
+                Qsalt_dir[ic, jc] = open_flux(Qsalt_dir[ic, jc], openfrac, ic, jc, idw, jdw)
 
             end
         end
@@ -787,10 +774,10 @@ function saltation!(
     fill!(Qsalt_u, zero(Tf))
     fill!(Qsalt_v, zero(Tf))
 
-    update_saltation_flux_per_direction!(fsm, w, Qsalt_u, Qsalt_maxu, 1, index_uw, Nx, Ny)
-    update_saltation_flux_per_direction!(fsm, w, Qsalt_u, Qsalt_maxu, 2, index_ue, Nx, Ny)
-    update_saltation_flux_per_direction!(fsm, w, Qsalt_v, Qsalt_maxv, 3, index_vs, Ny, Nx)
-    update_saltation_flux_per_direction!(fsm, w, Qsalt_v, Qsalt_maxv, 4, index_vn, Ny, Nx)
+    update_saltation_flux_per_direction!(fsm, w, Qsalt_u, Qsalt_maxu, 1, index_uw, Nx)
+    update_saltation_flux_per_direction!(fsm, w, Qsalt_u, Qsalt_maxu, 2, index_ue, Nx)
+    update_saltation_flux_per_direction!(fsm, w, Qsalt_v, Qsalt_maxv, 3, index_vs, Ny)
+    update_saltation_flux_per_direction!(fsm, w, Qsalt_v, Qsalt_maxv, 4, index_vn, Ny)
 
     return nothing
 end
@@ -806,7 +793,7 @@ Translation of the Fortran subroutine `COMPUTE_MASS_CHANGES_PER_DIRECTION`.
 """
 function compute_mass_changes_per_direction!(
         fsm::FSM{Tf}, w::SnowTransport{Tf},
-        wnd_dir::Int, index_array::Matrix{Int}, dim1_size::Int, dim2_size::Int,
+        wnd_dir::Int, index_array::Matrix{Int}, dim1_size::Int,
         dSWE_s::Matrix{Tf}, Qs_dir::Matrix{Tf},
         snowdepth0::Matrix{Tf}, Sice0::Matrix{Tf}, Tm::Tf
     ) where {Tf <: Real}
@@ -832,7 +819,7 @@ function compute_mass_changes_per_direction!(
                 idw = get_i_downwind(wnd_dir, ic)
                 jdw = get_j_downwind(wnd_dir, jc)
 
-                # Stop transport at an internal wind reversal so the terminal cell deposits the incoming flux
+                # Stop at an internal wind reversal: the terminal cell deposits the inflow
                 if dim2 == kend && idw >= 1 && idw <= Nx && jdw >= 1 && jdw <= Ny
                     Qs_dir[ic, jc] = zero(Tf)
                 end
@@ -897,7 +884,7 @@ function compute_mass_changes_per_direction!(
                 end
 
                 dSWE_s[ic, jc] += dSWE_loc
-                snowthickness[ic, jc] = layer_sum(Ds, ic, jc)
+                snowthickness[ic, jc] = column_sum(Ds, ic, jc)
 
             end
         end
@@ -923,10 +910,10 @@ function update_mass_changes!(
     (; Nx, Ny) = fsm.grid
     (; index_ue, index_uw, index_vn, index_vs) = w
 
-    compute_mass_changes_per_direction!(fsm, w, 1, index_uw, Nx, Ny, dSWE_s, Qs_u, snowdepth0, Sice0, Tm)
-    compute_mass_changes_per_direction!(fsm, w, 2, index_ue, Nx, Ny, dSWE_s, Qs_u, snowdepth0, Sice0, Tm)
-    compute_mass_changes_per_direction!(fsm, w, 3, index_vs, Ny, Nx, dSWE_s, Qs_v, snowdepth0, Sice0, Tm)
-    compute_mass_changes_per_direction!(fsm, w, 4, index_vn, Ny, Nx, dSWE_s, Qs_v, snowdepth0, Sice0, Tm)
+    compute_mass_changes_per_direction!(fsm, w, 1, index_uw, Nx, dSWE_s, Qs_u, snowdepth0, Sice0, Tm)
+    compute_mass_changes_per_direction!(fsm, w, 2, index_ue, Nx, dSWE_s, Qs_u, snowdepth0, Sice0, Tm)
+    compute_mass_changes_per_direction!(fsm, w, 3, index_vs, Ny, dSWE_s, Qs_v, snowdepth0, Sice0, Tm)
+    compute_mass_changes_per_direction!(fsm, w, 4, index_vn, Ny, dSWE_s, Qs_v, snowdepth0, Sice0, Tm)
 
     return nothing
 end
@@ -949,15 +936,10 @@ function fluxes_and_mass_balance!(
     (; Nx, Ny) = fsm.grid
     (; dt) = fsm.params
     (; Ds, fsnow, Sice, Sliq) = fsm.state
-    (; vegsnowd_xy, tilefrac, glacierfrac, openfrac, snowthickness, Ds_soft) = w
+    (; vegsnowd_xy, openfrac, snowthickness, Ds_soft) = w
     (; Qsalt_u, Qsalt_v, Qsusp_u, Qsusp_v, Qsusp_eq_u, Qsusp_eq_v) = w
     (; Qsubl, Qsubl_susp, Qsubl_salt) = w
     (; dSWE_tot_subl, dSWE_tot_salt, dSWE_tot_susp) = w
-
-    # For snow transport, glaciers are considered open
-    @. openfrac = tilefrac + glacierfrac
-
-    flag_relax_suspension = true
 
     if flag_blowing_snow
 
@@ -969,9 +951,7 @@ function fluxes_and_mass_balance!(
         suspension!(fsm, w, met)
         copyto!(Qsusp_eq_u, Qsusp_u)
         copyto!(Qsusp_eq_v, Qsusp_v)
-        if flag_relax_suspension
-            relax_suspension_flux!(fsm, w)
-        end
+        relax_suspension_flux!(fsm, w)
         update_mass_changes!(fsm, w, Qsusp_u, Qsusp_v, dSWE_susp, snowdepth0, Sice0, Tm)
 
         # Scale the suspension-layer sublimation by |Qsusp| / |Qsusp_eq|
@@ -987,7 +967,7 @@ function fluxes_and_mass_balance!(
 
             Ds_hard = snowthickness[i, j] - Ds_soft[i, j]
             snowdmin = max(vegsnowd_xy[i, j], Ds_hard)
-            swe_loc = sum(Sice[k, i, j] + Sliq[k, i, j] for k in axes(Sice, 1))
+            swe_loc = column_swe(Sice, Sliq, i, j)
 
             dSWE_subl[i, j] = Qsubl[i, j] * dt
             if openfrac[i, j] >= Tf(0.1)
@@ -1028,7 +1008,7 @@ function fluxes_and_mass_balance!(
                 snow_ablation!(fsm, dHS_subl_loss, dSWE_subl_loss, i, j, Tm)
             end
 
-            snowthickness[i, j] = layer_sum(Ds, i, j)
+            snowthickness[i, j] = column_sum(Ds, i, j)
 
         end
 
@@ -1078,14 +1058,13 @@ function snowtran3d_julia!(
     (; Ds) = fsm.state
     Ua_eff = fsm.diag.Uaeff
     (; Udir) = met
-    (; uwind, vwind, snowthickness, Ds_soft, Utau_t) = w
+    (; uwind, vwind, snowthickness) = w
     (; Qsalt_u, Qsalt_v, Qsusp_u, Qsusp_v, Qsubl) = w
     @unpack_constants(Tf)
 
     # Minimum wind speed to compute snow transport (m/s)
     wind_min = Tf(4)
 
-    fill!(Ds_soft, zero(Tf))
     fill!(Qsalt_u, zero(Tf))
     fill!(Qsalt_v, zero(Tf))
     fill!(dSWE_salt, zero(Tf))
@@ -1102,7 +1081,7 @@ function snowtran3d_julia!(
     windspd_flag = zero(Tf)
     @inbounds for j in 1:Ny, i in 1:Nx
         windspd_flag = max(windspd_flag, Ua_eff[i, j])
-        snowthickness[i, j] = layer_sum(Ds, i, j)
+        snowthickness[i, j] = column_sum(Ds, i, j)
     end
 
     compute_soft_snow!(fsm, w)

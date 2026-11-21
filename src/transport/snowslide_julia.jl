@@ -1,19 +1,4 @@
 """
-    layer_sum(A, i, j)
-
-Sum of the layer dimension of a `(Nsmax, Nx, Ny)` array at pixel (i, j).
-Equivalent to `sum(A[:, i, j])` but without the overhead of the generic
-reduction machinery, which matters in the snow slide hot loop.
-"""
-@inline function layer_sum(A::Array{Tf, 3}, i::Integer, j::Integer) where {Tf}
-    s = zero(Tf)
-    @inbounds for k in axes(A, 1)
-        s += A[k, i, j]
-    end
-    return s
-end
-
-"""
 $(TYPEDSIGNATURES)
 
 Compute the SWE (kg/m^2) contained in the top `hs` meters of the snowpack at
@@ -43,14 +28,14 @@ function swe_from_hs(
     @inbounds if fsnow[i, j] > eps(Tf)
 
         dDs = hs / fsnow[i, j]
-        snowthickness = layer_sum(Ds, i, j)
+        snowthickness = column_sum(Ds, i, j)
 
         if dDs > eps(Tf) && dDs <= snowthickness + eps_Ds
 
             if dDs >= snowthickness
 
                 # Fix computing approximations to avoid instabilities
-                swe = sum(Sice[k, i, j] + Sliq[k, i, j] for k in axes(Sice, 1))
+                swe = column_swe(Sice, Sliq, i, j)
 
             else
 
@@ -135,7 +120,7 @@ function snow_ablation!(
 
             while k <= Nsnow[i, j] && Ds_tmp < dDs
                 k += 1
-                k > Nsmax && break  # whole full pack eroded (Fortran reads past the column here; value unused, Nsnow -> 0)
+                k > Nsmax && break  # whole pack eroded: stop before reading past Nsmax
                 swe_layer = Sice[k, i, j] + Sliq[k, i, j]
                 Ds_tmp += Ds[k, i, j]
                 swe_tmp += swe_layer
@@ -288,6 +273,7 @@ the S->N axis, i.e. South of (i,j) is (i-1,j) and West of (i,j) is (i,j-1).
 
 # Arguments
 - `fsm::FSM`: Model state structure
+- `w::SnowTransport`: Transport workspace
 - `snowdepth0::Matrix`: Snow depth of deposited snow (m) - modified in-place
 - `Sice0::Matrix`: Ice content of deposited snow (kg/m²) - modified in-place
 - `dSWE_slide::Matrix`: SWE change due to snow slides (kg/m²) - output
@@ -300,21 +286,15 @@ function snowslide_julia!(
     (; Nx, Ny) = fsm.grid
     (; fsnow, Ds) = fsm.state
     (; dem, Ld) = fsm.surface
-    (; dSWE_tot_slide, index_sorted_dem, slope, Shd, tilefrac, glacierfrac) = w
+    (; dSWE_tot_slide, index_sorted_dem, slope, Shd) = w
     (; dyn_ratio, trig_ratio, slope_min, Shd_min) = w
     (; snow_depo, Shd_corr, openfrac) = w
 
-    cellsize = Ld
+    @unpack_constants(Tf)
 
-    # Constants
-    Tm = Tf(273.15)     # TODO get from constants function...
-
-    # Neighbour offsets S, N, W, E, SW, SE, NW, NE, and their centre-to-centre distance factors
+    # Neighbour offsets S, N, W, E, SW, SE, NW, NE and their centre-to-centre distances
     offsets = ((-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1))
     dfactor = map(((di, dj),) -> sqrt(Tf(di^2 + dj^2)), offsets)
-
-    # For snow transport, glaciers are considered open.
-    @. openfrac = tilefrac + glacierfrac
 
     fill!(snow_depo, false)
 
@@ -332,7 +312,7 @@ function snowslide_julia!(
         if slope[i, j] >= slope_min || snow_depo[i, j]
 
             # Update snowdepth in case snow has been transported to this pixel earlier in the loop
-            snowdepth_updated = layer_sum(Ds, i, j) * fsnow[i, j] + snowdepth0[i, j]
+            snowdepth_updated = column_sum(Ds, i, j) * fsnow[i, j] + snowdepth0[i, j]
 
             # Local elevation accounting for updated snowdepth
             elev = dem[i, j] + snowdepth_updated
@@ -358,8 +338,7 @@ function snowslide_julia!(
             if snow_excess_trigger || snow_excess_depo
 
                 if i == 1 || i == Nx || j == 1 || j == Ny
-                    # Case 1: edge pixels. Excess snow is dumped out of the domain
-                    # to avoid accumulation artefacts. It is not routed to domain pixels.
+                    # Edge pixels: excess snow leaves the domain (no edge accumulation)
 
                     swe_available = remove_slide_snow!(
                         fsm, w, snowdepth0, Sice0, snowdepth_available, i, j, Tm
@@ -369,14 +348,13 @@ function snowslide_julia!(
                     dSWE_tot_slide[i, j] = dSWE_tot_slide[i, j] - swe_available
 
                 else
-                    # Case 2: inner domain pixels. Excess snow is routed to lower pixels, weighted
-                    # by the slope towards each neighbour and the neighbour's open fraction.
+                    # Inner pixels: route to lower neighbours by slope and openfrac
 
                     wts = map(offsets, dfactor) do (di, dj), df
                         @inbounds elev_nb = dem[i + di, j + dj] +
-                            layer_sum(Ds, i + di, j + dj) * fsnow[i + di, j + dj] +
+                            column_sum(Ds, i + di, j + dj) * fsnow[i + di, j + dj] +
                             snowdepth0[i + di, j + dj]
-                        delta = (cellsize[i, j] + cellsize[i + di, j + dj]) * df / Tf(2)
+                        delta = (Ld[i, j] + Ld[i + di, j + dj]) * df / Tf(2)
                         @inbounds return max(zero(Tf), atan((elev - elev_nb) / delta)) *
                             openfrac[i + di, j + dj]
                     end
@@ -390,7 +368,7 @@ function snowslide_julia!(
                             fsm, w, snowdepth0, Sice0, snowdepth_available, i, j, Tm
                         )
 
-                        # Avalanche deposit density from the initial density of the sliding snow
+                        # Deposit density from the density of the sliding snow
                         rho_init = swe_available / snowdepth_available
                         rho_deposit = deposit_density(rho_init)
 
@@ -402,9 +380,7 @@ function snowslide_julia!(
                             wk = wk / weight_tot
                             if wk > eps(Tf)
                                 dswe = wk * swe_available
-                                # The lower pixel only receives snow from the open part of the higher
-                                # pixel; dividing by the neighbour's open fraction cancels the later
-                                # counter-weighting when tiles are combined.
+                                # openfrac ratio cancels the tile-recombination weighting
                                 dswe = dswe * openfrac[i, j] / openfrac[i + di, j + dj]
                                 Sice0[i + di, j + dj] = Sice0[i + di, j + dj] + dswe
                                 snowdepth0[i + di, j + dj] = snowdepth0[i + di, j + dj] + dswe / rho_deposit

@@ -1,5 +1,5 @@
 """
-    step!(fsm, met, t)
+    step!(fsm, met, t; transport = nothing)
 
 Execute one complete physics time step of the snow model.
 
@@ -18,15 +18,9 @@ This function encapsulates the standard model execution sequence:
 - `met::MET`: Current meteorological conditions
 - `t::DateTime`: Current simulation time
 - `transport::Union{SnowTransport, Nothing}` (keyword): when a workspace is passed, run the
-  horizontal snow-transport step ([`transport!`](@ref)) at the end of the step; when `nothing`
-  (default), the step is identical to a run without transport.
-
-# Example
-```julia
-fsm = FSM(Grid(Float32; Nx = Nx, Ny = Ny), landuse; land_cover = ForestCover{Float32}())
-met = MET{Float32}(Nx = Nx, Ny = Ny)
-step!(fsm, met, DateTime(2023, 12, 1, 12))
-```
+  horizontal snow-transport step ([`transport!`](@ref)) at the end of the step, which then
+  also rolls the 14-day snow-cover history; when `nothing` (default), the step is identical
+  to a run without transport.
 """
 function step!(fsm::FSM{Tf}, met::MET{Tf}, t; transport = nothing) where {Tf}
 
@@ -48,10 +42,8 @@ function step!(fsm::FSM{Tf}, met::MET{Tf}, t; transport = nothing) where {Tf}
     # 5. Canopy interception / unloading
     canopy_mass_balance!(fsm)
 
-    # 6. Snow processes. With transport, the 14-day snow-cover history is rolled after the last
-    # transport relayer pass instead (post-transport state, as FSM2 SNOW.F90), not here.
-    transport_on = transport !== nothing && (transport.wind || transport.slide)
-    snow!(fsm, met, t; update_hist = !transport_on && 4.5 < hour(t) < 5.5)
+    # 6. Snow processes (transport, if active, rolls the snow-cover history instead)
+    snow!(fsm, met, t; update_hist = !transport_active(transport) && history_roll_hour(t))
 
     # 7. Soil thermal processes
     soil!(fsm)

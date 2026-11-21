@@ -8,8 +8,8 @@ Lateral redistribution of snow through gravity using the SnowSlide model.
 Implementation of Bernhardt and Schulz (2010) SnowSlide model via Fortran ccall.
 The upstream Fortran routines are kept verbatim in deps/ and are entered through
 the standalone wrapper in deps/SNOWSLIDE_WRAPPER.F90. Model parameters
-(dyn_ratio, trig_ratio, rho_deposit, slope_min, Shd_min, rho_snow) are
-hardcoded constants in deps/MODULES.F90.
+(dyn_ratio, trig_ratio, slope_min, Shd_min, rho_snow) are hardcoded constants in
+deps/MODULES.F90; the deposit density follows the density of the sliding snow.
 Reference: Quéno et al. (2024)
 
 # Arguments
