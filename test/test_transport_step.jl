@@ -2,12 +2,11 @@ using FlexibleSnowModelOSHD
 using Test
 using Dates
 
-# transport! is the step!-level snow-transport step. These tests check three things on a small
-# multi-cell open-tile domain: (1) transport! reproduces exactly the documented
-# operator-then-relayer sequence, (2) step! runs transport! when a workspace is passed and is a
-# no-op otherwise, (3) transport's relayer passes do not roll the 14-day history (update_hist is
-# false there). The Julia operators are used throughout so the tests need no Fortran build; the
-# operators themselves are cross-validated against Fortran in test_snowslide/test_snowtran3d.
+# transport! is the step!-level snow-transport step. On a small open-tile domain these
+# tests check that (1) transport! reproduces the operator-then-relayer sequence, (2) step!
+# runs transport! only when a workspace is passed, and (3) the 14-day snow-cover history is
+# rolled once per step, after transport. The Julia operators are used throughout, so no
+# Fortran build is needed; they are cross-validated in test_snowslide/test_snowtran3d.
 
 const Nx, Ny = 8, 6
 const t_test = DateTime(2024, 1, 15, 12)      # not a history-roll hour
@@ -63,7 +62,9 @@ function make_transport_step_case(; wind = false, slide = false)
     met.Sf24h .= 0.0f0
     met.Ta .= 263.0f0
     met.RH .= 80.0f0
-    met.Ua .= 10.0f0
+    # Wind speed increases along the westerly fetch: saltation only grows where the friction
+    # velocity increases downwind, so a uniform wind would leave the flux at zero
+    met.Ua .= Float32[2.0f0 + 14.0f0 * Float32(i + j) / Float32(Nx + Ny) for i in 1:Nx, j in 1:Ny]
     met.Ps .= 80000.0f0
     met.Tv .= 1.0f0
     met.Udir .= 270.0f0
@@ -148,19 +149,38 @@ end
 
 end
 
-@testset "transport does not roll the 14-day history" begin
+@testset "the 14-day history is rolled once per step, after transport" begin
 
-    # At a history-roll hour, snow!'s new-snow pass rolls the 14-day buffers once; transport!'s
-    # relayer passes must not roll them again (update_hist = false)
     t_roll = DateTime(2024, 1, 15, 5)
-    fsm, met, w = make_transport_step_case(; wind = true, slide = true)
+    seed_hist!(fsm) = (fsm.state.swehist .= reshape(Float32.(1:(14 * Nx * Ny)), 14, Nx, Ny))
+    rolled_once(a, b) = a[2:14, :, :] == b[1:13, :, :]
 
-    swehist_before = copy(fsm.state.swehist)
-    snowdepthhist_before = copy(fsm.state.snowdepthhist)
+    for (wind, slide) in ((true, false), (false, true), (true, true), (false, false))
+        fsm, met, w = make_transport_step_case(; wind = wind, slide = slide)
+        seed_hist!(fsm)
+        swehist0 = copy(fsm.state.swehist)
+        snowdepthhist0 = copy(fsm.state.snowdepthhist)
 
-    transport!(fsm, met, w, t_roll)
+        # transport! alone never rolls outside the roll hour
+        transport!(fsm, met, w, t_test)
+        @test fsm.state.swehist == swehist0
 
-    @test fsm.state.swehist == swehist_before
-    @test fsm.state.snowdepthhist == snowdepthhist_before
+        # Roll hour: one roll per step, holding the post-transport SWE when transport runs
+        fsm, met, w = make_transport_step_case(; wind = wind, slide = slide)
+        seed_hist!(fsm)
+        fsm_ref = deepcopy(fsm)
+        step!(fsm_ref, met, t_roll)
+        step!(fsm, met, t_roll; transport = w)
+
+        @test rolled_once(fsm.state.swehist, swehist0)
+        @test rolled_once(fsm.state.snowdepthhist, snowdepthhist0)
+        swe = dropdims(sum(fsm.state.Sice; dims = 1) .+ sum(fsm.state.Sliq; dims = 1); dims = 1)
+        @test fsm.state.swehist[1, :, :] ≈ swe rtol = 1.0f-5 atol = 1.0f-3
+        if wind || slide
+            @test fsm.state.swehist[1, :, :] != fsm_ref.state.swehist[1, :, :]
+        else
+            @test fsm.state.swehist == fsm_ref.state.swehist
+        end
+    end
 
 end

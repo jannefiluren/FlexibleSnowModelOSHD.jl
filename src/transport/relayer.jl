@@ -4,8 +4,8 @@ $(TYPEDSIGNATURES)
 Grid-level relayering pass: accumulate the deposit currently in `diag.snowdepth0` /
 `diag.Sice0` into the snowpack, update the snow cover fraction and relayer, at every cell above
 the tile threshold. Reuses the [`snow_layering!`](@ref) point function that `snow_kernel!` runs
-for new snow; [`transport!`](@ref) calls this to layer in redistributed snow. `update_hist`
-should be `false` here so the 14-day history is rolled only once per step (by `snow!`).
+for new snow; [`transport!`](@ref) calls this to layer in redistributed snow, rolling the
+14-day snow-cover history (`update_hist`) only in its last pass.
 """
 function relayer!(fsm::FSM{Tf}, met::MET{Tf}, t; update_hist::Bool = false) where {Tf}
 

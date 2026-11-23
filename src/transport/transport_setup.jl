@@ -8,37 +8,39 @@ $(TYPEDSIGNATURES)
 
 Allocate and initialise a [`SnowTransport`](@ref) workspace for `fsm`:
 
-- loads `slope` (deg) and `forest` fraction from the `landuse` dictionary,
+- loads `slope` (deg) and the `forest`/`glacier` fractions from the `landuse` dictionary,
 - derives the snow holding depth `Shd` from slope,
-- sorts the DEM indices (highest → lowest) for the SnowSlide processing order,
-- sets the vegetation snow-holding capacity and the tuning constants (defaults match
-  `deps/MODULES.F90`).
+- sorts the DEM indices (highest → lowest) for the SnowSlide processing order.
+
+The vegetation snow-holding depth (0.1 m) and the tuning constants keep their
+[`SnowTransport`](@ref) defaults, which match `deps/MODULES.F90`.
 
 `wind`/`slide` select which processes [`transport!`](@ref) runs; `use_fortran` chooses the
-Fortran ccall path over the Julia port; `tiled` sets the tiled-transport flag. Transport is
-CPU-only, so `fsm` must hold host arrays.
+Fortran ccall path over the Julia port. Transport runs in the open tile only, so the
+workspace is built with the open-tile fractions: `tilefrac = 1 − forest − glacier`, with
+glaciers counted as open (`openfrac = tilefrac + glacierfrac`). Transport is CPU-only, so
+`fsm` must hold host arrays.
 """
 function setup_transport(
         fsm::FSM{Tf}, landuse::Dict;
-        wind::Bool = false, slide::Bool = false, use_fortran::Bool = false, tiled::Bool = false,
+        wind::Bool = false, slide::Bool = false, use_fortran::Bool = false,
     ) where {Tf}
 
     Nx = Int(fsm.grid.Nx)
     Ny = Int(fsm.grid.Ny)
 
-    w = SnowTransport{Tf}(Nx = Int(Nx), Ny = Int(Ny))
+    w = SnowTransport{Tf}(Nx = Nx, Ny = Ny)
     w.wind = wind
     w.slide = slide
     w.use_fortran = use_fortran
-    w.tiled_trans_run = tiled
 
-    # Vegetation snow-holding capacity (constant on the operational setup)
-    w.vegsnowd_xy .= Tf(0.1)
-
-    # Forest fraction (optional; defaults to zero)
-    if haskey(landuse, "forest")
-        w.forestfrac .= Tf.(landuse["forest"]["data"])
+    # Open fractions; transport weights mass by openfrac for the tile recombination
+    forestfrac = haskey(landuse, "forest") ? Tf.(landuse["forest"]["data"]) : zeros(Tf, Nx, Ny)
+    if haskey(landuse, "glacier")
+        w.glacierfrac .= Tf.(landuse["glacier"]["data"])
     end
+    w.tilefrac .= Tf(1) .- forestfrac .- w.glacierfrac
+    w.openfrac .= w.tilefrac .+ w.glacierfrac
 
     # Slope (deg) — required
     haskey(landuse, "slope") ||

@@ -47,6 +47,7 @@ integer :: &
 eps = 1e-4
 rho_avg = rho_snow
 swe = 0.0
+Ds_tmp = 0.0
 
 if (fsnow(i,j) > epsilon(fsnow)) then
   

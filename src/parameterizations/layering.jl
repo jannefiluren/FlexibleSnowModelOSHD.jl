@@ -115,7 +115,7 @@ function relayer_snow! end
 
 Base.@propagate_inbounds function relayer_snow!(::OriginalLayering{Tf}, i, j, state, diag, grid, params, snowdepth, Tsnow0, ::Val{Nsmax}) where {Tf, Nsmax}
     @unpack_constants(Tf)
-    (; Ds, Sice, Sliq, Tsnow, Nsnow, fsnow) = state
+    (; Ds, Sice, Sliq, Tsnow, histowet, Nsnow, fsnow) = state
     (; Sice0) = diag
     (; Dzsnow) = grid
     (; Tsnow_min) = params
@@ -127,11 +127,13 @@ Base.@propagate_inbounds function relayer_snow!(::OriginalLayering{Tf}, i, j, st
     S = zero(MVector{Nsmax, Tf})
     U = zero(MVector{Nsmax, Tf})
     W = zero(MVector{Nsmax, Tf})
+    hw = zero(MVector{Nsmax, Tf})
 
     # New snowpack
     if (Nsnow[i, j] == 0 && Sice[1, i, j] > eps(Tf))
         Nsnow[i, j] = 1
         Tsnow[1, i, j] = Tsnow0
+        histowet[1, i, j] = Tf(0)
     end
 
     # Store state of old layers
@@ -139,6 +141,7 @@ Base.@propagate_inbounds function relayer_snow!(::OriginalLayering{Tf}, i, j, st
         D[si] = Ds[si, i, j]
         S[si] = Sice[si, i, j]
         W[si] = Sliq[si, i, j]
+        hw[si] = histowet[si, i, j]
     end
     if (fsnow[i, j] > eps(Tf))
         csnow[1] = (Sice[1, i, j] * hcap_ice + Sliq[1, i, j] * hcap_wat) / fsnow[i, j]
@@ -160,6 +163,7 @@ Base.@propagate_inbounds function relayer_snow!(::OriginalLayering{Tf}, i, j, st
         Sice[k, i, j] = Tf(0)
         Sliq[k, i, j] = Tf(0)
         Tsnow[k, i, j] = Tm
+        histowet[k, i, j] = Tf(0)
     end
     fill!(U, Tf(0))
     Nsnow[i, j] = 0
@@ -196,6 +200,7 @@ Base.@propagate_inbounds function relayer_snow!(::OriginalLayering{Tf}, i, j, st
                     Sice[knew, i, j] = Sice[knew, i, j] + S[kold]
                     Sliq[knew, i, j] = Sliq[knew, i, j] + W[kold]
                     U[knew] = U[knew] + E[kold]
+                    histowet[knew, i, j] = max(histowet[knew, i, j], hw[kold])
                     dnew = dnew - D[kold]
                     break
                 else
@@ -204,6 +209,7 @@ Base.@propagate_inbounds function relayer_snow!(::OriginalLayering{Tf}, i, j, st
                     Sice[knew, i, j] = Sice[knew, i, j] + wt * S[kold]
                     Sliq[knew, i, j] = Sliq[knew, i, j] + wt * W[kold]
                     U[knew] = U[knew] + wt * E[kold]
+                    histowet[knew, i, j] = max(histowet[knew, i, j], hw[kold])
                     D[kold] = (1 - wt) * D[kold]
                     E[kold] = (1 - wt) * E[kold]
                     S[kold] = (1 - wt) * S[kold]

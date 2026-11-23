@@ -17,6 +17,20 @@ end
 """
 $(TYPEDSIGNATURES)
 
+Snow water equivalent (kg/m^2) of the column at pixel (i, j): the layer sum of `Sice + Sliq`
+for `(Nlayer, Nx, Ny)` arrays, accumulated top-down from the first layer.
+"""
+@inline function column_swe(Sice::AbstractArray{Tf, 3}, Sliq::AbstractArray{Tf, 3}, i::Integer, j::Integer) where {Tf}
+    s = Sice[1, i, j] + Sliq[1, i, j]
+    @inbounds for k in 2:size(Sice, 1)
+        s += Sice[k, i, j] + Sliq[k, i, j]
+    end
+    return s
+end
+
+"""
+$(TYPEDSIGNATURES)
+
 Index of the first minimum of `v[1:n]`. Equivalent to `argmin(v[1:n])` for
 data without NaNs, written as a plain loop that is safe inside kernels
 (range indexing of an `MVector` would allocate).

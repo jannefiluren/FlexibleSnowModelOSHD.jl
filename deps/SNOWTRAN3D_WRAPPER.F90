@@ -12,18 +12,16 @@
 !-----------------------------------------------------------------------
 subroutine SNOWTRAN3D_WRAPPER(Nx_arg, Ny_arg, Nsmax_arg, Ds_min_arg,       &
                               dt_arg, zU_arg, zRH_arg,                     &
-                              rhos_min_arg, rhos_max_arg, tiled_arg,       &
+                              rhos_min_arg, rhos_max_arg,                  &
                               snowdepth0, Sice0,                           &
                               dSWE_salt, dSWE_susp, dSWE_subl,             &
                               Ua_arg, Udir_arg, Ta_arg, RH_arg,            &
-                              veg_shd_arg, z0_snow_arg,                    &
+                              veg_shd_arg, z0_snow_arg, z0sf_arg,          &
                               fsnow_arg, Ds_arg, Sice_arg, Sliq_arg,       &
                               Tsnow_arg, histowet_arg, Nsnow_arg,          &
                               dSWE_tot_subl_arg, dSWE_tot_salt_arg,        &
                               dSWE_tot_susp_arg,                           &
-                              cellsize_arg, dem_arg, forestfrac_arg)
-
-use MODTILE, only: tiled_trans_run
+                              cellsize_arg, tilefrac_arg, glacierfrac_arg)
 
 use GRID, only: Nx, Ny, Nsmax, Ds_min
 
@@ -31,20 +29,19 @@ use DRIVING, only: dt, zU, zRH, Ua, Udir, Ta, RH
 
 use PARAMETERS, only: rhos_min, rhos_max
 
-use PARAMMAPS, only: veg_shd, z0_snow
+use PARAMMAPS, only: veg_shd, z0_snow, z0sf
 
 use STATE_VARIABLES, only: &
   fsnow, Ds, Sice, Sliq, Tsnow, histowet, Nsnow, &
   dSWE_tot_subl, dSWE_tot_salt, dSWE_tot_susp
 
-use LANDUSE, only: cellsize, dem, forestfrac
+use LANDUSE, only: cellsize, tilefrac, glacierfrac
 
 implicit none
 
 integer, intent(in) :: &
   Nx_arg, Ny_arg,          &! Grid dimensions
-  Nsmax_arg,               &! Maximum number of snow layers
-  tiled_arg                 ! Tiled trans run flag (0 = false, 1 = true)
+  Nsmax_arg                 ! Maximum number of snow layers
 
 real, intent(in) :: &
   Ds_min_arg,              &! Minimum possible snow layer thickness (m)
@@ -67,7 +64,8 @@ real, intent(in) :: &
   Ta_arg(Nx_arg,Ny_arg),         &! Air temperature (K)
   RH_arg(Nx_arg,Ny_arg),         &! Relative humidity (%)
   veg_shd_arg(Nx_arg,Ny_arg),    &! Vegetation snow holding depth (m)
-  z0_snow_arg(Nx_arg,Ny_arg)      ! Roughness length of snow (m)
+  z0_snow_arg(Nx_arg,Ny_arg),    &! Roughness length of snow (m)
+  z0sf_arg(Nx_arg,Ny_arg)         ! Snow-free roughness length (m)
 
 real, intent(inout) :: &
   fsnow_arg(Nx_arg,Ny_arg),              &! Snow cover fraction
@@ -85,8 +83,8 @@ integer, intent(inout) :: &
 
 real, intent(in) :: &
   cellsize_arg(Nx_arg,Ny_arg),   &! Grid cell size (m)
-  dem_arg(Nx_arg,Ny_arg),        &! Terrain elevation (m)
-  forestfrac_arg(Nx_arg,Ny_arg)   ! Forest fraction
+  tilefrac_arg(Nx_arg,Ny_arg),   &! Grid cell tile (open) fraction
+  glacierfrac_arg(Nx_arg,Ny_arg)  ! Glacier fraction
 
 ! Set scalar module variables
 Nx = Nx_arg
@@ -98,7 +96,6 @@ zU = zU_arg
 zRH = zRH_arg
 rhos_min = rhos_min_arg
 rhos_max = rhos_max_arg
-tiled_trans_run = (tiled_arg /= 0)
 
 ! Copy driving data and parameter maps into module arrays (allocation on assignment)
 Ua = Ua_arg
@@ -107,6 +104,7 @@ Ta = Ta_arg
 RH = RH_arg
 veg_shd = veg_shd_arg
 z0_snow = z0_snow_arg
+z0sf = z0sf_arg
 
 ! Copy state into module arrays
 fsnow = fsnow_arg
@@ -120,8 +118,8 @@ dSWE_tot_subl = dSWE_tot_subl_arg
 dSWE_tot_salt = dSWE_tot_salt_arg
 dSWE_tot_susp = dSWE_tot_susp_arg
 cellsize = cellsize_arg
-dem = dem_arg
-forestfrac = forestfrac_arg
+tilefrac = tilefrac_arg
+glacierfrac = glacierfrac_arg
 
 ! Call the upstream routine
 call SNOWTRAN3D(snowdepth0, Sice0, dSWE_salt, dSWE_susp, dSWE_subl)
